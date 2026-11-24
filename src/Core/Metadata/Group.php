@@ -18,6 +18,7 @@ final readonly class Group
     /**
      * @param list<AuthMethod> $auth
      * @param list<string>     $scopes
+     * @param list<Limit>      $limits
      */
     public function __construct(
         public string $name,
@@ -29,6 +30,7 @@ final readonly class Group
         public array $auth = [AuthMethod::ApiKey],
         public array $scopes = [],
         public bool $autoScopes = false,
+        public array $limits = [],
     ) {
     }
 

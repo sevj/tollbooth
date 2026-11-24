@@ -8,6 +8,26 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Rate limiting per consumer. `tollbooth.rate_limit.plans` declares plans made of any number of limits
+  (`["5/10 seconds", "60/minute", "1000/day"]`, or a map to name them). A consumer gets the plan of its
+  API key or `default_plan`; anonymous consumers get `anonymous_plan`.
+- Groups take `rate_limits`, shared by every call to the group, and endpoints take `#[RateLimit(...)]`,
+  counted for that endpoint only. Both come on top of the plan.
+- Windows are fixed and aligned on the clock (a day resets at 00:00 UTC), so clients get an exact reset
+  time. A call refused by one limit is not counted against the others.
+- Every response of a limited endpoint, errors included, carries `RateLimit-Policy` and `RateLimit`
+  headers describing every limit. A refused call answers 429 with `Retry-After` and a `limiters` list in
+  its problem details. `legacy_headers: true` adds `X-RateLimit-*` for the tightest limit.
+- Counters live in any PSR-6 pool (`cache_pool`, `cache.app` by default), guarded by symfony/lock.
+- Exceptions implementing `ProblemMembersInterface` add their own members to problem details.
+
+### Upgrade notes
+- Nothing is limited until plans or limits are declared. `tollbooth.rate_limit.enabled: false` removes
+  the listeners altogether.
+- With several servers, point `cache_pool` at a shared pool (Redis) and configure a shared lock store, or
+  each server counts on its own.
+
 ## [0.4.0] - 2026-11-25
 
 ### Added

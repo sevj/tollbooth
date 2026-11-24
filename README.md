@@ -181,6 +181,63 @@ tollbooth:
 
 Only a SHA-256 hash of the secret is kept. To store keys elsewhere, implement `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface` and set `tollbooth.auth.api_key_provider` to its service id. The header is set by `tollbooth.auth.api_key_header`.
 
+## Rate limiting
+
+A plan is a set of limits, as many as needed, counted per consumer across every endpoint. A consumer gets the plan of its API key, or `default_plan`; anonymous consumers get `anonymous_plan`.
+
+```yaml
+tollbooth:
+    rate_limit:
+        plans:
+            free: ['5/10 seconds', '60/minute', '1000/day']
+            pro:
+                burst: '100/10 seconds'    # names are optional, "10s" otherwise
+                minute: '600/minute'
+                day: '200000/day'
+        default_plan: free
+        anonymous_plan: free
+        cache_pool: cache.app            # use a shared pool (Redis) with several servers
+        legacy_headers: false
+    groups:
+        partner:
+            namespace: App\Api\Partner
+            rate_limits: ['10000/hour']    # shared by every call to the group, named "partner.hour"
+```
+
+An endpoint can add its own limits, counted for that endpoint only:
+
+```php
+#[Endpoint('GET', '/products/search')]
+#[RateLimit('30/minute')]                 // named "search_products.minute"
+final class SearchProducts { … }
+```
+
+Limits are written `<count>/<interval>`, with intervals in seconds, minutes, hours or days (`100/10 seconds`, `50/5m`, `200000/day`). Windows are fixed and aligned on the clock: a minute window resets at the top of the minute, a day window at 00:00 UTC, so the reset time sent to clients is exact. A call refused by one limit is not counted against the others.
+
+Every response of a limited endpoint, errors included, reports every limit with the [IETF RateLimit headers](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/):
+
+```
+RateLimit-Policy: "burst";q=100;w=10, "minute";q=600;w=60, "day";q=200000;w=86400
+RateLimit: "burst";r=97;t=4, "minute";r=581;t=34, "day";r=46020;t=35869
+```
+
+`q` is the quota, `w` the window and `t` the time until the reset, in seconds; `r` is what remains. A refused call answers 429 with `Retry-After` and the state of every limit:
+
+```json
+{
+    "type": "about:blank",
+    "title": "Too Many Requests",
+    "status": 429,
+    "detail": "Rate limit \"burst\" reached: 100 requests per 10 seconds.",
+    "limiters": [
+        { "name": "burst", "limit": 100, "remaining": 0, "reset": 4 },
+        { "name": "minute", "limit": 600, "remaining": 581, "reset": 34 }
+    ]
+}
+```
+
+`legacy_headers: true` also sends `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` for the tightest limit. Calls rejected before authentication are not counted.
+
 ## Versioning
 
 Tollbooth follows [Semantic Versioning 2.0.0](https://semver.org/). Notable changes for each release are recorded in [`CHANGELOG.md`](CHANGELOG.md), and each version is a git tag.
@@ -189,13 +246,14 @@ Tollbooth follows [Semantic Versioning 2.0.0](https://semver.org/). Notable chan
 
 The public API is the contract host applications and API clients rely on:
 
-- the attributes `Tollbooth\Core\Attribute\Endpoint`, `Body`, `Query`, `Auth`, `Scope` and `PublicEndpoint`;
+- the attributes `Tollbooth\Core\Attribute\Endpoint`, `Body`, `Query`, `Auth`, `Scope`, `PublicEndpoint` and `RateLimit`, and the limit syntax `<count>/<interval>`;
+- the exception `Tollbooth\RateLimit\RateLimitExceededException` and the interface `Tollbooth\Core\Problem\ProblemMembersInterface`;
 - the enum `Tollbooth\Core\Security\AuthMethod`, the value objects `Tollbooth\Auth\Consumer` and `Tollbooth\Auth\ApiKey\ApiKey`, and the interface `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface`;
 - the format of API keys (`tb_live_` or `tb_test_`, a 12 character id, a 32 character secret);
 - the `tollbooth` route loader type;
 - the `tollbooth.*` configuration keys;
 - the console command `tollbooth:api-key:generate` and its options;
-- the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, and the problem details shape.
+- the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, rate limit headers and the `limiters` list, and the problem details shape.
 
 Anything else is internal and may change in any release.
 

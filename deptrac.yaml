@@ -43,8 +43,8 @@ deptrac:
     Core: ~
     Auth: [Core]
     Docs: [Core]
-    RateLimit: [Core]
-    Monitoring: [Core]
+    RateLimit: [Core, Auth]
+    Monitoring: [Core, Auth]
     Health: [Core]
     Changes: [Core]
     Dashboard: [Core, Auth, Docs, RateLimit, Monitoring, Health, Changes]

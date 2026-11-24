@@ -11,7 +11,7 @@ use Tollbooth\Core\Security\AuthMethod;
 /**
  * @internal
  *
- * @phpstan-type GroupConfig array{namespace: ?string, path: ?string, prefix: string, output: array{envelope: ?string, case: ?string}, auth?: list<string>|null, scopes?: list<string>|string|null}
+ * @phpstan-type GroupConfig array{namespace: ?string, path: ?string, prefix: string, output: array{envelope: ?string, case: ?string}, auth?: list<string>|null, scopes?: list<string>|string|null, rate_limits?: list<string>|array<string, string>}
  */
 final readonly class GroupResolver
 {
@@ -41,6 +41,7 @@ final readonly class GroupResolver
                 auth: null === $auth ? $default->auth : AuthMethod::list($auth, \sprintf('Group "%s"', $name)),
                 scopes: \is_array($scopes) ? $scopes : $default->scopes,
                 autoScopes: null === $scopes ? $default->autoScopes : 'auto' === $scopes,
+                limits: Limit::parseAll($config['rate_limits'] ?? [], 'group:'.$name, $name.'.'),
             );
         }
         $this->groups = $resolved;
