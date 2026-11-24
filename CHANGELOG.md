@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-25
+
 ### Added
 - `#[Endpoint]` turns an invokable service into an API endpoint: HTTP method, path, success status and an
   optional name. The route is generated from it, and its metadata is read once when the container is built,
