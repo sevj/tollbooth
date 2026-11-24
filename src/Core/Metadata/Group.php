@@ -6,6 +6,7 @@ namespace Tollbooth\Core\Metadata;
 
 use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
+use Tollbooth\Core\Security\AuthMethod;
 
 /**
  * @internal
@@ -14,6 +15,10 @@ final readonly class Group
 {
     public const string DEFAULT = 'default';
 
+    /**
+     * @param list<AuthMethod> $auth
+     * @param list<string>     $scopes
+     */
     public function __construct(
         public string $name,
         public Envelope $envelope,
@@ -21,6 +26,9 @@ final readonly class Group
         public string $prefix = '',
         public ?string $namespace = null,
         public ?string $path = null,
+        public array $auth = [AuthMethod::ApiKey],
+        public array $scopes = [],
+        public bool $autoScopes = false,
     ) {
     }
 

@@ -8,6 +8,30 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Endpoints are authenticated, and every call gets a `Tollbooth\Auth\Consumer` (id, name, method, scopes,
+  plan) that an endpoint can take as an argument. Four methods: `api_key`, checked by Tollbooth without
+  any firewall; `jwt` and `user`, read from the token Symfony Security produced; `anonymous`, keyed on
+  the client IP.
+- Accepted methods come from `#[PublicEndpoint]`, then `#[Auth(...)]`, then the group's `auth`, then
+  `tollbooth.auth.default`.
+- Required scopes come from `#[Scope(...)]` (repeatable), then the group's `scopes`. `scopes: auto` on a
+  group derives `<resource>:read` or `<resource>:write` from the first segment of the path and the HTTP
+  method. Scopes apply to `api_key` and `jwt` consumers.
+- A call without accepted credentials answers 401 with a `WWW-Authenticate` challenge per accepted method.
+  An invalid, expired or IP-restricted API key answers 401 with the reason. A missing scope answers 403
+  naming it.
+- API keys (`tb_live_` or `tb_test_`, an id and a secret) are declared under `tollbooth.auth.api_keys`
+  with their scopes, plan, expiry and allowed IPs. Only a SHA-256 hash of the secret is kept.
+  `tollbooth:api-key:generate` creates one and prints its configuration. Keys can come from any service
+  implementing `ApiKeyProviderInterface`.
+- The container build fails when an endpoint accepts `jwt` or `user` and `symfony/security-bundle` is
+  not installed.
+
+### Upgrade notes
+- Endpoints now require an API key by default. To keep them open as in 0.3, set
+  `tollbooth.auth.default: [anonymous]`, or mark open endpoints with `#[PublicEndpoint]`.
+
 ## [0.3.0] - 2026-11-25
 
 ### Added

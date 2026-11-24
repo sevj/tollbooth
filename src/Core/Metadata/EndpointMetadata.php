@@ -7,13 +7,15 @@ namespace Tollbooth\Core\Metadata;
 /**
  * @internal
  *
- * @phpstan-type EndpointArray array{name: string, method: string, path: string, status: int, serviceId: string, class: class-string, file: string, requirements: array<string, string>, group: string, envelope: string, case: string}
+ * @phpstan-type EndpointArray array{name: string, method: string, path: string, status: int, serviceId: string, class: class-string, file: string, requirements: array<string, string>, group: string, envelope: string, case: string, auth: list<string>, scopes: list<string>}
  */
 final readonly class EndpointMetadata
 {
     /**
      * @param class-string          $class
      * @param array<string, string> $requirements
+     * @param list<string>          $auth
+     * @param list<string>          $scopes
      */
     public function __construct(
         public string $name,
@@ -27,6 +29,8 @@ final readonly class EndpointMetadata
         public string $group = Group::DEFAULT,
         public string $envelope = 'plain',
         public string $case = 'preserve',
+        public array $auth = ['anonymous'],
+        public array $scopes = [],
     ) {
     }
 
@@ -52,6 +56,8 @@ final readonly class EndpointMetadata
             'group' => $this->group,
             'envelope' => $this->envelope,
             'case' => $this->case,
+            'auth' => $this->auth,
+            'scopes' => $this->scopes,
         ];
     }
 

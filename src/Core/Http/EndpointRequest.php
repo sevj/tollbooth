@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
 use Tollbooth\Core\Routing\EndpointRouteLoader;
+use Tollbooth\Core\Security\AuthMethod;
 
 /**
  * @internal
@@ -33,5 +34,39 @@ final class EndpointRequest
     public static function case(Request $request): NameCase
     {
         return NameCase::tryFrom($request->attributes->getString(EndpointRouteLoader::CASE_ATTRIBUTE)) ?? NameCase::Preserve;
+    }
+
+    /**
+     * @return list<AuthMethod>
+     */
+    public static function auth(Request $request): array
+    {
+        $methods = [];
+        foreach (self::strings($request, EndpointRouteLoader::AUTH_ATTRIBUTE) as $value) {
+            $method = AuthMethod::tryFrom($value);
+            if (null !== $method) {
+                $methods[] = $method;
+            }
+        }
+
+        return $methods;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function scopes(Request $request): array
+    {
+        return self::strings($request, EndpointRouteLoader::SCOPES_ATTRIBUTE);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function strings(Request $request, string $attribute): array
+    {
+        $values = $request->attributes->get($attribute, []);
+
+        return \is_array($values) ? array_values(array_filter($values, \is_string(...))) : [];
     }
 }
