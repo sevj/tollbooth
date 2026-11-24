@@ -9,6 +9,7 @@ use Tollbooth\Core\Attribute\Body;
 use Tollbooth\Core\Attribute\Endpoint;
 use Tollbooth\Core\Attribute\PublicEndpoint;
 use Tollbooth\Core\Attribute\Query;
+use Tollbooth\Core\Attribute\RateLimit;
 use Tollbooth\Core\Attribute\Scope;
 use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
@@ -56,9 +57,10 @@ final class EndpointMetadataFactory
         $group = $this->groups->resolve($class->getName(), $path, $endpoint->group);
         $mounted = rtrim($group->prefix.$path, '/');
         $auth = $this->auth($class, $group);
+        $name = $endpoint->name ?? $this->nameFrom($class->getShortName());
 
         return new EndpointMetadata(
-            name: $endpoint->name ?? $this->nameFrom($class->getShortName()),
+            name: $name,
             method: $method,
             path: '' === $mounted ? '/' : $mounted,
             status: $endpoint->status,
@@ -71,7 +73,29 @@ final class EndpointMetadataFactory
             case: $group->case->value,
             auth: array_map(static fn (AuthMethod $method): string => $method->value, $auth),
             scopes: [AuthMethod::Anonymous] === $auth ? [] : $this->scopes($class, $group, $method, $path),
+            limits: $this->limits($class, $group, $name),
         );
+    }
+
+    /**
+     * @param \ReflectionClass<*> $class
+     *
+     * @return list<array{name: string, limit: int, window: int, scope: string}>
+     */
+    private function limits(\ReflectionClass $class, Group $group, string $name): array
+    {
+        $specs = [];
+        foreach ($class->getAttributes(RateLimit::class) as $attribute) {
+            $specs = [...$specs, ...$attribute->newInstance()->limits];
+        }
+
+        try {
+            $own = Limit::parseAll($specs, 'endpoint:'.$group->name.'.'.$name, $name.'.');
+        } catch (\InvalidArgumentException $exception) {
+            throw new InvalidEndpointException(\sprintf('Endpoint "%s": %s', $class->getName(), $exception->getMessage()), 0, $exception);
+        }
+
+        return array_map(static fn (Limit $limit): array => $limit->toArray(), [...$group->limits, ...$own]);
     }
 
     /**

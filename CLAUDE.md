@@ -37,14 +37,14 @@ Modules live side by side under `src/`, one namespace each:
 | `Core` | Endpoint attributes (auth and scope declarations included), groups, compiled metadata, routing, request hydration, responses, output conventions, problem details |
 | `Auth` | Consumers, API keys, reading the Symfony token for JWT and session users, access checks |
 | `Docs` | OpenAPI generation and the documentation UI |
-| `RateLimit` | Limiters, plans, API keys, rate limit headers |
+| `RateLimit` | Plans, clock-aligned window counters, rate limit headers, 429 |
 | `Monitoring` | Call collection, storage adapters, aggregation |
 | `Health` | Health checks, probes, findings |
 | `Changes` | Contract snapshots per release and their diff |
 | `Dashboard` | Server-rendered operator UI |
 
 - `ROADMAP.md` lists what is done, in progress and planned. Update it in the branch that delivers a feature.
-- Dependencies point one way: every module may depend on `Core`, `Dashboard` may depend on every module, nothing depends on `Dashboard`, and feature modules do not depend on each other except through `Core` interfaces. `deptrac.yaml` enforces it.
+- Dependencies point one way: every module may depend on `Core`, `Dashboard` may depend on every module, nothing depends on `Dashboard`, and feature modules do not depend on each other except through `Core` interfaces, or on `Auth` for the `Consumer` that rate limiting and monitoring key on. `deptrac.yaml` enforces it.
 - Inside a module, keep layers apart: public API (attributes, interfaces, value objects), compile time (metadata extraction, compiler passes, cache warmers), runtime (listeners, controllers, services) and infrastructure (storage adapters).
 - Reflection happens at compile time only. The request path reads compiled metadata.
 - Every module except `Core` can be disabled in `tollbooth.*` config. A disabled module registers no service.

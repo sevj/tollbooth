@@ -31,6 +31,7 @@ final readonly class ProblemFactory
             detail: $this->detail($throwable, $status, [] !== $violations),
             violations: $violations,
             headers: $headers,
+            members: $throwable instanceof ProblemMembersInterface ? $throwable->problemMembers() : [],
         );
     }
 

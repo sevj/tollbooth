@@ -8,6 +8,7 @@ use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
@@ -16,6 +17,8 @@ use Tollbooth\TollboothBundle;
 final class TestKernel extends Kernel
 {
     use MicroKernelTrait;
+
+    public const string NOW = '2026-11-25 14:02:05';
 
     public function registerBundles(): iterable
     {
@@ -53,6 +56,7 @@ final class TestKernel extends Kernel
             'validation' => ['enabled' => true],
             'property_info' => ['enabled' => true],
             'router' => ['utf8' => true],
+            'cache' => ['pools' => ['tollbooth.test_limits' => ['adapter' => 'cache.adapter.filesystem']]],
         ]);
 
         $open = ['default' => ['anonymous']];
@@ -81,6 +85,20 @@ final class TestKernel extends Kernel
                     ],
                 ],
             ],
+            'rate_limit' => [
+                'path_prefix' => '/api',
+                'auth' => ['default' => ['api_key'], 'api_keys' => TestKeys::config()],
+                'rate_limit' => [
+                    'plans' => [
+                        'pro' => ['burst' => '3/10 seconds', 'minute' => '5/minute'],
+                        'open' => ['2/minute'],
+                    ],
+                    'default_plan' => 'pro',
+                    'anonymous_plan' => 'open',
+                    'cache_pool' => 'tollbooth.test_limits',
+                    'legacy_headers' => true,
+                ],
+            ],
             default => ['path_prefix' => '/api', 'auth' => $open],
         });
 
@@ -101,6 +119,10 @@ final class TestKernel extends Kernel
         }
         if ('auth' === $this->environment) {
             $services->load('Tollbooth\\Tests\\Fixtures\\Secured\\', __DIR__.'/Secured/');
+        }
+        if ('rate_limit' === $this->environment) {
+            $services->load('Tollbooth\\Tests\\Fixtures\\Limited\\', __DIR__.'/Limited/');
+            $services->set('clock', MockClock::class)->args([self::NOW, 'UTC'])->public();
         }
     }
 

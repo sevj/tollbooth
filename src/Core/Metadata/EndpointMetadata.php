@@ -7,7 +7,9 @@ namespace Tollbooth\Core\Metadata;
 /**
  * @internal
  *
- * @phpstan-type EndpointArray array{name: string, method: string, path: string, status: int, serviceId: string, class: class-string, file: string, requirements: array<string, string>, group: string, envelope: string, case: string, auth: list<string>, scopes: list<string>}
+ * @phpstan-import-type LimitArray from Limit
+ *
+ * @phpstan-type EndpointArray array{name: string, method: string, path: string, status: int, serviceId: string, class: class-string, file: string, requirements: array<string, string>, group: string, envelope: string, case: string, auth: list<string>, scopes: list<string>, limits: list<LimitArray>}
  */
 final readonly class EndpointMetadata
 {
@@ -16,6 +18,7 @@ final readonly class EndpointMetadata
      * @param array<string, string> $requirements
      * @param list<string>          $auth
      * @param list<string>          $scopes
+     * @param list<LimitArray>      $limits
      */
     public function __construct(
         public string $name,
@@ -31,6 +34,7 @@ final readonly class EndpointMetadata
         public string $case = 'preserve',
         public array $auth = ['anonymous'],
         public array $scopes = [],
+        public array $limits = [],
     ) {
     }
 
@@ -58,6 +62,7 @@ final readonly class EndpointMetadata
             'case' => $this->case,
             'auth' => $this->auth,
             'scopes' => $this->scopes,
+            'limits' => $this->limits,
         ];
     }
 

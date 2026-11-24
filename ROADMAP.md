@@ -33,14 +33,15 @@ What Tollbooth does today, what is being built and what comes next. The dashboar
       `ApiKeyProviderInterface`, `tollbooth:api-key:generate`
 - [x] 401 with challenges, 403 naming the missing scope
 
-## Next
-
 ### 0.5 · Rate limiting
-- [ ] Plans (`free`, `pro`, …) with per-minute and per-day limits, on symfony/rate-limiter
-- [ ] Limits keyed on the consumer, per endpoint, per group and per plan
-- [ ] `RateLimit-Policy` and `RateLimit` headers on every limited response, not only 429s
-- [ ] 429 with `Retry-After` and a `limiters` list in the problem body
-- [ ] Optional legacy `X-RateLimit-*` headers
+- [x] Plans made of any number of limits (`10 seconds`, `minute`, `day`…), keyed on the consumer
+- [x] Group `rate_limits` and endpoint `#[RateLimit]` on top of the plan
+- [x] Clock-aligned fixed windows with an exact reset time, refused calls not counted elsewhere
+- [x] `RateLimit-Policy` and `RateLimit` headers on every limited response, not only 429s
+- [x] 429 with `Retry-After` and a `limiters` list in the problem body
+- [x] Optional legacy `X-RateLimit-*` headers
+
+## Next
 
 ### 0.6 · Documentation
 - [ ] OpenAPI 3.1 generated from the compiled metadata, one document per group
@@ -85,3 +86,4 @@ Twig, rendered on the server, assets shipped prebuilt, every string translated (
 - [ ] Public documentation portal where each consumer follows its own usage and quota
 - [ ] Alerts through Symfony Notifier
 - [ ] Benchmarks with phpbench and an overhead budget
+- [ ] Token bucket and sliding window policies, `#[NoRateLimit]` to exempt an endpoint

@@ -6,6 +6,7 @@ namespace Tollbooth\Core\Http;
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Tollbooth\Core\Metadata\Limit;
 use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
 use Tollbooth\Core\Routing\EndpointRouteLoader;
@@ -58,6 +59,26 @@ final class EndpointRequest
     public static function scopes(Request $request): array
     {
         return self::strings($request, EndpointRouteLoader::SCOPES_ATTRIBUTE);
+    }
+
+    /**
+     * @return list<Limit>
+     */
+    public static function limits(Request $request): array
+    {
+        $values = $request->attributes->get(EndpointRouteLoader::LIMITS_ATTRIBUTE, []);
+        if (!\is_array($values)) {
+            return [];
+        }
+
+        $limits = [];
+        foreach ($values as $value) {
+            if (\is_array($value) && \is_string($value['name'] ?? null) && \is_int($value['limit'] ?? null) && \is_int($value['window'] ?? null) && \is_string($value['scope'] ?? null)) {
+                $limits[] = new Limit($value['name'], $value['limit'], $value['window'], $value['scope']);
+            }
+        }
+
+        return $limits;
     }
 
     /**

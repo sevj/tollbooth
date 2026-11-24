@@ -9,9 +9,12 @@ namespace Tollbooth\Core\Problem;
  */
 final readonly class Problem
 {
+    private const array RESERVED = ['type', 'title', 'status', 'detail', 'instance', 'violations'];
+
     /**
      * @param list<array{field: string, message: string}> $violations
      * @param array<string, string>                       $headers
+     * @param array<string, mixed>                        $members
      */
     public function __construct(
         public int $status,
@@ -20,12 +23,13 @@ final readonly class Problem
         public array $violations = [],
         public array $headers = [],
         public string $type = 'about:blank',
+        public array $members = [],
     ) {
     }
 
     public function withoutDetail(): self
     {
-        return new self($this->status, $this->title, null, $this->violations, $this->headers, $this->type);
+        return new self($this->status, $this->title, null, $this->violations, $this->headers, $this->type, $this->members);
     }
 
     /**
@@ -47,6 +51,6 @@ final readonly class Problem
             $problem['violations'] = $this->violations;
         }
 
-        return $problem;
+        return $problem + array_diff_key($this->members, array_flip(self::RESERVED));
     }
 }

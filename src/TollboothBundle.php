@@ -26,6 +26,7 @@ use Tollbooth\Core\Http\QueryValueResolver;
 use Tollbooth\Core\Metadata\EndpointRegistry;
 use Tollbooth\Core\Metadata\Group;
 use Tollbooth\Core\Metadata\GroupResolver;
+use Tollbooth\Core\Metadata\Limit;
 use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
 use Tollbooth\Core\Output\OutputRenderer;
@@ -34,6 +35,9 @@ use Tollbooth\Core\Output\SerializerLocator;
 use Tollbooth\Core\Problem\ProblemFactory;
 use Tollbooth\Core\Routing\EndpointRouteLoader;
 use Tollbooth\Core\Security\AuthMethod;
+use Tollbooth\RateLimit\PlanRegistry;
+use Tollbooth\RateLimit\RateLimitListener;
+use Tollbooth\RateLimit\WindowCounter;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -44,6 +48,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service_l
  * @phpstan-import-type ApiKeyConfig from InMemoryApiKeyProvider
  *
  * @phpstan-type AuthConfig array{default: list<string>, api_key_header: string, api_key_provider: ?string, api_keys: array<string, ApiKeyConfig>}
+ * @phpstan-type RateLimitConfig array{enabled: bool, plans: array<string, list<string>|array<string, string>>, default_plan: ?string, anonymous_plan: ?string, cache_pool: string, legacy_headers: bool}
  */
 final class TollboothBundle extends AbstractBundle
 {
@@ -118,6 +123,14 @@ final class TollboothBundle extends AbstractBundle
                                     ->thenInvalid('"scopes" must be a list of scopes or "auto".')
                                 ->end()
                             ->end()
+                            ->variableNode('rate_limits')
+                                ->defaultValue([])
+                                ->info('Limits shared by all the calls a consumer makes to the group, on top of its plan: ["1000/hour"] or {burst: "50/10 seconds"}.')
+                                ->validate()
+                                    ->ifTrue(static fn (mixed $limits): bool => !self::isLimitList($limits))
+                                    ->thenInvalid('"rate_limits" must be a list of limits such as "600/minute", or a map of names to limits.')
+                                ->end()
+                            ->end()
                         ->end()
                     ->end()
                     ->validate()
@@ -155,7 +168,63 @@ final class TollboothBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('rate_limit')
+                    ->canBeDisabled()
+                    ->children()
+                        ->arrayNode('plans')
+                            ->info('Limits of each plan, counted per consumer across every endpoint: {free: ["10/10 seconds", "60/minute", "1000/day"]}.')
+                            ->useAttributeAsKey('name')
+                            ->variablePrototype()
+                                ->validate()
+                                    ->ifTrue(static fn (mixed $limits): bool => !self::isLimitList($limits))
+                                    ->thenInvalid('A plan must be a list of limits such as "600/minute", or a map of names to limits.')
+                                ->end()
+                            ->end()
+                        ->end()
+                        ->scalarNode('default_plan')
+                            ->defaultNull()
+                            ->info('Plan of consumers that have none, or an unknown one.')
+                        ->end()
+                        ->scalarNode('anonymous_plan')
+                            ->defaultNull()
+                            ->info('Plan of anonymous consumers. Defaults to "default_plan".')
+                        ->end()
+                        ->scalarNode('cache_pool')
+                            ->defaultValue('cache.app')
+                            ->info('Cache pool holding the counters. Use a shared one (Redis) when several servers answer.')
+                        ->end()
+                        ->booleanNode('legacy_headers')
+                            ->defaultFalse()
+                            ->info('Also send X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset for the tightest limit.')
+                        ->end()
+                    ->end()
+                    ->validate()
+                        ->ifTrue(static fn (array $config): bool => null !== self::unknownPlan($config))
+                        ->then(static fn (array $config): never => throw new \InvalidArgumentException(\sprintf('The rate limit plan "%s" is not declared under "tollbooth.rate_limit.plans".', self::unknownPlan($config))))
+                    ->end()
+                ->end()
             ->end();
+    }
+
+    private static function isLimitList(mixed $value): bool
+    {
+        return \is_array($value) && [] === array_filter($value, static fn (mixed $item): bool => !\is_string($item));
+    }
+
+    /**
+     * @param array<mixed> $config
+     */
+    private static function unknownPlan(array $config): ?string
+    {
+        $plans = \is_array($config['plans'] ?? null) ? $config['plans'] : [];
+        foreach (['default_plan', 'anonymous_plan'] as $key) {
+            $plan = $config[$key] ?? null;
+            if (\is_string($plan) && !\array_key_exists($plan, $plans)) {
+                return $plan;
+            }
+        }
+
+        return null;
     }
 
     private static function isStringList(mixed $value): bool
@@ -174,7 +243,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig} $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -190,6 +259,9 @@ final class TollboothBundle extends AbstractBundle
             ->set(EndpointPass::AUTH_PARAMETER, $config['auth']['default']);
 
         $this->loadAuth($config['auth'], $container);
+        if ($config['rate_limit']['enabled']) {
+            $this->loadRateLimit($config['rate_limit'], $container);
+        }
 
         $services = $container->services();
         $services->set(EndpointRegistry::class);
@@ -268,6 +340,30 @@ final class TollboothBundle extends AbstractBundle
             $services->set(GenerateApiKeyCommand::class)
                 ->tag('console.command');
         }
+    }
+
+    /**
+     * @param RateLimitConfig $rateLimit
+     */
+    private function loadRateLimit(array $rateLimit, ContainerConfigurator $container): void
+    {
+        $plans = [];
+        foreach ($rateLimit['plans'] as $name => $limits) {
+            $plans[$name] = array_map(static fn (Limit $limit): array => $limit->toArray(), Limit::parseAll($limits, 'plan'));
+        }
+
+        $services = $container->services();
+
+        $services->set(WindowCounter::class)
+            ->args([service($rateLimit['cache_pool']), service('lock.factory')->nullOnInvalid(), service('clock')->nullOnInvalid()]);
+
+        $services->set(PlanRegistry::class)
+            ->args([$plans, $rateLimit['default_plan'], $rateLimit['anonymous_plan']]);
+
+        $services->set(RateLimitListener::class)
+            ->args([service(PlanRegistry::class), service(WindowCounter::class), $rateLimit['legacy_headers']])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => 6])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::RESPONSE, 'method' => 'onResponse']);
     }
 
     /**

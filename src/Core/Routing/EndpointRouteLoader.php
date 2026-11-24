@@ -25,6 +25,7 @@ final class EndpointRouteLoader extends Loader
     public const string CASE_ATTRIBUTE = '_tollbooth_case';
     public const string AUTH_ATTRIBUTE = '_tollbooth_auth';
     public const string SCOPES_ATTRIBUTE = '_tollbooth_scopes';
+    public const string LIMITS_ATTRIBUTE = '_tollbooth_limits';
 
     private bool $loaded = false;
 
@@ -58,6 +59,7 @@ final class EndpointRouteLoader extends Loader
                     self::CASE_ATTRIBUTE => $endpoint->case,
                     self::AUTH_ATTRIBUTE => $endpoint->auth,
                     self::SCOPES_ATTRIBUTE => $endpoint->scopes,
+                    self::LIMITS_ATTRIBUTE => $endpoint->limits,
                 ],
                 requirements: $endpoint->requirements,
                 methods: [$endpoint->method],
