@@ -7,6 +7,8 @@ namespace Tollbooth\Core\Metadata;
 use Tollbooth\Core\Attribute\Body;
 use Tollbooth\Core\Attribute\Endpoint;
 use Tollbooth\Core\Attribute\Query;
+use Tollbooth\Core\Output\Envelope;
+use Tollbooth\Core\Output\NameCase;
 
 /**
  * @internal
@@ -14,6 +16,13 @@ use Tollbooth\Core\Attribute\Query;
 final class EndpointMetadataFactory
 {
     private const array METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+
+    private readonly GroupResolver $groups;
+
+    public function __construct(?GroupResolver $groups = null)
+    {
+        $this->groups = $groups ?? new GroupResolver(new Group(Group::DEFAULT, Envelope::Plain, NameCase::Preserve));
+    }
 
     /**
      * @param \ReflectionClass<*> $class
@@ -40,16 +49,21 @@ final class EndpointMetadataFactory
         }
 
         $path = '/'.trim($endpoint->path, '/');
+        $group = $this->groups->resolve($class->getName(), $path, $endpoint->group);
+        $mounted = rtrim($group->prefix.$path, '/');
 
         return new EndpointMetadata(
             name: $endpoint->name ?? $this->nameFrom($class->getShortName()),
             method: $method,
-            path: $path,
+            path: '' === $mounted ? '/' : $mounted,
             status: $endpoint->status,
             serviceId: $serviceId,
             class: $class->getName(),
             file: (string) $class->getFileName(),
             requirements: $this->requirements($path, $class->getMethod('__invoke')),
+            group: $group->name,
+            envelope: $group->envelope->value,
+            case: $group->case->value,
         );
     }
 

@@ -10,67 +10,73 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Event\ViewEvent;
 use Tollbooth\Core\Output\OutputRenderer;
 use Tollbooth\Core\Problem\ProblemFactory;
-use Tollbooth\Core\Routing\EndpointRouteLoader;
 
 /**
  * @internal
  */
 final readonly class EndpointListener
 {
-    private string $pathPrefix;
+    /**
+     * @var list<string>
+     */
+    private array $apiPrefixes;
 
+    /**
+     * @param list<string> $apiPrefixes
+     */
     public function __construct(
         private OutputRenderer $renderer,
         private ProblemFactory $problems,
-        string $pathPrefix = '',
+        array $apiPrefixes = [],
     ) {
-        $this->pathPrefix = rtrim($pathPrefix, '/');
+        $this->apiPrefixes = array_values(array_filter(array_map(static fn (string $prefix): string => rtrim($prefix, '/'), $apiPrefixes)));
     }
 
     public function onView(ViewEvent $event): void
     {
         $request = $event->getRequest();
-        if (!$request->attributes->has(EndpointRouteLoader::ENDPOINT_ATTRIBUTE)) {
+        if (!EndpointRequest::isEndpoint($request)) {
             return;
         }
 
-        $status = $request->attributes->getInt(EndpointRouteLoader::STATUS_ATTRIBUTE, Response::HTTP_OK);
-        $event->setResponse($this->renderer->render($event->getControllerResult(), $status));
+        $event->setResponse($this->renderer->render(
+            $event->getControllerResult(),
+            EndpointRequest::status($request),
+            EndpointRequest::envelope($request),
+            EndpointRequest::case($request),
+        ));
     }
 
     public function onException(ExceptionEvent $event): void
     {
-        if (!$this->isApiRequest($event->getRequest())) {
+        $request = $event->getRequest();
+        $isEndpoint = EndpointRequest::isEndpoint($request);
+        if (!$isEndpoint && !$this->isUnderApiPrefix($request)) {
             return;
         }
 
-        $problem = $this->problems->fromThrowable($event->getThrowable());
-        if (!$event->getRequest()->attributes->has(EndpointRouteLoader::ENDPOINT_ATTRIBUTE)) {
+        $problem = $this->problems->fromThrowable($event->getThrowable(), EndpointRequest::case($request));
+        if (!$isEndpoint) {
             $problem = $problem->withoutDetail();
         }
 
-        $response = new Response(
+        $event->allowCustomResponseCode();
+        $event->setResponse(new Response(
             json_encode($problem->toArray(), OutputRenderer::JSON_FLAGS | \JSON_THROW_ON_ERROR),
             $problem->status,
             ['Content-Type' => 'application/problem+json'] + $problem->headers,
-        );
-
-        $event->allowCustomResponseCode();
-        $event->setResponse($response);
+        ));
     }
 
-    private function isApiRequest(Request $request): bool
+    private function isUnderApiPrefix(Request $request): bool
     {
-        if ($request->attributes->has(EndpointRouteLoader::ENDPOINT_ATTRIBUTE)) {
-            return true;
-        }
-
-        if ('' === $this->pathPrefix) {
-            return false;
-        }
-
         $path = $request->getPathInfo();
+        foreach ($this->apiPrefixes as $prefix) {
+            if ($path === $prefix || str_starts_with($path, $prefix.'/')) {
+                return true;
+            }
+        }
 
-        return $path === $this->pathPrefix || str_starts_with($path, $this->pathPrefix.'/');
+        return false;
     }
 }

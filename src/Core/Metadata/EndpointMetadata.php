@@ -7,7 +7,7 @@ namespace Tollbooth\Core\Metadata;
 /**
  * @internal
  *
- * @phpstan-type EndpointArray array{name: string, method: string, path: string, status: int, serviceId: string, class: class-string, file: string, requirements: array<string, string>}
+ * @phpstan-type EndpointArray array{name: string, method: string, path: string, status: int, serviceId: string, class: class-string, file: string, requirements: array<string, string>, group: string, envelope: string, case: string}
  */
 final readonly class EndpointMetadata
 {
@@ -24,7 +24,15 @@ final readonly class EndpointMetadata
         public string $class,
         public string $file,
         public array $requirements = [],
+        public string $group = Group::DEFAULT,
+        public string $envelope = 'plain',
+        public string $case = 'preserve',
     ) {
+    }
+
+    public function routeName(): string
+    {
+        return Group::DEFAULT === $this->group ? 'tollbooth_'.$this->name : 'tollbooth_'.$this->group.'_'.$this->name;
     }
 
     /**
@@ -41,6 +49,9 @@ final readonly class EndpointMetadata
             'class' => $this->class,
             'file' => $this->file,
             'requirements' => $this->requirements,
+            'group' => $this->group,
+            'envelope' => $this->envelope,
+            'case' => $this->case,
         ];
     }
 
@@ -49,15 +60,6 @@ final readonly class EndpointMetadata
      */
     public static function fromArray(array $data): self
     {
-        return new self(
-            $data['name'],
-            $data['method'],
-            $data['path'],
-            $data['status'],
-            $data['serviceId'],
-            $data['class'],
-            $data['file'],
-            $data['requirements'],
-        );
+        return new self(...$data);
     }
 }

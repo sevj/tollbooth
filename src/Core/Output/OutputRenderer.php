@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Tollbooth\Core\Output;
 
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Serializer\Encoder\EncoderInterface;
-use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
  * @internal
@@ -16,46 +14,45 @@ final readonly class OutputRenderer
     public const int JSON_FLAGS = \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION;
 
     public function __construct(
-        private NormalizerInterface&EncoderInterface $serializer,
-        private Envelope $envelope,
+        private SerializerLocator $serializers,
         private ResourceTypeResolver $types,
     ) {
     }
 
-    public function render(mixed $result, int $status): Response
+    public function render(mixed $result, int $status, Envelope $envelope, NameCase $case): Response
     {
         if (null === $result) {
             return new Response(null, Response::HTTP_OK === $status ? Response::HTTP_NO_CONTENT : $status);
         }
 
-        $normalized = $this->serializer->normalize($result, 'json');
-        $document = match ($this->envelope) {
+        $normalized = $this->serializers->for($case)->normalize($result, 'json');
+        $document = match ($envelope) {
             Envelope::Plain => $normalized,
             Envelope::Data => ['data' => $normalized],
-            Envelope::JsonApi => $this->jsonApi($result, $normalized),
+            Envelope::JsonApi => $this->jsonApi($result, $normalized, $case),
         };
 
         return new Response(
             json_encode($document, self::JSON_FLAGS | \JSON_THROW_ON_ERROR),
             $status,
-            ['Content-Type' => $this->envelope->contentType()],
+            ['Content-Type' => $envelope->contentType()],
         );
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function jsonApi(mixed $result, mixed $normalized): array
+    private function jsonApi(mixed $result, mixed $normalized, NameCase $case): array
     {
         if (\is_object($result) && $this->isResource($normalized)) {
-            return ['data' => $this->resource($result, $normalized)];
+            return ['data' => $this->resource($result, $normalized, $case)];
         }
 
         if (\is_array($result) && array_is_list($result) && \is_array($normalized) && $this->isCollection($result, $normalized)) {
             $data = [];
             foreach ($result as $index => $item) {
                 \assert(\is_object($item) && \is_array($normalized[$index]));
-                $data[] = $this->resource($item, $normalized[$index]);
+                $data[] = $this->resource($item, $normalized[$index], $case);
             }
 
             return ['data' => $data];
@@ -69,13 +66,13 @@ final readonly class OutputRenderer
      *
      * @return array{type: string, id: string, attributes: array<mixed>}
      */
-    private function resource(object $result, array $normalized): array
+    private function resource(object $result, array $normalized, NameCase $case): array
     {
         $id = $normalized['id'];
         unset($normalized['id']);
 
         return [
-            'type' => $this->types->typeOf($result),
+            'type' => $this->types->typeOf($result, $case),
             'id' => \is_scalar($id) ? (string) $id : '',
             'attributes' => $normalized,
         ];

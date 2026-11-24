@@ -35,4 +35,12 @@ final class InvalidEndpointException extends \LogicException
     {
         return new self(\sprintf('Endpoints "%s" and "%s" both answer "%s".', $first, $second, $route));
     }
+
+    /**
+     * @param list<string> $known
+     */
+    public static function unknownGroup(string $class, string $group, array $known): self
+    {
+        return new self(\sprintf('Endpoint "%s" belongs to the unknown group "%s". Declared groups: "%s".', $class, $group, implode('", "', ['default', ...$known])));
+    }
 }

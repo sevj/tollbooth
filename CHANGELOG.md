@@ -8,6 +8,19 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- `tollbooth.groups` declares sets of endpoints that form one API. An endpoint joins a group by namespace
+  (`namespace: App\Api\Partner`), by path (`path: /admin`), or explicitly with
+  `#[Endpoint(group: 'partner')]`; the explicit group wins, then the longest namespace, then the longest
+  path. A group can mount its endpoints under a `prefix` and override `output.envelope` and `output.case`;
+  what it leaves out comes from the top-level settings.
+- Endpoint names only need to be unique inside their group. Routes of grouped endpoints are named
+  `tollbooth_<group>_<name>`.
+- When `path_prefix` is empty, errors under the prefix of any group answer problem details.
+
+### Upgrade notes
+- `default` is reserved as the name of the group of endpoints that match no other group.
+
 ## [0.2.0] - 2026-11-25
 
 ### Added

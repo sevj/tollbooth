@@ -20,6 +20,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Tollbooth\Core\Attribute\Body;
+use Tollbooth\Core\Output\SerializerLocator;
 
 /**
  * @internal
@@ -27,7 +28,7 @@ use Tollbooth\Core\Attribute\Body;
 final readonly class BodyValueResolver implements ValueResolverInterface
 {
     public function __construct(
-        private SerializerInterface&DenormalizerInterface $serializer,
+        private SerializerLocator $serializers,
         private ValidatorInterface $validator,
     ) {
     }
@@ -53,7 +54,7 @@ final readonly class BodyValueResolver implements ValueResolverInterface
         }
 
         $this->assertJson($request);
-        $object = $this->deserialize('' === trim($content) ? '{}' : $content, $type);
+        $object = $this->deserialize($this->serializers->for(EndpointRequest::case($request)), '' === trim($content) ? '{}' : $content, $type);
         $violations = $this->validator->validate($object, null, $attribute->groups);
         if (\count($violations) > 0) {
             throw new UnprocessableEntityHttpException('', new ValidationFailedException($object, $violations));
@@ -73,10 +74,10 @@ final readonly class BodyValueResolver implements ValueResolverInterface
     /**
      * @param class-string $type
      */
-    private function deserialize(string $content, string $type): object
+    private function deserialize(SerializerInterface $serializer, string $content, string $type): object
     {
         try {
-            $object = $this->serializer->deserialize($content, $type, 'json', [
+            $object = $serializer->deserialize($content, $type, 'json', [
                 DenormalizerInterface::COLLECT_DENORMALIZATION_ERRORS => true,
             ]);
         } catch (PartialDenormalizationException $exception) {

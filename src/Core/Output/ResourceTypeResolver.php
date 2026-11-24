@@ -16,27 +16,26 @@ final class ResourceTypeResolver
     private const string SUFFIXES = '/(View|Output|Resource|Response|Dto)$/';
 
     /**
-     * @var array<class-string, string>
+     * @var array<string, string>
      */
     private array $types = [];
 
     private readonly EnglishInflector $inflector;
 
-    public function __construct(
-        private readonly NameCase $case,
-    ) {
+    public function __construct()
+    {
         $this->inflector = new EnglishInflector();
     }
 
-    public function typeOf(object $resource): string
+    public function typeOf(object $resource, NameCase $case): string
     {
-        return $this->types[$resource::class] ??= $this->resolve($resource::class);
+        return $this->types[$resource::class.'|'.$case->value] ??= $this->resolve($resource::class, $case);
     }
 
     /**
      * @param class-string $class
      */
-    private function resolve(string $class): string
+    private function resolve(string $class, NameCase $case): string
     {
         $short = substr($class, (int) strrpos('\\'.$class, '\\'));
         $base = (string) preg_replace(self::SUFFIXES, '', $short);
@@ -45,8 +44,6 @@ final class ResourceTypeResolver
         $words[] = $this->inflector->pluralize($last)[0];
         $snake = implode('_', $words);
 
-        return NameCase::CamelCase === $this->case || NameCase::Preserve === $this->case
-            ? u($snake)->camel()->toString()
-            : $snake;
+        return NameCase::SnakeCase === $case ? $snake : u($snake)->camel()->toString();
     }
 }

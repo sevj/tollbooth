@@ -16,16 +16,23 @@ use Tollbooth\Core\Http\BodyValueResolver;
 use Tollbooth\Core\Http\EndpointListener;
 use Tollbooth\Core\Http\QueryValueResolver;
 use Tollbooth\Core\Metadata\EndpointRegistry;
+use Tollbooth\Core\Metadata\Group;
+use Tollbooth\Core\Metadata\GroupResolver;
 use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
 use Tollbooth\Core\Output\OutputRenderer;
 use Tollbooth\Core\Output\ResourceTypeResolver;
+use Tollbooth\Core\Output\SerializerLocator;
 use Tollbooth\Core\Problem\ProblemFactory;
 use Tollbooth\Core\Routing\EndpointRouteLoader;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service_locator;
 
+/**
+ * @phpstan-import-type GroupConfig from GroupResolver
+ */
 final class TollboothBundle extends AbstractBundle
 {
     protected string $extensionAlias = 'tollbooth';
@@ -53,6 +60,43 @@ final class TollboothBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('groups')
+                    ->info('Sets of endpoints sharing a mount prefix and conventions, matched by namespace or by path.')
+                    ->useAttributeAsKey('name')
+                    ->arrayPrototype()
+                        ->children()
+                            ->scalarNode('namespace')
+                                ->defaultNull()
+                                ->info('Endpoints whose class lives in this namespace belong to the group.')
+                            ->end()
+                            ->scalarNode('path')
+                                ->defaultNull()
+                                ->info('Endpoints whose declared path starts with this path belong to the group.')
+                            ->end()
+                            ->scalarNode('prefix')
+                                ->defaultValue('')
+                                ->info('Prefix added to the paths of the group, after "path_prefix".')
+                            ->end()
+                            ->arrayNode('output')
+                                ->addDefaultsIfNotSet()
+                                ->children()
+                                    ->enumNode('envelope')
+                                        ->values([null, ...array_column(Envelope::cases(), 'value')])
+                                        ->defaultNull()
+                                    ->end()
+                                    ->enumNode('case')
+                                        ->values([null, ...array_column(NameCase::cases(), 'value')])
+                                        ->defaultNull()
+                                    ->end()
+                                ->end()
+                            ->end()
+                        ->end()
+                    ->end()
+                    ->validate()
+                        ->ifTrue(static fn (array $groups): bool => \array_key_exists(Group::DEFAULT, $groups))
+                        ->thenInvalid('"default" is the group of endpoints that match no other group and cannot be declared.')
+                    ->end()
+                ->end()
             ->end();
     }
 
@@ -67,14 +111,19 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>} $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $case = NameCase::from($config['output']['case']);
-        $serializer = service('serializer.'.self::serializerName($case));
+        $serializers = [];
+        foreach (NameCase::cases() as $case) {
+            $serializers[$case->value] = service('serializer.'.self::serializerName($case));
+        }
 
-        $container->parameters()->set(EndpointPass::HASH_PARAMETER, '');
+        $container->parameters()
+            ->set(EndpointPass::HASH_PARAMETER, '')
+            ->set(EndpointPass::OUTPUT_PARAMETER, $config['output'])
+            ->set(EndpointPass::GROUPS_PARAMETER, $config['groups']);
 
         $services = $container->services();
         $services->set(EndpointRegistry::class);
@@ -91,21 +140,23 @@ final class TollboothBundle extends AbstractBundle
         $services->set(QueryValueResolver::class)
             ->tag('controller.argument_value_resolver', ['priority' => 110]);
 
+        $services->set(SerializerLocator::class)
+            ->args([service_locator($serializers)]);
+
         $services->set(BodyValueResolver::class)
-            ->args([$serializer, service('validator')])
+            ->args([service(SerializerLocator::class), service('validator')])
             ->tag('controller.argument_value_resolver', ['priority' => 110]);
 
-        $services->set(ResourceTypeResolver::class)
-            ->args([$case]);
+        $services->set(ResourceTypeResolver::class);
 
         $services->set(OutputRenderer::class)
-            ->args([$serializer, Envelope::from($config['output']['envelope']), service(ResourceTypeResolver::class)]);
+            ->args([service(SerializerLocator::class), service(ResourceTypeResolver::class)]);
 
         $services->set(ProblemFactory::class)
-            ->args([param('kernel.debug'), $case]);
+            ->args([param('kernel.debug')]);
 
         $services->set(EndpointListener::class)
-            ->args([service(OutputRenderer::class), service(ProblemFactory::class), $config['path_prefix']])
+            ->args([service(OutputRenderer::class), service(ProblemFactory::class), self::apiPrefixes($config)])
             ->tag('kernel.event_listener', ['event' => KernelEvents::VIEW, 'method' => 'onView', 'priority' => 10])
             ->tag('kernel.event_listener', ['event' => KernelEvents::EXCEPTION, 'method' => 'onException', 'priority' => 10]);
 
@@ -121,6 +172,24 @@ final class TollboothBundle extends AbstractBundle
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(new EndpointPass());
+    }
+
+    /**
+     * @param array{path_prefix: string, groups: array<string, GroupConfig>} $config
+     *
+     * @return list<string>
+     */
+    private static function apiPrefixes(array $config): array
+    {
+        $global = rtrim($config['path_prefix'], '/');
+        if ('' !== $global) {
+            return [$global];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (array $group): string => rtrim('/'.trim($group['prefix'], '/'), '/'),
+            $config['groups'],
+        )));
     }
 
     private static function serializerName(NameCase $case): string
