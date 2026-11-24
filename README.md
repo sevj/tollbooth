@@ -28,7 +28,7 @@ tollbooth:
 
 ## Declaring an endpoint
 
-An endpoint is an invokable service with the `#[Endpoint]` attribute. Route parameters are bound by name, `#[Query]` reads one query parameter and `#[Body]` deserializes and validates the request body.
+An endpoint is an invokable service with the `#[Endpoint]` attribute. Route parameters are bound by name, `#[Query]` reads one query parameter and `#[Body]` deserializes the JSON request body and validates it (`#[Body(groups: ['create'])]` picks validation groups).
 
 ```php
 use Tollbooth\Core\Attribute\Body;
@@ -66,7 +66,28 @@ The returned object is serialized to JSON with the status declared on the attrib
 ```yaml
 tollbooth:
     path_prefix: /api
+    output:
+        envelope: plain    # plain, data or json_api
+        case: preserve     # preserve, snake_case or camel_case
 ```
+
+`path_prefix` is prepended to every endpoint path. Any error under it, including a 404 or a 405 from the router, answers problem details.
+
+### Output conventions
+
+`output.envelope` decides how a result is wrapped:
+
+| Envelope | `GET /things/7` answers |
+| --- | --- |
+| `plain` | `{"id": 7, "name": "Gate"}` |
+| `data` | `{"data": {"id": 7, "name": "Gate"}}` |
+| `json_api` | `{"data": {"type": "things", "id": "7", "attributes": {"name": "Gate"}}}` |
+
+With `json_api`, an object that has an `id` becomes a resource object, and a list of them a collection. The type is the plural of the class name without its `View`, `Output`, `Resource`, `Response` or `Dto` suffix (`OrderLineView` gives `order_lines`). Any other result goes under `meta`. Responses are sent as `application/vnd.api+json`.
+
+`output.case` converts field names both ways: request bodies are read with it, response bodies are written with it, and validation errors name their fields with it. Tollbooth uses its own named serializers, so the case of the application's `serializer` service is left untouched.
+
+Errors are never wrapped in an envelope: they always answer `application/problem+json`.
 
 ## Versioning
 
@@ -79,7 +100,7 @@ The public API is the contract host applications and API clients rely on:
 - the attributes `Tollbooth\Core\Attribute\Endpoint`, `Body` and `Query`;
 - the `tollbooth` route loader type;
 - the `tollbooth.*` configuration keys;
-- the HTTP contract: status codes, response bodies and the problem details shape.
+- the HTTP contract: status codes, envelopes, field name cases and the problem details shape.
 
 Anything else is internal and may change in any release.
 

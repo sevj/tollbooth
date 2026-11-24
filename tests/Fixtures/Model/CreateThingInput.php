@@ -14,6 +14,8 @@ final readonly class CreateThingInput
         #[Assert\Positive]
         public int $quantity = 0,
         public Color $color = Color::Amber,
+        #[Assert\Positive]
+        public int $unitCount = 1,
     ) {
     }
 }

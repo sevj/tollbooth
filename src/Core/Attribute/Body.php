@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Tollbooth\Core\Attribute;
 
-use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
-
 #[\Attribute(\Attribute::TARGET_PARAMETER)]
-final class Body extends MapRequestPayload
+final readonly class Body
 {
+    /**
+     * @param list<string>|null $groups
+     */
+    public function __construct(
+        public ?array $groups = null,
+    ) {
+    }
 }

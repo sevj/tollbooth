@@ -3,9 +3,14 @@ services:
     build: docker/php
     volumes:
       - .:/app
+      - vendor:/app/vendor
+      - cache:/cache
       - composer-cache:/tmp/composer
     environment:
       TZ: UTC
+      TMPDIR: /cache/tmp
 
 volumes:
+  vendor:
+  cache:
   composer-cache:

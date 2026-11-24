@@ -11,6 +11,7 @@ final readonly class ThingView
         public string $name,
         public Color $color,
         public ?string $note = null,
+        public int $unitCount = 0,
     ) {
     }
 }

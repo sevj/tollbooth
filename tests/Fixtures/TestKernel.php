@@ -51,7 +51,10 @@ final class TestKernel extends Kernel
             'router' => ['utf8' => true],
         ]);
 
-        $container->extension('tollbooth', ['path_prefix' => '/api']);
+        $container->extension('tollbooth', match ($this->environment) {
+            'json_api' => ['path_prefix' => '/api', 'output' => ['envelope' => 'json_api', 'case' => 'snake_case']],
+            default => ['path_prefix' => '/api'],
+        });
 
         $services = $container->services();
         $services->set('logger', NullLogger::class);

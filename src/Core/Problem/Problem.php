@@ -23,6 +23,11 @@ final readonly class Problem
     ) {
     }
 
+    public function withoutDetail(): self
+    {
+        return new self($this->status, $this->title, null, $this->violations, $this->headers, $this->type);
+    }
+
     /**
      * @return array<string, mixed>
      */

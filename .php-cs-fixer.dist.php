@@ -7,6 +7,8 @@ $finder = (new PhpCsFixer\Finder())
     ->append([__FILE__]);
 
 return (new PhpCsFixer\Config())
+    ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect())
+    ->setCacheFile(sys_get_temp_dir().'/php-cs-fixer.cache')
     ->setRiskyAllowed(true)
     ->setRules([
         '@Symfony' => true,
