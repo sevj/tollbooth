@@ -1,0 +1,48 @@
+{
+    "name": "tollbooth/tollbooth-bundle",
+    "description": "Declare Symfony API endpoints with attributes and get routing, validation, documentation, rate limiting and monitoring.",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "keywords": ["symfony", "bundle", "api", "rest", "openapi", "rate-limit", "monitoring"],
+    "require": {
+        "php": ">=8.4",
+        "symfony/framework-bundle": "^7.4 || ^8.0",
+        "symfony/property-access": "^7.4 || ^8.0",
+        "symfony/property-info": "^7.4 || ^8.0",
+        "symfony/serializer": "^7.4 || ^8.0",
+        "symfony/validator": "^7.4 || ^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tollbooth\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tollbooth\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit",
+        "stan": "phpstan analyse --memory-limit=1G --no-progress",
+        "cs": "php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "php-cs-fixer fix",
+        "deptrac": "deptrac analyse --no-progress",
+        "qa": [
+            "@cs",
+            "@stan",
+            "@deptrac",
+            "@test"
+        ]
+    },
+    "require-dev": {
+        "deptrac/deptrac": "^4.7",
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.3",
+        "phpunit/phpunit": "^13.4",
+        "symfony/browser-kit": "^7.4 || ^8.0"
+    }
+}

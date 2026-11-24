@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tollbooth\Core\Problem;
+
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\Validator\Exception\ValidationFailedException;
+
+/**
+ * @internal
+ */
+final readonly class ProblemFactory
+{
+    public function __construct(
+        private bool $debug = false,
+    ) {
+    }
+
+    public function fromThrowable(\Throwable $throwable): Problem
+    {
+        $status = $throwable instanceof HttpExceptionInterface ? $throwable->getStatusCode() : 500;
+        $headers = $throwable instanceof HttpExceptionInterface ? $this->headers($throwable->getHeaders()) : [];
+        $violations = $this->violations($throwable);
+
+        return new Problem(
+            status: $status,
+            title: [] !== $violations ? 'Validation Failed' : (Response::$statusTexts[$status] ?? 'Error'),
+            detail: $this->detail($throwable, $status, [] !== $violations),
+            violations: $violations,
+            headers: $headers,
+        );
+    }
+
+    private function detail(\Throwable $throwable, int $status, bool $hasViolations): ?string
+    {
+        if ($hasViolations || '' === $throwable->getMessage()) {
+            return null;
+        }
+
+        if ($status >= 500 && !$this->debug) {
+            return null;
+        }
+
+        return $throwable->getMessage();
+    }
+
+    /**
+     * @return list<array{field: string, message: string}>
+     */
+    private function violations(\Throwable $throwable): array
+    {
+        $validation = $throwable instanceof ValidationFailedException ? $throwable : $throwable->getPrevious();
+        if (!$validation instanceof ValidationFailedException) {
+            return [];
+        }
+
+        $violations = [];
+        foreach ($validation->getViolations() as $violation) {
+            $violations[] = [
+                'field' => $violation->getPropertyPath(),
+                'message' => (string) $violation->getMessage(),
+            ];
+        }
+
+        return $violations;
+    }
+
+    /**
+     * @param array<mixed> $headers
+     *
+     * @return array<string, string>
+     */
+    private function headers(array $headers): array
+    {
+        $normalized = [];
+        foreach ($headers as $name => $value) {
+            if (\is_string($name) && \is_scalar($value)) {
+                $normalized[$name] = (string) $value;
+            }
+        }
+
+        return $normalized;
+    }
+}
