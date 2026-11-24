@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Tollbooth\Core\Metadata;
 
+use Tollbooth\Core\Attribute\Auth;
 use Tollbooth\Core\Attribute\Body;
 use Tollbooth\Core\Attribute\Endpoint;
+use Tollbooth\Core\Attribute\PublicEndpoint;
 use Tollbooth\Core\Attribute\Query;
+use Tollbooth\Core\Attribute\Scope;
 use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
+use Tollbooth\Core\Security\AuthMethod;
 
 /**
  * @internal
@@ -51,6 +55,7 @@ final class EndpointMetadataFactory
         $path = '/'.trim($endpoint->path, '/');
         $group = $this->groups->resolve($class->getName(), $path, $endpoint->group);
         $mounted = rtrim($group->prefix.$path, '/');
+        $auth = $this->auth($class, $group);
 
         return new EndpointMetadata(
             name: $endpoint->name ?? $this->nameFrom($class->getShortName()),
@@ -64,7 +69,60 @@ final class EndpointMetadataFactory
             group: $group->name,
             envelope: $group->envelope->value,
             case: $group->case->value,
+            auth: array_map(static fn (AuthMethod $method): string => $method->value, $auth),
+            scopes: [AuthMethod::Anonymous] === $auth ? [] : $this->scopes($class, $group, $method, $path),
         );
+    }
+
+    /**
+     * @param \ReflectionClass<*> $class
+     *
+     * @return list<AuthMethod>
+     */
+    private function auth(\ReflectionClass $class, Group $group): array
+    {
+        if ([] !== $class->getAttributes(PublicEndpoint::class)) {
+            return [AuthMethod::Anonymous];
+        }
+
+        $attribute = $class->getAttributes(Auth::class)[0] ?? null;
+        if (null === $attribute) {
+            return $group->auth;
+        }
+
+        $methods = AuthMethod::list($attribute->newInstance()->methods, \sprintf('Endpoint "%s"', $class->getName()));
+        if ([] === $methods) {
+            throw new InvalidEndpointException(\sprintf('Endpoint "%s" declares #[Auth] without any method. Use #[PublicEndpoint] for an open endpoint.', $class->getName()));
+        }
+
+        return $methods;
+    }
+
+    /**
+     * @param \ReflectionClass<*> $class
+     *
+     * @return list<string>
+     */
+    private function scopes(\ReflectionClass $class, Group $group, string $method, string $path): array
+    {
+        $attributes = $class->getAttributes(Scope::class);
+        if ([] !== $attributes) {
+            return array_values(array_unique(array_merge(...array_map(
+                static fn (\ReflectionAttribute $attribute): array => $attribute->newInstance()->scopes,
+                $attributes,
+            ))));
+        }
+
+        if (!$group->autoScopes) {
+            return $group->scopes;
+        }
+
+        $resource = explode('/', trim($path, '/'))[0];
+        if ('' === $resource || str_starts_with($resource, '{')) {
+            return $group->scopes;
+        }
+
+        return [...$group->scopes, $resource.':'.(\in_array($method, ['GET', 'HEAD', 'OPTIONS'], true) ? 'read' : 'write')];
     }
 
     private function nameFrom(string $shortName): string

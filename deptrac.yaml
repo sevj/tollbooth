@@ -10,6 +10,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Tollbooth\\Core\\.*
+    - name: Auth
+      collectors:
+        - type: classLike
+          value: ^Tollbooth\\Auth\\.*
     - name: Docs
       collectors:
         - type: classLike
@@ -35,11 +39,12 @@ deptrac:
         - type: classLike
           value: ^Tollbooth\\Dashboard\\.*
   ruleset:
-    Bundle: [Core, Docs, RateLimit, Monitoring, Health, Changes, Dashboard]
+    Bundle: [Core, Auth, Docs, RateLimit, Monitoring, Health, Changes, Dashboard]
     Core: ~
+    Auth: [Core]
     Docs: [Core]
     RateLimit: [Core]
     Monitoring: [Core]
     Health: [Core]
     Changes: [Core]
-    Dashboard: [Core, Docs, RateLimit, Monitoring, Health, Changes]
+    Dashboard: [Core, Auth, Docs, RateLimit, Monitoring, Health, Changes]

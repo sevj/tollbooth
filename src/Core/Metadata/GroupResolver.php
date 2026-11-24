@@ -6,11 +6,12 @@ namespace Tollbooth\Core\Metadata;
 
 use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
+use Tollbooth\Core\Security\AuthMethod;
 
 /**
  * @internal
  *
- * @phpstan-type GroupConfig array{namespace: ?string, path: ?string, prefix: string, output: array{envelope: ?string, case: ?string}}
+ * @phpstan-type GroupConfig array{namespace: ?string, path: ?string, prefix: string, output: array{envelope: ?string, case: ?string}, auth?: list<string>|null, scopes?: list<string>|string|null}
  */
 final readonly class GroupResolver
 {
@@ -28,6 +29,8 @@ final readonly class GroupResolver
     ) {
         $resolved = [];
         foreach ($groups as $name => $config) {
+            $auth = $config['auth'] ?? null;
+            $scopes = $config['scopes'] ?? null;
             $resolved[$name] = new Group(
                 name: $name,
                 envelope: null === $config['output']['envelope'] ? $default->envelope : Envelope::from($config['output']['envelope']),
@@ -35,6 +38,9 @@ final readonly class GroupResolver
                 prefix: self::normalizePath($config['prefix']),
                 namespace: null === $config['namespace'] ? null : trim($config['namespace'], '\\').'\\',
                 path: null === $config['path'] ? null : self::normalizePath($config['path']),
+                auth: null === $auth ? $default->auth : AuthMethod::list($auth, \sprintf('Group "%s"', $name)),
+                scopes: \is_array($scopes) ? $scopes : $default->scopes,
+                autoScopes: null === $scopes ? $default->autoScopes : 'auto' === $scopes,
             );
         }
         $this->groups = $resolved;

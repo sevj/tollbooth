@@ -113,7 +113,73 @@ An endpoint belongs to the first of:
 3. the group with the longest `path` its declared path starts with;
 4. otherwise the `default` group, which uses the top-level `output`.
 
-A group setting left out inherits the top-level one. Endpoint names only need to be unique inside a group: the route of `get_order` is `tollbooth_get_order` in the default group and `tollbooth_partner_get_order` in `partner`. Everything is resolved when the container is built, so groups cost nothing per request.
+A group setting left out inherits the top-level one (`auth.default` for `auth`). Endpoint names only need to be unique inside a group: the route of `get_order` is `tollbooth_get_order` in the default group and `tollbooth_partner_get_order` in `partner`. Everything is resolved when the container is built, so groups cost nothing per request.
+
+## Authentication
+
+Every endpoint requires an API key unless configured otherwise. Whatever method authenticates a call, Tollbooth turns it into a `Tollbooth\Auth\Consumer` (id, name, method, scopes, plan), which an endpoint can take as an argument and which rate limiting and monitoring will key on.
+
+| Method | Credentials | Checked by |
+| --- | --- | --- |
+| `api_key` | `X-Api-Key: tb_live_…` | Tollbooth, no firewall needed |
+| `jwt` | `Authorization: Bearer …` | Symfony's `access_token` authenticator (OIDC, JWKS); Tollbooth reads `client_id` and `scope` from the claims |
+| `user` | the session or any other authenticator of the firewall | Symfony Security; the consumer is the user |
+| `anonymous` | none | the consumer is the client IP |
+
+`jwt` and `user` need `symfony/security-bundle` and a firewall covering the endpoints. Tollbooth refuses to build the container otherwise.
+
+The accepted methods are resolved from the most specific declaration:
+
+```php
+#[Endpoint('POST', '/orders')]
+#[Auth('api_key', 'jwt')]          // replaces the group or the default
+#[Scope('orders:write')]           // repeatable, every scope is required
+final class CreateOrder { … }
+
+#[Endpoint('GET', '/status')]
+#[PublicEndpoint]                  // no authentication, no scope
+final class Status { … }
+```
+
+```yaml
+tollbooth:
+    auth:
+        default: [api_key]         # endpoints that declare nothing
+    groups:
+        partner:
+            namespace: App\Api\Partner
+            auth: [api_key]
+            scopes: auto           # GET /orders/… requires orders:read, POST /orders orders:write
+        mobile:
+            path: /app
+            auth: [jwt]
+            scopes: [mobile]
+```
+
+A call without accepted credentials answers 401 with a `WWW-Authenticate` challenge; a consumer lacking a scope answers 403 naming it. Scopes apply to `api_key` and `jwt` consumers; `user` consumers are left to the application's own authorization (`#[IsGranted]`, voters).
+
+### API keys
+
+```
+bin/console tollbooth:api-key:generate acme-erp --scope=orders:read --scope=orders:write --plan=pro
+```
+
+prints the key once and the configuration to add:
+
+```yaml
+tollbooth:
+    auth:
+        api_keys:
+            acme-erp:
+                id: qi9ywjy0lp8x
+                hash: 8395c743…
+                scopes: [orders:read, orders:write]
+                plan: pro
+                expires_at: '2027-03-02'     # optional
+                allowed_ips: [203.0.113.0/24] # optional
+```
+
+Only a SHA-256 hash of the secret is kept. To store keys elsewhere, implement `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface` and set `tollbooth.auth.api_key_provider` to its service id. The header is set by `tollbooth.auth.api_key_header`.
 
 ## Versioning
 
@@ -123,10 +189,13 @@ Tollbooth follows [Semantic Versioning 2.0.0](https://semver.org/). Notable chan
 
 The public API is the contract host applications and API clients rely on:
 
-- the attributes `Tollbooth\Core\Attribute\Endpoint`, `Body` and `Query`;
+- the attributes `Tollbooth\Core\Attribute\Endpoint`, `Body`, `Query`, `Auth`, `Scope` and `PublicEndpoint`;
+- the enum `Tollbooth\Core\Security\AuthMethod`, the value objects `Tollbooth\Auth\Consumer` and `Tollbooth\Auth\ApiKey\ApiKey`, and the interface `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface`;
+- the format of API keys (`tb_live_` or `tb_test_`, a 12 character id, a 32 character secret);
 - the `tollbooth` route loader type;
 - the `tollbooth.*` configuration keys;
-- the HTTP contract: status codes, envelopes, field name cases and the problem details shape.
+- the console command `tollbooth:api-key:generate` and its options;
+- the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, and the problem details shape.
 
 Anything else is internal and may change in any release.
 

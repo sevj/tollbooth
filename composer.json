@@ -13,6 +13,9 @@
         "symfony/string": "^7.4 || ^8.0",
         "symfony/validator": "^7.4 || ^8.0"
     },
+    "suggest": {
+        "symfony/security-bundle": "To accept the jwt and user authentication methods"
+    },
     "autoload": {
         "psr-4": {
             "Tollbooth\\": "src/"
@@ -44,6 +47,7 @@
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^13.4",
-        "symfony/browser-kit": "^7.4 || ^8.0"
+        "symfony/browser-kit": "^7.4 || ^8.0",
+        "symfony/security-bundle": "^7.4 || ^8.0"
     }
 }

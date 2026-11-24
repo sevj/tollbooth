@@ -34,7 +34,8 @@ Modules live side by side under `src/`, one namespace each:
 
 | Module | Role |
 | --- | --- |
-| `Core` | Endpoint attributes, compiled metadata, routing, request hydration, responses, output conventions, problem details |
+| `Core` | Endpoint attributes (auth and scope declarations included), groups, compiled metadata, routing, request hydration, responses, output conventions, problem details |
+| `Auth` | Consumers, API keys, reading the Symfony token for JWT and session users, access checks |
 | `Docs` | OpenAPI generation and the documentation UI |
 | `RateLimit` | Limiters, plans, API keys, rate limit headers |
 | `Monitoring` | Call collection, storage adapters, aggregation |
@@ -42,6 +43,7 @@ Modules live side by side under `src/`, one namespace each:
 | `Changes` | Contract snapshots per release and their diff |
 | `Dashboard` | Server-rendered operator UI |
 
+- `ROADMAP.md` lists what is done, in progress and planned. Update it in the branch that delivers a feature.
 - Dependencies point one way: every module may depend on `Core`, `Dashboard` may depend on every module, nothing depends on `Dashboard`, and feature modules do not depend on each other except through `Core` interfaces. `deptrac.yaml` enforces it.
 - Inside a module, keep layers apart: public API (attributes, interfaces, value objects), compile time (metadata extraction, compiler passes, cache warmers), runtime (listeners, controllers, services) and infrastructure (storage adapters).
 - Reflection happens at compile time only. The request path reads compiled metadata.

@@ -23,6 +23,8 @@ final class EndpointRouteLoader extends Loader
     public const string GROUP_ATTRIBUTE = '_tollbooth_group';
     public const string ENVELOPE_ATTRIBUTE = '_tollbooth_envelope';
     public const string CASE_ATTRIBUTE = '_tollbooth_case';
+    public const string AUTH_ATTRIBUTE = '_tollbooth_auth';
+    public const string SCOPES_ATTRIBUTE = '_tollbooth_scopes';
 
     private bool $loaded = false;
 
@@ -54,6 +56,8 @@ final class EndpointRouteLoader extends Loader
                     self::GROUP_ATTRIBUTE => $endpoint->group,
                     self::ENVELOPE_ATTRIBUTE => $endpoint->envelope,
                     self::CASE_ATTRIBUTE => $endpoint->case,
+                    self::AUTH_ATTRIBUTE => $endpoint->auth,
+                    self::SCOPES_ATTRIBUTE => $endpoint->scopes,
                 ],
                 requirements: $endpoint->requirements,
                 methods: [$endpoint->method],

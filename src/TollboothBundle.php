@@ -5,11 +5,19 @@ declare(strict_types=1);
 namespace Tollbooth;
 
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
+use Symfony\Component\Console\Application;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Tollbooth\Auth\AccessListener;
+use Tollbooth\Auth\ApiKey\ApiKeyAuthenticator;
+use Tollbooth\Auth\ApiKey\ApiKeyProviderInterface;
+use Tollbooth\Auth\ApiKey\InMemoryApiKeyProvider;
+use Tollbooth\Auth\Command\GenerateApiKeyCommand;
+use Tollbooth\Auth\ConsumerValueResolver;
+use Tollbooth\Auth\TokenConsumerResolver;
 use Tollbooth\Core\Attribute\Endpoint;
 use Tollbooth\Core\DependencyInjection\EndpointPass;
 use Tollbooth\Core\Http\BodyValueResolver;
@@ -25,6 +33,7 @@ use Tollbooth\Core\Output\ResourceTypeResolver;
 use Tollbooth\Core\Output\SerializerLocator;
 use Tollbooth\Core\Problem\ProblemFactory;
 use Tollbooth\Core\Routing\EndpointRouteLoader;
+use Tollbooth\Core\Security\AuthMethod;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -32,6 +41,9 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service_l
 
 /**
  * @phpstan-import-type GroupConfig from GroupResolver
+ * @phpstan-import-type ApiKeyConfig from InMemoryApiKeyProvider
+ *
+ * @phpstan-type AuthConfig array{default: list<string>, api_key_header: string, api_key_provider: ?string, api_keys: array<string, ApiKeyConfig>}
  */
 final class TollboothBundle extends AbstractBundle
 {
@@ -90,6 +102,22 @@ final class TollboothBundle extends AbstractBundle
                                     ->end()
                                 ->end()
                             ->end()
+                            ->variableNode('auth')
+                                ->defaultNull()
+                                ->info('Authentication methods accepted by the group, instead of "auth.default".')
+                                ->validate()
+                                    ->ifTrue(static fn (mixed $auth): bool => null !== $auth && !self::isStringList($auth))
+                                    ->thenInvalid('"auth" must be a list of authentication methods.')
+                                ->end()
+                            ->end()
+                            ->variableNode('scopes')
+                                ->defaultNull()
+                                ->info('Scopes every endpoint of the group requires, or "auto" for "<resource>:read" and "<resource>:write".')
+                                ->validate()
+                                    ->ifTrue(static fn (mixed $scopes): bool => null !== $scopes && 'auto' !== $scopes && !self::isStringList($scopes))
+                                    ->thenInvalid('"scopes" must be a list of scopes or "auto".')
+                                ->end()
+                            ->end()
                         ->end()
                     ->end()
                     ->validate()
@@ -97,7 +125,42 @@ final class TollboothBundle extends AbstractBundle
                         ->thenInvalid('"default" is the group of endpoints that match no other group and cannot be declared.')
                     ->end()
                 ->end()
+                ->arrayNode('auth')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->arrayNode('default')
+                            ->info('Authentication methods of endpoints that set none: api_key, jwt, user, anonymous.')
+                            ->scalarPrototype()->end()
+                            ->defaultValue([AuthMethod::ApiKey->value])
+                        ->end()
+                        ->scalarNode('api_key_header')
+                            ->defaultValue('X-Api-Key')
+                        ->end()
+                        ->scalarNode('api_key_provider')
+                            ->defaultNull()
+                            ->info('Service implementing ApiKeyProviderInterface. Defaults to the keys listed in "api_keys".')
+                        ->end()
+                        ->arrayNode('api_keys')
+                            ->useAttributeAsKey('name')
+                            ->arrayPrototype()
+                                ->children()
+                                    ->scalarNode('id')->isRequired()->cannotBeEmpty()->end()
+                                    ->scalarNode('hash')->isRequired()->cannotBeEmpty()->end()
+                                    ->arrayNode('scopes')->scalarPrototype()->end()->end()
+                                    ->scalarNode('plan')->defaultNull()->end()
+                                    ->scalarNode('expires_at')->defaultNull()->end()
+                                    ->arrayNode('allowed_ips')->scalarPrototype()->end()->end()
+                                ->end()
+                            ->end()
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
+    }
+
+    private static function isStringList(mixed $value): bool
+    {
+        return \is_array($value) && array_is_list($value) && [] === array_filter($value, static fn (mixed $item): bool => !\is_string($item));
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
@@ -111,7 +174,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig} $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -123,7 +186,10 @@ final class TollboothBundle extends AbstractBundle
         $container->parameters()
             ->set(EndpointPass::HASH_PARAMETER, '')
             ->set(EndpointPass::OUTPUT_PARAMETER, $config['output'])
-            ->set(EndpointPass::GROUPS_PARAMETER, $config['groups']);
+            ->set(EndpointPass::GROUPS_PARAMETER, $config['groups'])
+            ->set(EndpointPass::AUTH_PARAMETER, $config['auth']['default']);
+
+        $this->loadAuth($config['auth'], $container);
 
         $services = $container->services();
         $services->set(EndpointRegistry::class);
@@ -172,6 +238,36 @@ final class TollboothBundle extends AbstractBundle
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(new EndpointPass());
+    }
+
+    /**
+     * @param AuthConfig $auth
+     */
+    private function loadAuth(array $auth, ContainerConfigurator $container): void
+    {
+        $services = $container->services();
+
+        $services->set(InMemoryApiKeyProvider::class)
+            ->args([$auth['api_keys']]);
+        $services->alias(ApiKeyProviderInterface::class, $auth['api_key_provider'] ?? InMemoryApiKeyProvider::class);
+
+        $services->set(ApiKeyAuthenticator::class)
+            ->args([service(ApiKeyProviderInterface::class), $auth['api_key_header'], service('clock')->nullOnInvalid()]);
+
+        $services->set(TokenConsumerResolver::class)
+            ->args([service('security.token_storage')->nullOnInvalid()]);
+
+        $services->set(AccessListener::class)
+            ->args([service(ApiKeyAuthenticator::class), service(TokenConsumerResolver::class)])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'priority' => 7]);
+
+        $services->set(ConsumerValueResolver::class)
+            ->tag('controller.argument_value_resolver', ['priority' => 110]);
+
+        if (class_exists(Application::class)) {
+            $services->set(GenerateApiKeyCommand::class)
+                ->tag('console.command');
+        }
     }
 
     /**

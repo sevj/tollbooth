@@ -14,6 +14,7 @@ use Tollbooth\Core\Metadata\GroupResolver;
 use Tollbooth\Core\Metadata\InvalidEndpointException;
 use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
+use Tollbooth\Core\Security\AuthMethod;
 
 /**
  * @internal
@@ -26,6 +27,7 @@ final class EndpointPass implements CompilerPassInterface
     public const string HASH_PARAMETER = 'tollbooth.endpoints_hash';
     public const string OUTPUT_PARAMETER = '.tollbooth.output';
     public const string GROUPS_PARAMETER = '.tollbooth.groups';
+    public const string AUTH_PARAMETER = '.tollbooth.auth_default';
 
     public function process(ContainerBuilder $container): void
     {
@@ -47,6 +49,7 @@ final class EndpointPass implements CompilerPassInterface
 
         usort($endpoints, static fn (EndpointMetadata $a, EndpointMetadata $b): int => [$a->path, $a->method] <=> [$b->path, $b->method]);
         $this->assertUnique($endpoints);
+        $this->assertSecurityAvailable($container, $endpoints);
 
         $compiled = array_map(static fn (EndpointMetadata $endpoint): array => $endpoint->toArray(), $endpoints);
         $container->getDefinition(EndpointRegistry::class)->setArgument('$compiled', $compiled);
@@ -59,11 +62,36 @@ final class EndpointPass implements CompilerPassInterface
         $output = $container->getParameter(self::OUTPUT_PARAMETER);
         /** @var array<string, GroupConfig> $groups */
         $groups = $container->getParameter(self::GROUPS_PARAMETER);
+        /** @var list<string> $auth */
+        $auth = $container->getParameter(self::AUTH_PARAMETER);
 
         return new GroupResolver(
-            new Group(Group::DEFAULT, Envelope::from($output['envelope']), NameCase::from($output['case'])),
+            new Group(
+                Group::DEFAULT,
+                Envelope::from($output['envelope']),
+                NameCase::from($output['case']),
+                auth: AuthMethod::list($auth, 'tollbooth.auth.default'),
+            ),
             $groups,
         );
+    }
+
+    /**
+     * @param list<EndpointMetadata> $endpoints
+     */
+    private function assertSecurityAvailable(ContainerBuilder $container, array $endpoints): void
+    {
+        if ($container->has('security.token_storage')) {
+            return;
+        }
+
+        foreach ($endpoints as $endpoint) {
+            foreach ($endpoint->auth as $method) {
+                if (AuthMethod::from($method)->requiresSecurityBundle()) {
+                    throw new InvalidEndpointException(\sprintf('Endpoint "%s" accepts the "%s" authentication method, which needs symfony/security-bundle and a firewall in front of it.', $endpoint->class, $method));
+                }
+            }
+        }
     }
 
     /**
