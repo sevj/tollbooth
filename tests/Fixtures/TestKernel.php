@@ -29,7 +29,7 @@ final class TestKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/tollbooth-tests/cache/'.$this->environment;
+        return sys_get_temp_dir().'/tollbooth-tests/cache/'.$this->environment.($this->debug ? '_debug' : '');
     }
 
     public function getLogDir(): string
@@ -53,14 +53,26 @@ final class TestKernel extends Kernel
 
         $container->extension('tollbooth', match ($this->environment) {
             'json_api' => ['path_prefix' => '/api', 'output' => ['envelope' => 'json_api', 'case' => 'snake_case']],
+            'groups' => [
+                'path_prefix' => '/api',
+                'groups' => [
+                    'partner' => [
+                        'namespace' => 'Tollbooth\\Tests\\Fixtures\\Partner',
+                        'prefix' => '/partner',
+                        'output' => ['envelope' => 'json_api', 'case' => 'snake_case'],
+                    ],
+                ],
+            ],
             default => ['path_prefix' => '/api'],
         });
 
         $services = $container->services();
         $services->set('logger', NullLogger::class);
-        $services
-            ->defaults()->autowire()->autoconfigure()
-            ->load('Tollbooth\\Tests\\Fixtures\\Endpoint\\', __DIR__.'/Endpoint/');
+        $services = $services->defaults()->autowire()->autoconfigure();
+        $services->load('Tollbooth\\Tests\\Fixtures\\Endpoint\\', __DIR__.'/Endpoint/');
+        if ('groups' === $this->environment) {
+            $services->load('Tollbooth\\Tests\\Fixtures\\Partner\\', __DIR__.'/Partner/');
+        }
     }
 
     protected function configureRoutes(RoutingConfigurator $routes): void

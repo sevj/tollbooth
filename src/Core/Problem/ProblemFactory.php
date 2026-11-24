@@ -16,15 +16,14 @@ final readonly class ProblemFactory
 {
     public function __construct(
         private bool $debug = false,
-        private NameCase $case = NameCase::Preserve,
     ) {
     }
 
-    public function fromThrowable(\Throwable $throwable): Problem
+    public function fromThrowable(\Throwable $throwable, NameCase $case = NameCase::Preserve): Problem
     {
         $status = $throwable instanceof HttpExceptionInterface ? $throwable->getStatusCode() : 500;
         $headers = $throwable instanceof HttpExceptionInterface ? $this->headers($throwable->getHeaders()) : [];
-        $violations = $this->violations($throwable);
+        $violations = $this->violations($throwable, $case);
 
         return new Problem(
             status: $status,
@@ -51,7 +50,7 @@ final readonly class ProblemFactory
     /**
      * @return list<array{field: string, message: string}>
      */
-    private function violations(\Throwable $throwable): array
+    private function violations(\Throwable $throwable, NameCase $case): array
     {
         $validation = $throwable instanceof ValidationFailedException ? $throwable : $throwable->getPrevious();
         if (!$validation instanceof ValidationFailedException) {
@@ -61,7 +60,7 @@ final readonly class ProblemFactory
         $violations = [];
         foreach ($validation->getViolations() as $violation) {
             $violations[] = [
-                'field' => $this->case->applyToPath($violation->getPropertyPath()),
+                'field' => $case->applyToPath($violation->getPropertyPath()),
                 'message' => (string) $violation->getMessage(),
             ];
         }

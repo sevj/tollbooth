@@ -6,6 +6,8 @@ namespace Tollbooth\Tests\Unit\Core\Output;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\DependencyInjection\ServiceLocator;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\BackedEnumNormalizer;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
@@ -14,6 +16,7 @@ use Tollbooth\Core\Output\Envelope;
 use Tollbooth\Core\Output\NameCase;
 use Tollbooth\Core\Output\OutputRenderer;
 use Tollbooth\Core\Output\ResourceTypeResolver;
+use Tollbooth\Core\Output\SerializerLocator;
 use Tollbooth\Tests\Fixtures\Model\Color;
 use Tollbooth\Tests\Fixtures\Model\ThingView;
 
@@ -49,12 +52,12 @@ final class OutputConventionsTest extends TestCase
     #[DataProvider('resourceTypes')]
     public function testResourceTypeIsThePluralOfTheClassName(NameCase $case, object $resource, string $expected): void
     {
-        self::assertSame($expected, (new ResourceTypeResolver($case))->typeOf($resource));
+        self::assertSame($expected, (new ResourceTypeResolver())->typeOf($resource, $case));
     }
 
     public function testDataEnvelopeWrapsThePayload(): void
     {
-        $response = $this->renderer(Envelope::Data)->render(['a' => 1], 200);
+        $response = $this->render(Envelope::Data, ['a' => 1], 200);
 
         self::assertSame('{"data":{"a":1}}', $response->getContent());
         self::assertSame('application/json', $response->headers->get('Content-Type'));
@@ -62,27 +65,28 @@ final class OutputConventionsTest extends TestCase
 
     public function testJsonApiFallsBackToMetaWithoutAnIdentifier(): void
     {
-        $response = $this->renderer(Envelope::JsonApi)->render(['total' => 3], 200);
+        $response = $this->render(Envelope::JsonApi, ['total' => 3], 200);
 
         self::assertSame('{"meta":{"total":3}}', $response->getContent());
     }
 
     public function testJsonApiEmptyListIsAnEmptyCollection(): void
     {
-        self::assertSame('{"data":[]}', $this->renderer(Envelope::JsonApi)->render([], 200)->getContent());
+        self::assertSame('{"data":[]}', $this->render(Envelope::JsonApi, [], 200)->getContent());
     }
 
     public function testNullAnswersNoContentUnlessAnotherStatusIsDeclared(): void
     {
-        self::assertSame(204, $this->renderer(Envelope::Plain)->render(null, 200)->getStatusCode());
-        self::assertSame(202, $this->renderer(Envelope::Plain)->render(null, 202)->getStatusCode());
+        self::assertSame(204, $this->render(Envelope::Plain, null, 200)->getStatusCode());
+        self::assertSame(202, $this->render(Envelope::Plain, null, 202)->getStatusCode());
     }
 
-    private function renderer(Envelope $envelope): OutputRenderer
+    private function render(Envelope $envelope, mixed $result, int $status): Response
     {
         $serializer = new Serializer([new BackedEnumNormalizer(), new ObjectNormalizer()], [new JsonEncoder()]);
+        $renderer = new OutputRenderer(new SerializerLocator(new ServiceLocator(['snake_case' => static fn () => $serializer])), new ResourceTypeResolver());
 
-        return new OutputRenderer($serializer, $envelope, new ResourceTypeResolver(NameCase::SnakeCase));
+        return $renderer->render($result, $status, $envelope, NameCase::SnakeCase);
     }
 }
 

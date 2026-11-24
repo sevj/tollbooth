@@ -89,6 +89,32 @@ With `json_api`, an object that has an `id` becomes a resource object, and a lis
 
 Errors are never wrapped in an envelope: they always answer `application/problem+json`.
 
+### Groups
+
+A group is a set of endpoints that form one API: they share a mount prefix and their output conventions, and later their authentication, scopes, rate limits and documentation.
+
+```yaml
+tollbooth:
+    path_prefix: /api
+    groups:
+        partner:
+            namespace: App\Api\Partner     # endpoints whose class lives here
+            prefix: /partner               # mounted under /api/partner
+            output: { envelope: json_api, case: snake_case }
+        admin:
+            path: /admin                   # endpoints whose declared path starts with /admin
+            output: { case: camel_case }
+```
+
+An endpoint belongs to the first of:
+
+1. the group named on its attribute, `#[Endpoint('GET', '/ping', group: 'admin')]` (`default` puts it back in no group);
+2. the group with the longest `namespace` containing its class;
+3. the group with the longest `path` its declared path starts with;
+4. otherwise the `default` group, which uses the top-level `output`.
+
+A group setting left out inherits the top-level one. Endpoint names only need to be unique inside a group: the route of `get_order` is `tollbooth_get_order` in the default group and `tollbooth_partner_get_order` in `partner`. Everything is resolved when the container is built, so groups cost nothing per request.
+
 ## Versioning
 
 Tollbooth follows [Semantic Versioning 2.0.0](https://semver.org/). Notable changes for each release are recorded in [`CHANGELOG.md`](CHANGELOG.md), and each version is a git tag.

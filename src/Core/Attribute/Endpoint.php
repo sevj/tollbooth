@@ -12,6 +12,7 @@ final readonly class Endpoint
         public string $path,
         public int $status = 200,
         public ?string $name = null,
+        public ?string $group = null,
     ) {
     }
 }
