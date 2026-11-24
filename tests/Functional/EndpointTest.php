@@ -4,17 +4,8 @@ declare(strict_types=1);
 
 namespace Tollbooth\Tests\Functional;
 
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Tollbooth\Tests\Fixtures\TestKernel;
-
-final class EndpointTest extends WebTestCase
+final class EndpointTest extends FunctionalTestCase
 {
-    protected static function getKernelClass(): string
-    {
-        return TestKernel::class;
-    }
-
     public function testRouteParameterIsBoundAndOutputSerialized(): void
     {
         $client = self::createClient();
@@ -22,7 +13,7 @@ final class EndpointTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(200);
         self::assertResponseHeaderSame('Content-Type', 'application/json');
-        self::assertSame(['id' => 7, 'name' => 'Thing 7', 'color' => 'red', 'note' => 'hello'], $this->json($client));
+        self::assertSame(['id' => 7, 'name' => 'Thing 7', 'color' => 'red', 'note' => 'hello', 'unitCount' => 0], $this->json($client));
     }
 
     public function testNonNumericIdDoesNotMatchTheRoute(): void
@@ -31,6 +22,18 @@ final class EndpointTest extends WebTestCase
         $client->request('GET', '/api/things/abc');
 
         self::assertResponseStatusCodeSame(404);
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+    }
+
+    public function testWrongMethodUnderThePrefixAnswersAProblemWithAllow(): void
+    {
+        $client = self::createClient();
+        $client->request('PUT', '/api/things/7');
+
+        self::assertResponseStatusCodeSame(405);
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+        self::assertResponseHeaderSame('Allow', 'DELETE, GET');
+        self::assertSame(['type' => 'about:blank', 'title' => 'Method Not Allowed', 'status' => 405], $this->json($client));
     }
 
     public function testQueryParametersAreCastToTheirTypes(): void
@@ -39,7 +42,7 @@ final class EndpointTest extends WebTestCase
         $client->request('GET', '/api/things?page=3&color=red');
 
         self::assertResponseStatusCodeSame(200);
-        self::assertSame([['id' => 30, 'name' => 'Page 3', 'color' => 'red', 'note' => null]], $this->json($client));
+        self::assertSame([['id' => 30, 'name' => 'Page 3', 'color' => 'red', 'note' => null, 'unitCount' => 0]], $this->json($client));
     }
 
     public function testInvalidQueryParameterAnswersBadRequestProblem(): void
@@ -60,10 +63,10 @@ final class EndpointTest extends WebTestCase
     public function testValidBodyIsHydratedWithTheDeclaredStatus(): void
     {
         $client = self::createClient();
-        $client->jsonRequest('POST', '/api/things', ['name' => 'Gate', 'quantity' => 2, 'color' => 'red']);
+        $client->jsonRequest('POST', '/api/things', ['name' => 'Gate', 'quantity' => 2, 'color' => 'red', 'unitCount' => 3]);
 
         self::assertResponseStatusCodeSame(201);
-        self::assertSame(['id' => 1, 'name' => 'Gate', 'color' => 'red', 'note' => null], $this->json($client));
+        self::assertSame(['id' => 1, 'name' => 'Gate', 'color' => 'red', 'note' => null, 'unitCount' => 3], $this->json($client));
     }
 
     public function testInvalidBodyAnswersValidationProblem(): void
@@ -76,8 +79,19 @@ final class EndpointTest extends WebTestCase
         $problem = $this->json($client);
         self::assertSame('Validation Failed', $problem['title']);
         self::assertSame(422, $problem['status']);
+        self::assertSame(['name', 'quantity'], $this->fields($problem));
+    }
+
+    public function testWrongTypeInBodyAnswersValidationProblem(): void
+    {
+        $client = self::createClient();
+        $client->jsonRequest('POST', '/api/things', ['name' => 'Gate', 'quantity' => 'two']);
+
+        self::assertResponseStatusCodeSame(422);
+        $problem = $this->json($client);
+        self::assertSame(['quantity'], $this->fields($problem));
         self::assertIsArray($problem['violations']);
-        self::assertSame(['name', 'quantity'], array_column($problem['violations'], 'field'));
+        self::assertSame(['field' => 'quantity', 'message' => 'This value should be of type int.'], $problem['violations'][0]);
     }
 
     public function testMalformedBodyAnswersBadRequestProblem(): void
@@ -86,7 +100,15 @@ final class EndpointTest extends WebTestCase
         $client->request('POST', '/api/things', server: ['CONTENT_TYPE' => 'application/json'], content: '{"name":');
 
         self::assertResponseStatusCodeSame(400);
-        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+        self::assertSame('The request body is not valid JSON.', $this->json($client)['detail']);
+    }
+
+    public function testNonJsonBodyIsRejected(): void
+    {
+        $client = self::createClient();
+        $client->request('POST', '/api/things', server: ['CONTENT_TYPE' => 'text/plain'], content: 'name=Gate');
+
+        self::assertResponseStatusCodeSame(415);
     }
 
     public function testVoidResultAnswersNoContent(): void
@@ -114,16 +136,5 @@ final class EndpointTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(500);
         self::assertSame(['type' => 'about:blank', 'title' => 'Internal Server Error', 'status' => 500], $this->json($client));
-    }
-
-    /**
-     * @return array<mixed>
-     */
-    private function json(KernelBrowser $client): array
-    {
-        $decoded = json_decode((string) $client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
-        self::assertIsArray($decoded);
-
-        return $decoded;
     }
 }

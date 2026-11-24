@@ -14,6 +14,6 @@ final class CreateThing
 {
     public function __invoke(#[Body] CreateThingInput $input): ThingView
     {
-        return new ThingView(1, $input->name, $input->color);
+        return new ThingView(1, $input->name, $input->color, unitCount: $input->unitCount);
     }
 }

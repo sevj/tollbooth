@@ -7,6 +7,7 @@ namespace Tollbooth\Core\Problem;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
+use Tollbooth\Core\Output\NameCase;
 
 /**
  * @internal
@@ -15,6 +16,7 @@ final readonly class ProblemFactory
 {
     public function __construct(
         private bool $debug = false,
+        private NameCase $case = NameCase::Preserve,
     ) {
     }
 
@@ -59,7 +61,7 @@ final readonly class ProblemFactory
         $violations = [];
         foreach ($validation->getViolations() as $violation) {
             $violations[] = [
-                'field' => $violation->getPropertyPath(),
+                'field' => $this->case->applyToPath($violation->getPropertyPath()),
                 'message' => (string) $violation->getMessage(),
             ];
         }

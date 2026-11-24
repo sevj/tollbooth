@@ -16,6 +16,8 @@ Dashboard mockup (reference for every screen): https://claude.ai/artifact/G78sXf
 
 PHP is not installed on the host: everything runs in Docker. Docker Desktop is started by the user.
 
+`vendor/` lives in a Docker volume, not on the Windows disk, and the test kernel, PHPStan, php-cs-fixer and OPcache caches live in the `cache` volume: going through the Windows bind mount made `composer qa` take 75 s instead of 3 s. Dependencies are therefore installed with `docker compose run --rm php composer install`, never from the host.
+
 ```
 docker compose run --rm php composer install
 docker compose run --rm php composer test      # PHPUnit

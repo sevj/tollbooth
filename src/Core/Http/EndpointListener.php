@@ -8,8 +8,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Event\ViewEvent;
-use Symfony\Component\Serializer\Encoder\JsonEncode;
-use Symfony\Component\Serializer\SerializerInterface;
+use Tollbooth\Core\Output\OutputRenderer;
 use Tollbooth\Core\Problem\ProblemFactory;
 use Tollbooth\Core\Routing\EndpointRouteLoader;
 
@@ -18,45 +17,40 @@ use Tollbooth\Core\Routing\EndpointRouteLoader;
  */
 final readonly class EndpointListener
 {
-    private const int JSON_FLAGS = \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION;
+    private string $pathPrefix;
 
     public function __construct(
-        private SerializerInterface $serializer,
+        private OutputRenderer $renderer,
         private ProblemFactory $problems,
+        string $pathPrefix = '',
     ) {
+        $this->pathPrefix = rtrim($pathPrefix, '/');
     }
 
     public function onView(ViewEvent $event): void
     {
         $request = $event->getRequest();
-        if (!$this->isEndpoint($request)) {
+        if (!$request->attributes->has(EndpointRouteLoader::ENDPOINT_ATTRIBUTE)) {
             return;
         }
 
         $status = $request->attributes->getInt(EndpointRouteLoader::STATUS_ATTRIBUTE, Response::HTTP_OK);
-        $result = $event->getControllerResult();
-        if (null === $result) {
-            $event->setResponse(new Response(null, Response::HTTP_OK === $status ? Response::HTTP_NO_CONTENT : $status));
-
-            return;
-        }
-
-        $event->setResponse(new Response(
-            $this->serializer->serialize($result, 'json', [JsonEncode::OPTIONS => self::JSON_FLAGS]),
-            $status,
-            ['Content-Type' => 'application/json'],
-        ));
+        $event->setResponse($this->renderer->render($event->getControllerResult(), $status));
     }
 
     public function onException(ExceptionEvent $event): void
     {
-        if (!$this->isEndpoint($event->getRequest())) {
+        if (!$this->isApiRequest($event->getRequest())) {
             return;
         }
 
         $problem = $this->problems->fromThrowable($event->getThrowable());
+        if (!$event->getRequest()->attributes->has(EndpointRouteLoader::ENDPOINT_ATTRIBUTE)) {
+            $problem = $problem->withoutDetail();
+        }
+
         $response = new Response(
-            json_encode($problem->toArray(), self::JSON_FLAGS | \JSON_THROW_ON_ERROR),
+            json_encode($problem->toArray(), OutputRenderer::JSON_FLAGS | \JSON_THROW_ON_ERROR),
             $problem->status,
             ['Content-Type' => 'application/problem+json'] + $problem->headers,
         );
@@ -65,8 +59,18 @@ final readonly class EndpointListener
         $event->setResponse($response);
     }
 
-    private function isEndpoint(Request $request): bool
+    private function isApiRequest(Request $request): bool
     {
-        return $request->attributes->has(EndpointRouteLoader::ENDPOINT_ATTRIBUTE);
+        if ($request->attributes->has(EndpointRouteLoader::ENDPOINT_ATTRIBUTE)) {
+            return true;
+        }
+
+        if ('' === $this->pathPrefix) {
+            return false;
+        }
+
+        $path = $request->getPathInfo();
+
+        return $path === $this->pathPrefix || str_starts_with($path, $this->pathPrefix.'/');
     }
 }
