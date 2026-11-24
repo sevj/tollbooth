@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-25
+
 ### Added
 - Rate limiting per consumer. `tollbooth.rate_limit.plans` declares plans made of any number of limits
   (`["5/10 seconds", "60/minute", "1000/day"]`, or a map to name them). A consumer gets the plan of its
