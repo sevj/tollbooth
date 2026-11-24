@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-25
+
 ### Added
 - Endpoints are authenticated, and every call gets a `Tollbooth\Auth\Consumer` (id, name, method, scopes,
   plan) that an endpoint can take as an argument. Four methods: `api_key`, checked by Tollbooth without
