@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-25
+
 ### Added
 - `tollbooth.groups` declares sets of endpoints that form one API. An endpoint joins a group by namespace
   (`namespace: App\Api\Partner`), by path (`path: /admin`), or explicitly with
