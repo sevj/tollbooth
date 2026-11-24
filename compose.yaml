@@ -1,0 +1,11 @@
+services:
+  php:
+    build: docker/php
+    volumes:
+      - .:/app
+      - composer-cache:/tmp/composer
+    environment:
+      TZ: UTC
+
+volumes:
+  composer-cache:
