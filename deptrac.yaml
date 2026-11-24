@@ -1,0 +1,45 @@
+deptrac:
+  paths:
+    - ./src
+  layers:
+    - name: Bundle
+      collectors:
+        - type: classLike
+          value: ^Tollbooth\\TollboothBundle$
+    - name: Core
+      collectors:
+        - type: classLike
+          value: ^Tollbooth\\Core\\.*
+    - name: Docs
+      collectors:
+        - type: classLike
+          value: ^Tollbooth\\Docs\\.*
+    - name: RateLimit
+      collectors:
+        - type: classLike
+          value: ^Tollbooth\\RateLimit\\.*
+    - name: Monitoring
+      collectors:
+        - type: classLike
+          value: ^Tollbooth\\Monitoring\\.*
+    - name: Health
+      collectors:
+        - type: classLike
+          value: ^Tollbooth\\Health\\.*
+    - name: Changes
+      collectors:
+        - type: classLike
+          value: ^Tollbooth\\Changes\\.*
+    - name: Dashboard
+      collectors:
+        - type: classLike
+          value: ^Tollbooth\\Dashboard\\.*
+  ruleset:
+    Bundle: [Core, Docs, RateLimit, Monitoring, Health, Changes, Dashboard]
+    Core: ~
+    Docs: [Core]
+    RateLimit: [Core]
+    Monitoring: [Core]
+    Health: [Core]
+    Changes: [Core]
+    Dashboard: [Core, Docs, RateLimit, Monitoring, Health, Changes]
