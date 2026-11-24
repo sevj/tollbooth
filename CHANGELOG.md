@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-25
+
 ### Added
 - `tollbooth.output.envelope` wraps every successful response: `plain` (as is, the default), `data`
   (`{"data": …}`) or `json_api`. With `json_api`, an object with an `id` becomes a resource object
