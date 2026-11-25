@@ -65,6 +65,7 @@ button{font:inherit}
 .head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:24px}
 .head h1{margin:0 0 6px;font-size:26px;font-weight:600;letter-spacing:-.02em}
 .head .sub{font:13px var(--mono);color:var(--muted)}
+.head>div:first-child{flex:1 1 360px;min-width:0}
 .actions{display:flex;gap:10px;flex-wrap:wrap}
 
 .th{font:500 11px var(--mono);color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
