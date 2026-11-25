@@ -240,7 +240,7 @@ final class OpenApiGenerator
     {
         $headers = $limited ? ['RateLimit-Policy' => ['$ref' => '#/components/headers/RateLimit-Policy'], 'RateLimit' => ['$ref' => '#/components/headers/RateLimit']] : [];
         $type = $schemas->resolve($invoke);
-        if ($type->isIdentifiedBy(TypeIdentifier::VOID, TypeIdentifier::NEVER, TypeIdentifier::NULL)) {
+        if (!$type instanceof NullableType && $type->isIdentifiedBy(TypeIdentifier::VOID, TypeIdentifier::NEVER, TypeIdentifier::NULL)) {
             return [(string) (200 === $endpoint->status ? 204 : $endpoint->status) => array_filter(['description' => 'No content.', 'headers' => $headers])];
         }
 
@@ -267,8 +267,9 @@ final class OpenApiGenerator
             (string) $endpoint->status => array_filter([
                 'description' => 'Success.',
                 'headers' => $headers,
-                'content' => [$envelope->contentType() => ['schema' => $this->document($type, $envelope, NameCase::from($endpoint->case), $schemas)]],
+                'content' => [$envelope->contentType() => ['schema' => $this->document($this->unwrapNullable($type), $envelope, NameCase::from($endpoint->case), $schemas)]],
             ]),
+            '204' => $type instanceof NullableType && 200 === $endpoint->status ? array_filter(['description' => 'No content: the result is null.', 'headers' => $limited ? array_diff_key($headers, ['ETag' => true]) : []]) : null,
             '304' => $etag ? ['description' => 'Not modified: the answer still has the ETag sent in If-None-Match.'] : null,
         ]);
     }

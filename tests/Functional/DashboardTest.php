@@ -50,6 +50,10 @@ final class DashboardTest extends FunctionalTestCase
         $html = (string) $client->getResponse()->getContent();
         self::assertStringContainsString('<span class="r">success</span>', $html);
         self::assertStringContainsString('get_thing</small>', $html);
+        $client->request('GET', '/_tollbooth/consumers/default', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        $client->request('GET', '/_tollbooth/requests/default');
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testTheMapOverlaysTrafficAndListsWhatNeedsAttention(): void

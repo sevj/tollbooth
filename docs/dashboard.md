@@ -54,7 +54,7 @@ The dashboard reads the rest of the configuration: `tollbooth.health.error_rate`
 | Endpoint page | Pipeline, declaration (source code) | Request fields, responses and examples: `docs`. Statistics tab: `monitoring` |
 | Models | | `docs` |
 | Requests | | `monitoring` |
-| Consumers, consumer page | | `monitoring` |
+| Consumers, consumer page | | nothing (without `monitoring`, the keys are listed without traffic) |
 | API key creation, rotation, plan change, revocation | | `monitoring` and `auth.doctrine_keys` |
 | Changes | | `changes` and `docs` (and at least one snapshot to compare) |
 | Health | | `health` |
@@ -305,7 +305,7 @@ Clicking a call (`?call=<id>`, the newest by default) opens its detail:
 
 ### Managing keys
 
-When `tollbooth.auth.doctrine_keys` is enabled (and monitoring, which the consumers screens need), keys stored in the database can be managed here. Keys declared under `tollbooth.auth.api_keys` are shown as "declared in the configuration, read-only". See [authentication.md](authentication.md).
+When `tollbooth.auth.doctrine_keys` is enabled, or the key provider implements `ManageableApiKeyProviderInterface`, keys can be managed here, with or without monitoring. Keys declared under `tollbooth.auth.api_keys` are shown as "declared in the configuration, read-only". See [authentication.md](authentication.md).
 
 | Action | Where | Effect |
 | --- | --- | --- |
@@ -450,7 +450,7 @@ security:
 - Firewalls are matched in order: keep the `api` firewall before `main` when its pattern would otherwise be caught by a catch-all.
 - The probes (`<health.probe_path>/live` and `/ready`, `/_tollbooth/health/...` by default) must stay reachable by orchestrators: they are excluded above. `/ready` details only appear with `Authorization: Bearer <tollbooth.health.token>`. Alternatively move them with `tollbooth.health.probe_path`.
 - To publish the documentation, add a firewall with `pattern: ^/_tollbooth/(docs|openapi)(/|$)` and `security: false` before `main`. The health report then lists the documentation as outside any firewall, which is what you want.
-- `<docs.path>/health.json` (the full report) stays behind the `^/_tollbooth` rule.
+- `<health.probe_path>.json` (the full report) stays behind the `^/_tollbooth` rule.
 - To serve the dashboard elsewhere, change `tollbooth.dashboard.path` and the patterns together.
 
 ## Signed forms
@@ -463,6 +463,6 @@ Every form that changes something (create, rotate, re-plan or revoke a key; crea
 
 Consequences:
 
-- The token does not depend on the session: it protects against forms posted from other sites, while the firewall decides who may use the dashboard at all.
+- When the request has a started session (the usual case behind a login), the token is also tied to that session, so a token copied from another session is refused. Without a session, the token depends only on the action and the key, and the `Sec-Fetch-Site` and `Origin` checks carry the protection against forms posted from other sites.
 - All servers must share the same `kernel.secret` (`APP_SECRET`), or a form rendered by one server is refused by another. Changing the secret only invalidates forms already open in a browser; reload them. See [guides/multiple-servers.md](guides/multiple-servers.md).
 - Behind a reverse proxy that rewrites the host, configure Symfony's trusted proxies (`framework.trusted_proxies` and `framework.trusted_headers`) so that the host Symfony sees matches the browser's `Origin`; otherwise every form is refused.

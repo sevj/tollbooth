@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tollbooth\Dashboard\Keys;
 
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -14,12 +15,24 @@ final readonly class FormGuard
 {
     public function __construct(
         private string $secret,
+        private ?RequestStack $requests = null,
     ) {
     }
 
     public function token(string $action, string $subject = ''): string
     {
-        return hash_hmac('sha256', 'tollbooth-dashboard|'.$action.'|'.$subject, $this->secret);
+        return hash_hmac('sha256', 'tollbooth-dashboard|'.$action.'|'.$subject.'|'.$this->session(), $this->secret);
+    }
+
+    private function session(): string
+    {
+        $request = $this->requests?->getCurrentRequest();
+        if (null === $request || !$request->hasSession()) {
+            return '';
+        }
+        $session = $request->getSession();
+
+        return $session->isStarted() ? $session->getId() : '';
     }
 
     public function check(Request $request, string $action, string $subject = ''): void

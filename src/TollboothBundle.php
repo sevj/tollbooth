@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\Console\Application;
 use Symfony\Component\DependencyInjection\ChildDefinition;
+use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
@@ -35,6 +36,7 @@ use Tollbooth\Changes\CurrentContract;
 use Tollbooth\Changes\Impact;
 use Tollbooth\Changes\SnapshotStore;
 use Tollbooth\Core\Attribute\Endpoint;
+use Tollbooth\Core\DependencyInjection\ApplicationNormalizersPass;
 use Tollbooth\Core\DependencyInjection\EndpointPass;
 use Tollbooth\Core\Health\FindingProviderInterface;
 use Tollbooth\Core\Health\HealthCheckInterface;
@@ -84,6 +86,7 @@ use Tollbooth\Dashboard\Map\MapBuilder;
 use Tollbooth\Dashboard\Map\Thresholds;
 use Tollbooth\Dashboard\Models\ModelCatalogFactory;
 use Tollbooth\Dashboard\Shell;
+use Tollbooth\Dashboard\Traffic\NoCalls;
 use Tollbooth\Dashboard\Traffic\TrafficReader;
 use Tollbooth\Dashboard\Twig\DashboardExtension;
 use Tollbooth\Docs\Command\ExportOpenApiCommand;
@@ -571,6 +574,7 @@ final class TollboothBundle extends AbstractBundle
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(new EndpointPass());
+        $container->addCompilerPass(new ApplicationNormalizersPass(array_map(self::serializerName(...), NameCase::cases())), PassConfig::TYPE_BEFORE_OPTIMIZATION, 1);
         $container->addCompilerPass(new ManageableKeyProviderPass());
     }
 
@@ -714,7 +718,7 @@ final class TollboothBundle extends AbstractBundle
             ->args([service(ApiKeyProviderInterface::class), $health['key_expiry_days'], service('clock')->nullOnInvalid()])
             ->tag(FindingProviderInterface::TAG);
 
-        $exposed = ['health report' => rtrim($config['docs']['path'], '/').'/health.json'];
+        $exposed = ['health report' => rtrim($config['health']['probe_path'], '/').'.json'];
         if ($config['docs']['enabled']) {
             $exposed['documentation'] = rtrim($config['docs']['path'], '/').'/docs';
         }
@@ -722,7 +726,7 @@ final class TollboothBundle extends AbstractBundle
             $exposed['dashboard'] = rtrim($config['dashboard']['path'], '/').'/map';
         }
         $services->set(ExposureFindings::class)
-            ->args([$exposed, service('security.firewall.map')->nullOnInvalid()])
+            ->args([$exposed, service('security.firewall.map')->nullOnInvalid(), service('security.access_map')->nullOnInvalid()])
             ->tag(FindingProviderInterface::TAG);
 
         $services->set(HealthRunner::class)
@@ -740,7 +744,7 @@ final class TollboothBundle extends AbstractBundle
             ->tag('controller.service_arguments');
 
         $services->set(HealthRouteProvider::class)
-            ->args([$config['docs']['path'], $health['probe_path']])
+            ->args([$health['probe_path']])
             ->tag(RouteProviderInterface::TAG);
 
         if (class_exists(Application::class)) {
@@ -845,47 +849,51 @@ final class TollboothBundle extends AbstractBundle
                 ->public()
                 ->tag('controller.service_arguments');
         }
-        if ($monitoring) {
-            $services->set(ConsumerDirectory::class)
-                ->args([
-                    service(CallReaderInterface::class),
-                    service(ApiKeyProviderInterface::class),
-                    $config['rate_limit']['enabled'] ? service(Plans::class) : null,
-                    service('clock')->nullOnInvalid(),
-                ]);
-            $services->set(ConsumerInsights::class)
-                ->args([
-                    service(ConsumerDirectory::class),
-                    service(CallReaderInterface::class),
-                    service(GroupCatalog::class),
-                    $config['changes']['enabled'] && $config['docs']['enabled'] ? service(ContractChanges::class) : null,
-                    service('clock')->nullOnInvalid(),
-                ]);
-            $services->set(ConsumersController::class)
-                ->args([
-                    service(ConsumerDirectory::class),
-                    service(ConsumerInsights::class),
-                    service(GroupCatalog::class),
-                    service(Shell::class),
-                    service('twig'),
-                    service('translator'),
-                    service(ManageableApiKeyProviderInterface::class)->nullOnInvalid(),
-                ])
+        $calls = $monitoring ? service(CallReaderInterface::class) : service(NoCalls::class);
+        if (!$monitoring) {
+            $services->set(NoCalls::class);
+        }
+        $services->set(ConsumerDirectory::class)
+            ->args([
+                $calls,
+                service(ApiKeyProviderInterface::class),
+                $config['rate_limit']['enabled'] ? service(Plans::class) : null,
+                service('clock')->nullOnInvalid(),
+            ]);
+        $services->set(ConsumerInsights::class)
+            ->args([
+                service(ConsumerDirectory::class),
+                $calls,
+                service(GroupCatalog::class),
+                $config['changes']['enabled'] && $config['docs']['enabled'] ? service(ContractChanges::class) : null,
+                service('clock')->nullOnInvalid(),
+            ]);
+        $services->set(ConsumersController::class)
+            ->args([
+                service(ConsumerDirectory::class),
+                service(ConsumerInsights::class),
+                service(GroupCatalog::class),
+                service(Shell::class),
+                service('twig'),
+                service('translator'),
+                service(ManageableApiKeyProviderInterface::class)->nullOnInvalid(),
+            ])
+            ->public()
+            ->tag('controller.service_arguments');
+        $services->set(KeysController::class)
+            ->args([
+                service(ManageableApiKeyProviderInterface::class)->nullOnInvalid(),
+                service(ConsumerDirectory::class),
+                service(FormGuard::class),
+                service(GroupCatalog::class),
+                service(Shell::class),
+                service('twig'),
+                service('router'),
+                service('clock')->nullOnInvalid(),
+            ])
                 ->public()
-                ->tag('controller.service_arguments');
-            $services->set(KeysController::class)
-                ->args([
-                    service(ManageableApiKeyProviderInterface::class)->nullOnInvalid(),
-                    service(ConsumerDirectory::class),
-                    service(FormGuard::class),
-                    service(GroupCatalog::class),
-                    service(Shell::class),
-                    service('twig'),
-                    service('router'),
-                    service('clock')->nullOnInvalid(),
-                ])
-                    ->public()
-                ->tag('controller.service_arguments');
+            ->tag('controller.service_arguments');
+        if ($monitoring) {
             $services->set(RequestsController::class)
                 ->args([
                     service(CallReaderInterface::class),
@@ -978,7 +986,7 @@ final class TollboothBundle extends AbstractBundle
             ->tag('controller.service_arguments');
 
         $services->set(FormGuard::class)
-            ->args([param('kernel.secret')]);
+            ->args([param('kernel.secret'), service('request_stack')->nullOnInvalid()]);
         $services->set(DashboardExtension::class)
             ->args([service(Assets::class), service('router'), service(FormGuard::class)])
             ->tag('twig.extension');

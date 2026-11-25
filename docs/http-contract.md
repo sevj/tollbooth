@@ -26,7 +26,7 @@ The `Accept` header is not read: successful responses are always JSON, errors al
 | --- | --- | --- | --- |
 | The handler returns a value | The endpoint's declared status (default `200`) | The value in the group's envelope and field case | `application/json`, or `application/vnd.api+json` with the `json_api` envelope |
 | The handler returns nothing, declared status `200` | `204 No Content` | empty | none |
-| The handler returns nothing, another declared status (`201`, `202`) | the declared status | empty | not set by Tollbooth |
+| The handler returns nothing, another declared status (`201`, `202`) | the declared status | empty | the group's content type (`application/json` or `application/vnd.api+json`) |
 | The handler returns a Symfony `Response` | its own | its own | its own |
 | A `GET` or `HEAD` answered `200` by Tollbooth whose `If-None-Match` matches its `ETag` | `304 Not Modified` | empty | none |
 
