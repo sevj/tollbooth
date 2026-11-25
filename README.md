@@ -181,6 +181,28 @@ tollbooth:
 
 Only a SHA-256 hash of the secret is kept. To store keys elsewhere, implement `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface` and set `tollbooth.auth.api_key_provider` to its service id. The header is set by `tollbooth.auth.api_key_header`.
 
+#### Keys in the database
+
+With Doctrine DBAL, keys can also live in a table, where the dashboard creates, rotates, re-plans and revokes them:
+
+```yaml
+tollbooth:
+    auth:
+        doctrine_keys:
+            enabled: true
+            connection: default      # DBAL connection name or service id
+            table_prefix: tollbooth_
+```
+
+```
+bin/console tollbooth:api-key:setup                  # creates tollbooth_api_key, --dump-sql for a migration
+bin/console tollbooth:api-key:generate acme-erp --plan=pro --store
+```
+
+Keys declared under `api_keys` keep working next to them and stay read-only. A provider of your own can support the same management by implementing `ManageableApiKeyProviderInterface` (`save()`, `remove()`, `manages()`). The health report turns critical when the table cannot be read.
+
+On the dashboard, "New API key" on the consumers screen asks for a name, plan, scopes, expiry date, allowed addresses and live or test prefix, then shows the key once. A consumer's page can rotate its key (same id, new secret; the old one stops working at once), change its plan or revoke it. These forms carry a token signed with `kernel.secret` and are refused when the browser says they come from another site.
+
 ## Rate limiting
 
 A plan is a set of limits, as many as needed, counted per consumer across every endpoint. A consumer gets the plan of its API key, or `default_plan`; anonymous consumers get `anonymous_plan`.
@@ -428,11 +450,11 @@ The public API is the contract host applications and API clients rely on:
 - the attributes `Tollbooth\Core\Attribute\Endpoint`, `Body`, `Query`, `Auth`, `Scope`, `PublicEndpoint`, `RateLimit` and `DeprecatedEndpoint`, and the limit syntax `<count>/<interval>`;
 - the snapshot file format, the commands `tollbooth:contract:snapshot` and `tollbooth:diff` with their options and exit codes;
 - the exception `Tollbooth\RateLimit\RateLimitExceededException` and the interface `Tollbooth\Core\Problem\ProblemMembersInterface`;
-- the enum `Tollbooth\Core\Security\AuthMethod`, the value objects `Tollbooth\Auth\Consumer` and `Tollbooth\Auth\ApiKey\ApiKey`, and the interface `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface`;
+- the enum `Tollbooth\Core\Security\AuthMethod`, the value objects `Tollbooth\Auth\Consumer` and `Tollbooth\Auth\ApiKey\ApiKey`, and the interfaces `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface` and `ManageableApiKeyProviderInterface`;
 - the format of API keys (`tb_live_` or `tb_test_`, a 12 character id, a 32 character secret);
 - the `tollbooth` route loader type;
 - the `tollbooth.*` configuration keys;
-- the console commands `tollbooth:api-key:generate`, `tollbooth:openapi:export`, `tollbooth:monitoring:setup` and `tollbooth:monitoring:maintain` and their options;
+- the console commands `tollbooth:api-key:generate`, `tollbooth:api-key:setup`, `tollbooth:openapi:export`, `tollbooth:monitoring:setup` and `tollbooth:monitoring:maintain` and their options;
 - the monitoring interfaces `CallRecorderInterface`, `CallReaderInterface`, `CallBreakdownInterface` and `RollupInterface`, and the value objects `CallRecord`, `CallQuery`, `Stats` and `ErrorGroup`;
 - the health contract in `Tollbooth\Core\Health`: `HealthCheckInterface`, `FindingProviderInterface`, `CheckResult`, `HealthStatus` and `Finding`; the API key interface `ListableApiKeyProviderInterface`;
 - the health routes and the shape of their JSON, and the `tollbooth:health` command;
