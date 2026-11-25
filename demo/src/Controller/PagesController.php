@@ -69,6 +69,7 @@ final readonly class PagesController
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>%s</title>
+            <link rel="icon" href="data:,">
             <style>
             body{margin:0;min-height:100vh;background:#0d0e10;color:#edeae3;font:15px/1.5 Inter,system-ui,sans-serif;display:flex;justify-content:center;align-items:flex-start;padding:64px 16px;box-sizing:border-box}
             main{width:100%%;max-width:560px}
