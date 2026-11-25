@@ -8,6 +8,10 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- A long subtitle no longer pushes the buttons of a dashboard screen under its title: the subtitle wraps
+  instead.
+
 ## [0.20.0] - 2026-11-25
 
 ### Changed
