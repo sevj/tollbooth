@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-25
+
 ### Added
 - `#[DeprecatedEndpoint(since:, sunset:, link:)]` adds `Deprecation`, `Sunset` and `Link` headers to every
   response of the endpoint and marks its OpenAPI operation `deprecated`. With
