@@ -9,8 +9,46 @@ services:
     environment:
       TZ: UTC
       TMPDIR: /cache/tmp
+      DEMO_DATABASE_URL: postgresql://demo:demo@postgres:5432/shop?serverVersion=17&charset=utf8
+      DEMO_MONITORING_URL: postgresql://demo:demo@postgres:5432/tollbooth?serverVersion=17&charset=utf8
+
+  demo:
+    build: docker/php
+    command: php -S 0.0.0.0:8080 -t demo/public demo/public/index.php
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - vendor:/app/vendor
+      - cache:/cache
+    environment:
+      TZ: UTC
+      TMPDIR: /cache/tmp
+      PHP_CLI_SERVER_WORKERS: 4
+      DEMO_DATABASE_URL: postgresql://demo:demo@postgres:5432/shop?serverVersion=17&charset=utf8
+      DEMO_MONITORING_URL: postgresql://demo:demo@postgres:5432/tollbooth?serverVersion=17&charset=utf8
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: shop
+      TZ: UTC
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d shop"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
 
 volumes:
   vendor:
   cache:
   composer-cache:
+  postgres:
