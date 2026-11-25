@@ -8,6 +8,13 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- Dashboard pages took 0.6 to 1.3 seconds: every page rebuilt the OpenAPI document of its group, sometimes
+  twice, and checked the monitoring tables for the navigation. The OpenAPI documents are now built once
+  per request and kept in the `cache.system` pool outside debug mode, the navigation keeps the model
+  count and the collector state in `cache.app`, and the map draws its sparklines from one query. Pages
+  now answer in 0.2 to 0.45 seconds on the demo. The documentation routes are faster for the same reason.
+
 ## [0.15.0] - 2026-11-25
 
 ### Added
