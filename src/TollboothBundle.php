@@ -692,13 +692,13 @@ final class TollboothBundle extends AbstractBundle
 
         if ($config['rate_limit']['enabled'] && $config['rate_limit']['doctrine_plans']['enabled']) {
             $services->set(PlanStoreCheck::class)
-                ->args([service(DoctrinePlanStore::class), [] !== $config['rate_limit']['plans']])
+                ->args([service(DoctrinePlanStore::class), [] !== $config['rate_limit']['plans'], service('cache.app')->nullOnInvalid()])
                 ->tag(self::INTERNAL_CHECK, ['priority' => 75]);
         }
 
         if ($config['auth']['doctrine_keys']['enabled']) {
             $services->set(ApiKeyStoreCheck::class)
-                ->args([service(DoctrineApiKeyStore::class)])
+                ->args([service(DoctrineApiKeyStore::class), service('cache.app')->nullOnInvalid()])
                 ->tag(self::INTERNAL_CHECK, ['priority' => 55]);
         }
 
@@ -1041,7 +1041,8 @@ final class TollboothBundle extends AbstractBundle
         $services = $container->services();
 
         $services->set(DoctrineCallStorage::class)
-            ->args([service($connection), $monitoring['table_prefix']]);
+            ->args([service($connection), $monitoring['table_prefix']])
+            ->tag('kernel.reset', ['method' => 'reset']);
         $services->alias(CallRecorderInterface::class, DoctrineCallStorage::class);
         $services->alias(CallReaderInterface::class, DoctrineCallStorage::class);
         $services->alias(RollupInterface::class, DoctrineCallStorage::class);

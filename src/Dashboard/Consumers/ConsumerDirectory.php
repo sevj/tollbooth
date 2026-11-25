@@ -12,6 +12,8 @@ use Tollbooth\Core\Metadata\Limit;
 use Tollbooth\Dashboard\Traffic\TrafficReader;
 use Tollbooth\Monitoring\CallQuery;
 use Tollbooth\Monitoring\CallReaderInterface;
+use Tollbooth\Monitoring\CallRecord;
+use Tollbooth\Monitoring\ConsumerActivityInterface;
 use Tollbooth\Monitoring\Stats;
 use Tollbooth\RateLimit\Plans;
 
@@ -70,9 +72,15 @@ final class ConsumerDirectory
         $traffic = self::keyed($this->calls->totals($now - 86400, $now + 60, 'consumer', new CallQuery(group: $group)));
         $today = self::keyed($this->calls->totals(self::startOfDay($now), $now + 60, 'consumer'));
 
+        $activity = null;
+        if ($this->calls instanceof ConsumerActivityInterface) {
+            $ids = array_values(array_unique(array_map(strval(...), [...array_keys($this->keys()), ...array_keys($traffic)])));
+            $activity = [$this->calls->lastCalls($ids), $this->calls->minutePeaks($now - 86400, $now + 60)];
+        }
+
         $rows = [];
         foreach ($this->keys() as $key) {
-            $rows[$key->id] = $this->row($key->id, $key->name, $key, $traffic[$key->id] ?? null, $today);
+            $rows[$key->id] = $this->row($key->id, $key->name, $key, $traffic[$key->id] ?? null, $today, $activity);
         }
 
         $anonymous = [];
@@ -84,7 +92,7 @@ final class ConsumerDirectory
                 $anonymous[] = $stats;
                 continue;
             }
-            $rows[$id] = $this->row($id, $stats->label, null, $stats, $today);
+            $rows[$id] = $this->row($id, $stats->label, null, $stats, $today, $activity);
         }
 
         if ([] !== $anonymous) {
@@ -163,16 +171,19 @@ final class ConsumerDirectory
     }
 
     /**
-     * @param array<string, Stats> $today
+     * @param array<string, Stats>                                      $today
+     * @param array{array<string, CallRecord>, array<string, int>}|null $activity
      */
-    private function row(string $id, string $name, ?ApiKey $key, ?Stats $stats, array $today): ConsumerRow
+    private function row(string $id, string $name, ?ApiKey $key, ?Stats $stats, array $today, ?array $activity = null): ConsumerRow
     {
         $now = $this->now();
         $plan = null !== $key ? ($key->plan ?? $this->defaultPlan()) : null;
         $limits = null !== $key ? $this->limitsOf($plan) : [];
-        $last = $this->calls->recent(new CallQuery(consumerId: $id, limit: 1))[0] ?? null;
+        $last = null === $activity ? ($this->calls->recent(new CallQuery(consumerId: $id, limit: 1))[0] ?? null) : ($activity[0][$id] ?? null);
         $peak = null;
-        if (null !== $last && $last->occurredAt >= ($now - 86400) * 1000) {
+        if (null !== $activity && null !== $last && $last->occurredAt >= ($now - 86400) * 1000) {
+            $peak = $activity[1][$id] ?? 0;
+        } elseif (null !== $last && $last->occurredAt >= ($now - 86400) * 1000) {
             $peak = 0;
             foreach ($this->calls->series($now - 86400, $now + 60, new CallQuery(consumerId: $id)) as $minute) {
                 $peak = max($peak, $minute->calls);

@@ -128,7 +128,7 @@ final readonly class MapBuilder
             \count($traffic->byConsumer($window, $group)),
             \count($traffic->byConsumer($previous, $group)),
             $this->keyCount(),
-            array_map(static fn (Window $bucket): int => \count($traffic->byConsumer($bucket, $group)), $window->split($range->buckets())),
+            $traffic->activeConsumers($window, $range->buckets(), $group),
         );
     }
 

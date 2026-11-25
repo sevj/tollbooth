@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tollbooth\RateLimit\Health;
 
+use Symfony\Contracts\Cache\CacheInterface;
 use Tollbooth\Core\Health\CheckResult;
 use Tollbooth\Core\Health\HealthCheckInterface;
+use Tollbooth\Core\Health\SchemaDrift;
 use Tollbooth\RateLimit\Doctrine\DoctrinePlanStore;
 
 /**
@@ -16,6 +18,7 @@ final readonly class PlanStoreCheck implements HealthCheckInterface
     public function __construct(
         private DoctrinePlanStore $store,
         private bool $declared = false,
+        private ?CacheInterface $cache = null,
     ) {
     }
 
@@ -32,13 +35,7 @@ final readonly class PlanStoreCheck implements HealthCheckInterface
             return CheckResult::critical('The table of rate limit plans cannot be read: only the plans declared in the configuration apply. Run tollbooth:plan:setup, or check the connection.');
         }
 
-        try {
-            $pending = $this->store->setupSql();
-        } catch (\Throwable) {
-            $pending = [];
-        }
-
-        if ([] !== $pending) {
+        if (SchemaDrift::pending($this->name(), $this->store->setupSql(...), $this->cache)) {
             return CheckResult::warning('The table of rate limit plans is out of date. Run tollbooth:plan:setup.');
         }
 

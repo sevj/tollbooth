@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tollbooth\Dashboard\Traffic;
 
+use Tollbooth\Monitoring\ActiveConsumersInterface;
 use Tollbooth\Monitoring\CallQuery;
 use Tollbooth\Monitoring\CallReaderInterface;
 use Tollbooth\Monitoring\CallRecord;
@@ -41,6 +42,18 @@ final readonly class TrafficReader
     public function byConsumer(Window $window, string $group, ?string $endpoint = null): array
     {
         return $this->calls->totals($window->from, $window->to, 'consumer', new CallQuery(endpoint: $endpoint, group: $group));
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function activeConsumers(Window $window, int $parts, string $group): array
+    {
+        if ($this->calls instanceof ActiveConsumersInterface) {
+            return $this->calls->activeConsumers($window->from, $window->to, $parts, new CallQuery(group: $group));
+        }
+
+        return array_map(fn (Window $bucket): int => \count($this->byConsumer($bucket, $group)), $window->split($parts));
     }
 
     public function total(Window $window, string $group, ?string $endpoint = null): Stats
