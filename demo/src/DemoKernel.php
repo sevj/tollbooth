@@ -34,6 +34,16 @@ final class DemoKernel extends Kernel
         return \dirname(__DIR__);
     }
 
+    public function getCacheDir(): string
+    {
+        return sys_get_temp_dir().'/tollbooth-demo/cache/'.$this->environment;
+    }
+
+    public function getLogDir(): string
+    {
+        return sys_get_temp_dir().'/tollbooth-demo/log';
+    }
+
     protected function configureContainer(ContainerConfigurator $container): void
     {
         $container->extension('framework', [
