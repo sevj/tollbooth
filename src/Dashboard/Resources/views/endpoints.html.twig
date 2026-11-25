@@ -42,8 +42,8 @@
 {% if rows is empty %}
 <div class="empty"><span class="dot ok"></span> {{ 'dashboard.endpoints.none'|trans }}</div>
 {% else %}
-<div style="overflow-x: auto"><div class="el-table{% if traffic %} live{% endif %}">
-<div class="el th">
+<div style="overflow-x: auto"><div class="epl-table{% if traffic %} live{% endif %}">
+<div class="epl th">
 <span></span>
 {{ _self.sortable('dashboard.endpoints.col.path'|trans, 'path', query, sort, descending, '') }}
 <span>{{ 'dashboard.endpoints.col.resource'|trans }}</span>
@@ -61,7 +61,7 @@
 {% set endpoint = row.endpoint %}
 {% set meta = endpoint.metadata %}
 {% set p95 = endpoint.p95 %}
-<a class="el{% if traffic and endpoint.failing %} failing{% endif %}" href="{{ path('tollbooth_dashboard_endpoint', {group: group, name: meta.name}) }}{% if traffic %}#stats{% endif %}" data-search-text="{{ (meta.method ~ ' ' ~ endpoint.path ~ ' ' ~ meta.name ~ ' ' ~ row.resource)|lower }}">
+<a class="epl{% if traffic and endpoint.failing %} failing{% endif %}" href="{{ path('tollbooth_dashboard_endpoint', {group: group, name: meta.name}) }}{% if traffic %}#stats{% endif %}" data-search-text="{{ (meta.method ~ ' ' ~ endpoint.path ~ ' ' ~ meta.name ~ ' ' ~ row.resource)|lower }}">
 <span class="me {{ meta.method }}">{{ meta.method }}</span>
 <span class="pa"><span{% if endpoint.deprecated %} class="gone"{% endif %}>{{ endpoint.path }}</span>{% if endpoint.deprecated %}<span class="tag sunset">{{ endpoint.sunset ? 'dashboard.map.tag.sunset'|trans : 'dashboard.map.tag.deprecated'|trans }}</span>{% endif %}<small>{{ meta.name }}</small></span>
 <span class="mu">{{ row.resource }}</span>

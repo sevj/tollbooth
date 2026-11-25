@@ -8,6 +8,10 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- The changes screen lays its rows out again: the endpoints screen of 0.21.0 gave its own grid to a CSS
+  class the changes screen already used for element names.
+
 ## [0.21.0] - 2026-11-25
 
 ### Added
