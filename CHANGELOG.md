@@ -8,6 +8,17 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Endpoint page in the dashboard (`/_tollbooth/endpoints/{group}/{name}`), opened from any row of the map.
+  It shows the request pipeline with the endpoint's own settings (authentication and scopes, limits, body
+  model, constraints, handler, response model and conventions) and, with monitoring, the share of calls
+  each step answers and where the time goes around the p95. Below: the declaration as written in the
+  source file, the request fields with their rules, the documented responses, example calls in cURL, PHP
+  and JavaScript with an example response, the p50 and p95 latency over time, status codes, top
+  consumers and recent errors grouped by message.
+- `CallBreakdownInterface`, implemented by the Doctrine storage: calls by status code and errors grouped
+  by status and message, with how many consumers met them and when they were last seen.
+
 ## [0.10.0] - 2026-11-25
 
 ### Added

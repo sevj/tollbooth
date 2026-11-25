@@ -395,6 +395,7 @@ composer require symfony/twig-bundle symfony/translation
 | `/_tollbooth` | Opens the map of the first group |
 | `/_tollbooth/map/{group}` | API map: the group's endpoints by resource, linked where their models refer to each other |
 | `/_tollbooth/map/{group}.mmd` | The same map as a Mermaid flowchart |
+| `/_tollbooth/endpoints/{group}/{name}` | One endpoint: its request pipeline with this endpoint's settings, its declaration, request fields and rules, responses, example calls (cURL, PHP, JS) and response, and with monitoring its latency, status codes, top consumers and grouped errors |
 
 With monitoring enabled, the map shows the traffic over the last hour, day, week or month (`?range=1h|24h|7d|30d`): requests, error rate, p95 latency, throttled calls and active consumers with their trend; each endpoint's share of its resource's calls, its p95, deprecated endpoints, endpoints throttled or answering errors above `tollbooth.health.error_rate`. A "Needs attention" list names the deprecated endpoints still called and by whom, the endpoints that fail (with their most frequent error), those hitting quotas and those whose p95 rose by half against the previous 7 days. `?mode=structure` shows the declared status and authentication instead.
 
@@ -426,12 +427,12 @@ The public API is the contract host applications and API clients rely on:
 - the `tollbooth` route loader type;
 - the `tollbooth.*` configuration keys;
 - the console commands `tollbooth:api-key:generate`, `tollbooth:openapi:export`, `tollbooth:monitoring:setup` and `tollbooth:monitoring:maintain` and their options;
-- the monitoring interfaces `CallRecorderInterface`, `CallReaderInterface` and `RollupInterface`, and the value objects `CallRecord`, `CallQuery` and `Stats`;
+- the monitoring interfaces `CallRecorderInterface`, `CallReaderInterface`, `CallBreakdownInterface` and `RollupInterface`, and the value objects `CallRecord`, `CallQuery`, `Stats` and `ErrorGroup`;
 - the health contract in `Tollbooth\Core\Health`: `HealthCheckInterface`, `FindingProviderInterface`, `CheckResult`, `HealthStatus` and `Finding`; the API key interface `ListableApiKeyProviderInterface`;
 - the health routes and the shape of their JSON, and the `tollbooth:health` command;
 - the monitoring tables: a change to their schema is announced with the SQL to run;
 - the documentation routes (`<docs.path>/docs/{group}`, `<docs.path>/openapi/{group}.json`); the content of the OpenAPI documents follows the endpoints and is not itself versioned;
-- the dashboard routes (`<dashboard.path>` and `<dashboard.path>/map/{group}`); what the pages show and how they look is not versioned;
+- the dashboard routes (`<dashboard.path>`, `<dashboard.path>/map/{group}` and `<dashboard.path>/endpoints/{group}/{name}`); what the pages show and how they look is not versioned;
 - the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, rate limit headers and the `limiters` list, and the problem details shape.
 
 Anything else is internal and may change in any release.
