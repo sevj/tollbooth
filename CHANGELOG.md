@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-25
+
 ### Added
 - Requests screen in the dashboard (`/_tollbooth/requests/{group}`): the recorded calls, newest first,
   filtered by endpoint, status class or exact status, consumer, minimum duration and period, with a live
