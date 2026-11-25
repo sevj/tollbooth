@@ -9,6 +9,9 @@ of `README.md` for the definition of the public API.
 ## [Unreleased]
 
 ### Fixed
+- `tollbooth:diff` stops with exit code 2 on an unknown `--fail-on` or `--format` value: a misspelled
+  `--fail-on` used to make the check pass in CI. When the monitoring database cannot be read, it lists the
+  changes without their impact instead of failing.
 - Mistakes that used to surface only at run time stop the build with a message naming the cause: an empty
   list of authentication methods, an endpoint whose route name is one of Tollbooth's own pages (it used to
   be replaced silently), the same named limit in two `#[RateLimit]` attributes (the last one used to win),

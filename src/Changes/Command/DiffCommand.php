@@ -38,6 +38,18 @@ final readonly class DiffCommand
         #[Option('Fail on "breaking", "risky" or "none"')] string $failOn = 'breaking',
         #[Option('Output: "text", "markdown" or "json"')] string $format = 'text',
     ): int {
+        $kinds = ['none', ...array_map(static fn (ChangeKind $kind): string => $kind->value, ChangeKind::cases())];
+        if (!\in_array($failOn, $kinds, true)) {
+            $io->error(\sprintf('--fail-on must be one of %s, not "%s".', implode(', ', $kinds), $failOn));
+
+            return Command::INVALID;
+        }
+        if (!\in_array($format, ['text', 'markdown', 'json'], true)) {
+            $io->error(\sprintf('--format must be text, markdown or json, not "%s".', $format));
+
+            return Command::INVALID;
+        }
+
         $base ??= $this->store->latest();
         if (null === $base) {
             $io->error('No snapshot to compare with. Save one with tollbooth:contract:snapshot <version> at the next release.');
