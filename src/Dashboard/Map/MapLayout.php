@@ -18,6 +18,7 @@ final class MapLayout
     public const int HEADER = 76;
     public const int ROW = 30;
     private const int LINK_Y = 100;
+    private const int ROUTED_Y = 130;
     private const int LANE = 48;
     private const int SPREAD = 8;
     private const int ROW_CHROME = 252;
@@ -189,8 +190,8 @@ final class MapLayout
         }
 
         $offset = ($routed++ % 4) * self::SPREAD;
-        $yA = $a['y'] + min(self::LINK_Y, $a['height'] - 16) + $offset;
-        $yB = $b['y'] + min(self::LINK_Y, $b['height'] - 16) + $offset;
+        $yA = $a['y'] + min(self::ROUTED_Y + $offset, $a['height'] - 8);
+        $yB = $b['y'] + min(self::ROUTED_Y + $offset, $b['height'] - 8);
 
         if ($colB > $colA) {
             [$exitA, $gutterA] = [$a['x'] + $a['width'], $a['x'] + $a['width'] + intdiv(self::GAP_X, 2) - 12 + $offset];

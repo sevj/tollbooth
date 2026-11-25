@@ -84,7 +84,7 @@
 {% for edge in diagram.edges %}<path d="{{ edge.path }}"></path>{% endfor %}
 </svg>
 {% for edge in diagram.edges %}
-<div class="lb{% if edge.labelAlign == 'left' %} left{% endif %}" style="left: {{ edge.labelX }}px; top: {{ edge.labelY }}px; width: {{ edge.labelWidth }}px" title="{{ 'dashboard.map.reference_title'|trans({'%from%': edge.from, '%to%': edge.to, '%label%': edge.label}) }}">{{ edge.label }}</div>
+<div class="lb{% if edge.labelAlign == 'left' %} left{% endif %}" style="left: {{ edge.labelX }}px; top: {{ edge.labelY }}px; width: {{ edge.labelWidth }}px" title="{{ 'dashboard.map.reference_title'|trans({'%from%': edge.from, '%to%': edge.to, '%label%': edge.label}) }}"><span>{{ edge.label }}</span></div>
 {% endfor %}
 {% for resource in map.resources %}
 {% set box = diagram.boxes[resource.name] %}

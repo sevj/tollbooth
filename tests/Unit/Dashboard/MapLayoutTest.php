@@ -61,6 +61,8 @@ final class MapLayoutTest extends TestCase
 
         $far = array_values(array_filter($diagram->edges, static fn (array $edge): bool => 'far' === $edge['label']))[0];
         self::assertCount(6, $far['points']);
+        $near = array_values(array_filter($diagram->edges, static fn (array $edge): bool => 'a' === $edge['from'] && 'b' === $edge['to']))[0];
+        self::assertNotSame($near['points'][0][1], $far['points'][0][1], 'A link around blocks leaves at another height than the link to the neighbour.');
         foreach ($far['points'] as [$x, $y]) {
             foreach ($diagram->boxes as $box) {
                 $inside = $x > $box['x'] && $x < $box['x'] + $box['width'] && $y > $box['y'] && $y < $box['y'] + $box['height'];

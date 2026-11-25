@@ -9,6 +9,8 @@ of `README.md` for the definition of the public API.
 ## [Unreleased]
 
 ### Fixed
+- On the dashboard map, a link that goes around blocks no longer enters a block at the same height as
+  the link to its neighbour, and link labels are drawn over the lines they cross.
 - A long subtitle no longer pushes the buttons of a dashboard screen under its title: the subtitle wraps
   instead.
 
