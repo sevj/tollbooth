@@ -8,6 +8,11 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Security
+- An endpoint that requires scopes and also accepts anonymous calls no longer lets those calls through:
+  they answer 401 with the challenges of the other accepted methods. Before, `[api_key, anonymous]` with
+  a scope refused a key without the scope but accepted a call without any key.
+
 ## [0.23.1] - 2026-11-25
 
 ### Added
