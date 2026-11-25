@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-25
+
 ### Added
 - API keys can be stored in a database table (`tollbooth.auth.doctrine_keys`), next to the keys declared
   in the configuration, which keep working and stay read-only. `tollbooth:api-key:setup` creates the
