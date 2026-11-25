@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-25
+
 ### Changed
 - The models screen explains itself: a sentence says what a model is, the list of models labels its
   count as the number of endpoints using each one, the diagram legend explains the `N×` badge (reused
