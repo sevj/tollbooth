@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-25
+
 ### Added
 - Changes screen in the dashboard (`/_tollbooth/changes/{group}`): the group's contract compared between
   the latest snapshot and the code, or between any two snapshots, with the count of each kind of change,
