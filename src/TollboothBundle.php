@@ -66,6 +66,7 @@ use Tollbooth\Dashboard\Controller\ChangesController;
 use Tollbooth\Dashboard\Controller\ConfigurationController;
 use Tollbooth\Dashboard\Controller\ConsumersController;
 use Tollbooth\Dashboard\Controller\EndpointController;
+use Tollbooth\Dashboard\Controller\EndpointListController;
 use Tollbooth\Dashboard\Controller\HealthController as DashboardHealthController;
 use Tollbooth\Dashboard\Controller\HomeController;
 use Tollbooth\Dashboard\Controller\KeysController;
@@ -74,6 +75,7 @@ use Tollbooth\Dashboard\Controller\ModelsController;
 use Tollbooth\Dashboard\Controller\RequestsController;
 use Tollbooth\Dashboard\DashboardRouteProvider;
 use Tollbooth\Dashboard\Endpoint\EndpointPageBuilder;
+use Tollbooth\Dashboard\Endpoints\EndpointList;
 use Tollbooth\Dashboard\GroupCatalog;
 use Tollbooth\Dashboard\Keys\FormGuard;
 use Tollbooth\Dashboard\LocaleListener;
@@ -881,6 +883,17 @@ final class TollboothBundle extends AbstractBundle
             ->tag('controller.service_arguments');
         $services->set(MapController::class)
             ->args([service(MapBuilder::class), service(Shell::class), service('twig')])
+            ->public()
+            ->tag('controller.service_arguments');
+        $services->set(EndpointList::class)
+            ->args([
+                service(GroupCatalog::class),
+                service(Thresholds::class),
+                $monitoring ? service(TrafficReader::class) : null,
+                service('clock')->nullOnInvalid(),
+            ]);
+        $services->set(EndpointListController::class)
+            ->args([service(EndpointList::class), service(GroupCatalog::class), service(Shell::class), service('twig')])
             ->public()
             ->tag('controller.service_arguments');
         $services->set(EndpointPageBuilder::class)

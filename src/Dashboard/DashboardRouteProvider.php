@@ -12,6 +12,7 @@ use Tollbooth\Dashboard\Controller\ChangesController;
 use Tollbooth\Dashboard\Controller\ConfigurationController;
 use Tollbooth\Dashboard\Controller\ConsumersController;
 use Tollbooth\Dashboard\Controller\EndpointController;
+use Tollbooth\Dashboard\Controller\EndpointListController;
 use Tollbooth\Dashboard\Controller\HealthController;
 use Tollbooth\Dashboard\Controller\HomeController;
 use Tollbooth\Dashboard\Controller\KeysController;
@@ -28,6 +29,7 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
     public const string HOME = 'tollbooth_dashboard';
     public const string MAP = 'tollbooth_dashboard_map';
     public const string MAP_MERMAID = 'tollbooth_dashboard_map_mermaid';
+    public const string ENDPOINTS = 'tollbooth_dashboard_endpoints';
     public const string ENDPOINT = 'tollbooth_dashboard_endpoint';
     public const string MODELS = 'tollbooth_dashboard_models';
     public const string MODEL = 'tollbooth_dashboard_model';
@@ -63,6 +65,7 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
         $routes->add(self::HOME, new Route('' === $base ? '/' : $base, ['_controller' => HomeController::class], methods: ['GET']));
         $routes->add(self::MAP_MERMAID, new Route($base.'/map/{group}.mmd', ['_controller' => MapController::class.'::mermaid'], $group, methods: ['GET']));
         $routes->add(self::MAP, new Route($base.'/map/{group}', ['_controller' => MapController::class.'::page'], $group, methods: ['GET']));
+        $routes->add(self::ENDPOINTS, new Route($base.'/endpoints/{group}', ['_controller' => EndpointListController::class], $group, methods: ['GET']));
         $routes->add(self::ENDPOINT, new Route($base.'/endpoints/{group}/{name}', ['_controller' => EndpointController::class], [...$group, 'name' => '[A-Za-z0-9_.-]+'], methods: ['GET']));
         $routes->add(self::MODELS, new Route($base.'/models/{group}', ['_controller' => ModelsController::class.'::index'], $group, methods: ['GET']));
         $routes->add(self::MODEL_SVG, new Route($base.'/models/{group}/{model}.svg', ['_controller' => ModelsController::class.'::svg'], [...$group, 'model' => '[A-Za-z0-9_]+'], methods: ['GET']));

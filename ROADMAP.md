@@ -78,6 +78,7 @@ What Tollbooth does today, what is being built and what comes next. The dashboar
 ### 1.0 · Dashboard
 Twig, rendered on the server, assets shipped prebuilt, every string translated (`en`, `fr`).
 - [x] Map: resources, traffic overlay, model references, "needs attention", Mermaid export
+- [x] Endpoints list sorted and filtered by traffic
 - [x] Endpoint: pipeline, declaration, body, responses, examples, latency, status codes, consumers, errors
 - [x] Models: diagram, usage, serialized preview per convention, SVG export
 - [x] Requests: live tail, filters, call detail with limiter state, NDJSON export

@@ -435,6 +435,7 @@ composer require symfony/twig-bundle symfony/translation
 | `/_tollbooth` | Opens the map of the first group |
 | `/_tollbooth/map/{group}` | API map: the group's endpoints by resource, linked where their models refer to each other |
 | `/_tollbooth/map/{group}.mmd` | The same map as a Mermaid flowchart |
+| `/_tollbooth/endpoints/{group}` | Every endpoint of the group with its resource and authentication, and with monitoring its calls, error rate, p95 and 429s over the chosen range; sorted on any column, filtered by failing, slow, throttled, deprecated or uncalled |
 | `/_tollbooth/endpoints/{group}/{name}` | One endpoint: its request pipeline with this endpoint's settings, its declaration, request fields and rules, responses, example calls (cURL, PHP, JS) and response, and with monitoring its latency, status codes, top consumers and grouped errors |
 | `/_tollbooth/models/{group}/{model}` | Models of the group (outputs, inputs, enums) with a diagram of the selected one and the models it refers to (depth 1, 2 or all), a table of its fields and rules, the endpoints that use it and a preview of how it is serialized in each envelope and case; the diagram exports to SVG |
 | `/_tollbooth/requests/{group}` | Recorded calls, newest first, filtered with `endpoint:`, `status:4xx` or `status:429`, `consumer:`, `duration:>100` and `last:15m|1h|24h|7d`, with a live tail and an NDJSON export (`/_tollbooth/requests/{group}.ndjson`). A call opens its detail: consumer, pipeline steps and where it stopped, the limiters at that moment, the response headers and problem body rebuilt from what was recorded |
@@ -479,7 +480,7 @@ The public API is the contract host applications and API clients rely on:
 - the health routes and the shape of their JSON, and the `tollbooth:health` command;
 - the monitoring tables: a change to their schema is announced with the SQL to run;
 - the documentation routes (`<docs.path>/docs/{group}`, `<docs.path>/openapi/{group}.json`); the content of the OpenAPI documents follows the endpoints and is not itself versioned;
-- the dashboard routes (`<dashboard.path>`, `<dashboard.path>/map/{group}`, `<dashboard.path>/endpoints/{group}/{name}`, `<dashboard.path>/models/{group}/{model}`, `<dashboard.path>/requests/{group}`, `<dashboard.path>/consumers/{group}`, `<dashboard.path>/changes/{group}`, `<dashboard.path>/status/{group}` and `<dashboard.path>/configuration/{group}`); what the pages show and how they look is not versioned;
+- the dashboard routes (`<dashboard.path>`, `<dashboard.path>/map/{group}`, `<dashboard.path>/endpoints/{group}`, `<dashboard.path>/endpoints/{group}/{name}`, `<dashboard.path>/models/{group}/{model}`, `<dashboard.path>/requests/{group}`, `<dashboard.path>/consumers/{group}`, `<dashboard.path>/changes/{group}`, `<dashboard.path>/status/{group}` and `<dashboard.path>/configuration/{group}`); what the pages show and how they look is not versioned;
 - the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, rate limit headers and the `limiters` list, and the problem details shape.
 
 Anything else is internal and may change in any release.

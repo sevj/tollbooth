@@ -502,3 +502,25 @@ dashboard:
       limits_required: Indiquez au moins une limite.
       limits_format: '« %line% » n''est pas une limite. Écrivez-la comme 60/minute ou 100/10 seconds.'
       limits_duplicate: "Deux limites ont le même nom. Nommez-les avec « nom: »."
+  endpoints:
+    title: Endpoints
+    crumb: endpoints
+    summary: '{0}aucun endpoint|{1}1 endpoint|]1,Inf[%count% endpoints'
+    over: 'trafic des dernières %range%'
+    shown: '{0}Aucun endpoint|{1}1 endpoint|]1,Inf[%count% endpoints'
+    filter: Filtrer les endpoints
+    none: Aucun endpoint ne correspond à ce filtre.
+    show:
+      all: Tous
+      failing: En erreur
+      slow: Lents
+      throttled: Limités
+      deprecated: Dépréciés
+      idle: Sans appel
+    col:
+      path: chemin
+      resource: ressource
+      auth: auth
+      calls: appels
+      errors: erreurs
+      status: succès

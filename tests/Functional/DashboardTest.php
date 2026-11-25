@@ -43,6 +43,12 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('Turn on tollbooth.monitoring', $html);
         self::assertStringNotContainsString('id="tab-stats"', $html);
         self::assertStringNotContainsString('Needs attention', $html);
+
+        $client->request('GET', '/_tollbooth/endpoints/default?filter=failing&sort=calls', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<span class="r">success</span>', $html);
+        self::assertStringContainsString('get_thing</small>', $html);
     }
 
     public function testTheMapOverlaysTrafficAndListsWhatNeedsAttention(): void
@@ -70,6 +76,34 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('class="row failing"', $html);
         self::assertStringContainsString('<span class="e bad">96.2%</span>', $html);
         self::assertStringContainsString('<span class="n">calls</span><span class="e">errors</span>', $html);
+    }
+
+    public function testTheEndpointListSortsAndFiltersByTraffic(): void
+    {
+        $client = $this->monitoredClient();
+        $storage = $this->storage();
+        for ($i = 0; $i < 30; ++$i) {
+            $this->record($storage, self::NOW - 600 + $i, 'tollbooth_get_thing', 200, 12.0);
+        }
+        for ($i = 0; $i < 25; ++$i) {
+            $this->record($storage, self::NOW - 300 + $i, 'tollbooth_create_thing', 422, 30.0);
+        }
+
+        $client->request('GET', '/_tollbooth/endpoints/default?range=1h', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<a class="nav on" href="/_tollbooth/endpoints/default" aria-current="page">', $html);
+        self::assertLessThan(strpos($html, 'create_thing</small>'), strpos($html, 'get_thing</small>'), 'The most called endpoint comes first.');
+
+        $client->request('GET', '/_tollbooth/endpoints/default?range=1h&filter=failing');
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<span class="r bad">100%</span>', $html);
+        self::assertStringNotContainsString('get_thing</small>', $html);
+
+        $client->request('GET', '/_tollbooth/endpoints/default?range=1h&filter=idle&sort=path&dir=asc');
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringNotContainsString('create_thing</small>', $html);
+        self::assertStringContainsString('aria-sort="ascending"', $html);
     }
 
     public function testTheEndpointPageShowsItsContractAndItsTraffic(): void
