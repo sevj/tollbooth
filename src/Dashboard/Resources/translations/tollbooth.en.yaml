@@ -524,3 +524,8 @@ dashboard:
       calls: calls
       errors: errors
       status: success
+  theme:
+    label: Theme
+    auto: auto
+    light: light
+    dark: dark

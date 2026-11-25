@@ -9,7 +9,7 @@
 
 {% macro version_menu(name, current, versions, other, group, allow_current) %}
 <details class="chip">
-<summary class="btn"><span class="m" style="font-size: 12px">{{ current == 'current' ? 'dashboard.changes.current'|trans({}, 'tollbooth') : current }}</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#9C988F" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"></path></svg></summary>
+<summary class="btn"><span class="m" style="font-size: 12px">{{ current == 'current' ? 'dashboard.changes.current'|trans({}, 'tollbooth') : current }}</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="stroke: var(--muted)" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"></path></svg></summary>
 <ul>
 {% if allow_current %}<li><a href="{{ path('tollbooth_dashboard_changes', {group: group}|merge(other)) }}"{% if current == 'current' %} aria-current="true"{% endif %}>{{ 'dashboard.changes.current'|trans({}, 'tollbooth') }}</a></li>{% endif %}
 {% for version in versions %}<li><a href="{{ path('tollbooth_dashboard_changes', {group: group}|merge(other)|merge({(name): version})) }}"{% if current == version %} aria-current="true"{% endif %}>{{ version }}</a></li>{% endfor %}

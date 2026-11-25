@@ -106,7 +106,7 @@ if (live) {
   };
   const toggle = (on) => {
     live.setAttribute('aria-pressed', String(on));
-    dot.style.background = on ? '#8FD69C' : '#6B7078';
+    dot.style.background = on ? 'var(--ok)' : 'var(--dim)';
     clearInterval(timer);
     timer = on ? setInterval(poll, 2000) : null;
     if (on) poll();
@@ -142,3 +142,27 @@ for (const layouts of document.querySelectorAll('[data-layouts]')) {
   pick();
   new ResizeObserver(pick).observe(layouts);
 }
+
+const themeButtons = [...document.querySelectorAll('[data-theme-choice]')];
+const showTheme = () => {
+  const current = document.documentElement.dataset.theme ?? 'auto';
+  for (const button of themeButtons) {
+    button.setAttribute('aria-pressed', String(button.dataset.themeChoice === current));
+  }
+};
+for (const button of themeButtons) {
+  button.addEventListener('click', () => {
+    const choice = button.dataset.themeChoice;
+    if (choice === 'auto') {
+      delete document.documentElement.dataset.theme;
+    } else {
+      document.documentElement.dataset.theme = choice;
+    }
+    try {
+      if (choice === 'auto') localStorage.removeItem('tollbooth.theme');
+      else localStorage.setItem('tollbooth.theme', choice);
+    } catch {}
+    showTheme();
+  });
+}
+showTheme();

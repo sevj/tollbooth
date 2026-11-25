@@ -8,6 +8,11 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- A light theme for the dashboard. The dashboard follows the system setting until a choice is made at
+  the bottom of the menu (auto, light or dark), which the browser remembers. Every colour of the pages,
+  charts and diagrams now comes from the theme; an exported model diagram keeps the dark colours.
+
 ## [0.21.1] - 2026-11-25
 
 ### Fixed

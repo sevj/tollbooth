@@ -53,10 +53,10 @@
 <div class="axis"><span{% if consumer.dayLimit %} class="bad"{% endif %}>{{ q.max|tb_compact }}</span><span>{{ (q.max / 2)|tb_compact }}</span><span>0</span></div>
 <div style="flex: 1; min-width: 0">
 <svg width="100%" height="150" viewBox="0 0 300 150" preserveAspectRatio="none" role="img" aria-label="{{ 'dashboard.consumer.quota_label'|trans({'%count%': consumer.today|tb_number}) }}">
-<path d="M0 75H300M0 149.5H300" stroke="#1F2226" stroke-width="1" vector-effect="non-scaling-stroke"></path>
-{% if q.cap is not null %}<path d="M0 {{ q.cap }}H300" stroke="#FF8A7A" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></path>{% endif %}
-<polyline points="{{ q.line }}" fill="none" stroke="#F0B429" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline>
-{% if q.projection %}<path d="{{ q.projection }}" fill="none" stroke="#F0B429" stroke-width="1.5" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></path><path d="M{{ q.exhaustedX }} {{ q.cap }}V150" stroke="#FF8A7A" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"></path>{% endif %}
+<path d="M0 75H300M0 149.5H300" style="stroke: var(--line-soft)" stroke-width="1" vector-effect="non-scaling-stroke"></path>
+{% if q.cap is not null %}<path d="M0 {{ q.cap }}H300" style="stroke: var(--bad)" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></path>{% endif %}
+<polyline points="{{ q.line }}" fill="none" style="stroke: var(--accent)" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline>
+{% if q.projection %}<path d="{{ q.projection }}" fill="none" style="stroke: var(--accent)" stroke-width="1.5" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></path><path d="M{{ q.exhaustedX }} {{ q.cap }}V150" style="stroke: var(--bad)" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"></path>{% endif %}
 </svg>
 <div class="xs"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
 </div>
@@ -69,8 +69,8 @@
 <div class="ph"><h2 id="minute-title">{{ 'dashboard.consumer.minute'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.consumer.minute_sub'|trans }}{% if consumer.minuteLimit %} · {{ consumer.minuteLimit|tb_number }}/min{% endif %}</span></div>
 <div style="padding: 18px 20px 12px">
 <svg width="100%" height="150" viewBox="0 0 300 120" preserveAspectRatio="none" role="img" aria-label="{{ 'dashboard.consumer.minute_label'|trans }}">
-{% for bar in m.bars %}<rect x="{{ bar.x }}" y="{{ bar.y }}" width="{{ m.width }}" height="{{ bar.height }}" fill="{{ bar.over ? '#F0B429' : '#6B7078' }}"></rect>{% endfor %}
-{% if m.limit is not null %}<path d="M0 {{ m.limit }}H300" stroke="#FF8A7A" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></path>{% endif %}
+{% for bar in m.bars %}<rect x="{{ bar.x }}" y="{{ bar.y }}" width="{{ m.width }}" height="{{ bar.height }}" style="fill: {{ bar.over ? 'var(--accent)' : 'var(--dim)' }}"></rect>{% endfor %}
+{% if m.limit is not null %}<path d="M0 {{ m.limit }}H300" style="stroke: var(--bad)" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></path>{% endif %}
 </svg>
 <div class="xs"><span>−60 min</span><span>−30 min</span><span>{{ 'dashboard.endpoint.now'|trans }}</span></div>
 </div>

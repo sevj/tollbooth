@@ -42,27 +42,27 @@
 <div class="kpi">
 <div class="th">{{ 'dashboard.map.kpi.requests'|trans }}</div>
 <div class="value"><strong>{{ overview.current.calls|tb_compact }}</strong>{% if calls_change is not null %}<span class="delta {{ calls_change >= 0 ? 'good' : 'bad' }}">{{ calls_change|tb_change }}</span>{% endif %}</div>
-<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('calls')) }}" fill="none" stroke="#F0B429" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('calls')) }}" fill="none" style="stroke: var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
 </div>
 <div class="kpi">
 <div class="th">{{ 'dashboard.map.kpi.error_rate'|trans }}</div>
 <div class="value"><strong>{{ overview.current.errorRate|tb_percent }}</strong>{% if error_change is not null %}<span class="delta {{ error_change > 0 ? 'bad' : 'good' }}">{{ (error_change * 100)|tb_signed(2) }}</span>{% endif %}</div>
-<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('errors')) }}" fill="none" stroke="#FF8A7A" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('errors')) }}" fill="none" style="stroke: var(--bad)" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
 </div>
 <div class="kpi">
 <div class="th">{{ 'dashboard.map.kpi.p95'|trans }}</div>
 <div class="value"><strong>{% if p95 is not null %}{{ p95|round }}<small>ms</small>{% else %}—{% endif %}</strong>{% if p95_change is not null %}<span class="delta {{ p95_change > 0 ? 'bad' : 'good' }}">{{ p95_change|tb_signed }}</span>{% endif %}</div>
-<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('p95')) }}" fill="none" stroke="#C9C5BC" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('p95')) }}" fill="none" style="stroke: var(--neutral)" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
 </div>
 <div class="kpi">
 <div class="th">{{ 'dashboard.map.kpi.throttled'|trans }}</div>
 <div class="value"><strong>{{ overview.current.throttled|tb_number }}</strong><span class="delta">{{ overview.throttledShare|tb_percent }}</span></div>
-<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('throttled')) }}" fill="none" stroke="#C9C5BC" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('throttled')) }}" fill="none" style="stroke: var(--neutral)" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
 </div>
 <div class="kpi">
 <div class="th">{{ 'dashboard.map.kpi.consumers'|trans }}</div>
 <div class="value"><strong>{{ overview.consumers|tb_number }}</strong><span class="delta">{% if overview.keys is not null %}{{ 'dashboard.map.kpi.of_keys'|trans({'%count%': overview.keys}) }}{% else %}{{ (overview.consumers - overview.previousConsumers)|tb_signed }}{% endif %}</span></div>
-<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('consumers')) }}" fill="none" stroke="#C9C5BC" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('consumers')) }}" fill="none" style="stroke: var(--neutral)" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
 </div>
 </div>
 {% endif %}

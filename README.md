@@ -457,6 +457,8 @@ tollbooth:
         locale: ~          # en or fr; defaults to the language the browser prefers
 ```
 
+The dashboard has a dark and a light theme. It follows the system setting until a choice is made at the bottom of the menu (auto, light or dark), which the browser remembers.
+
 The pages ship with their stylesheet, script and fonts (Inter and JetBrains Mono, SIL Open Font License): no build step, no CDN. They are not protected by Tollbooth: put `/_tollbooth` behind the application firewall. The health report warns when the dashboard is reachable without one.
 
 ## Versioning

@@ -16,7 +16,7 @@ final readonly class FlowDiagram
     public const int GAP = 10;
     public const int LEFT = 12;
     public const int RIGHT = 628;
-    private const array COLORS = ['#F0B429', '#C3A8FF', '#8FD69C', '#FF8A7A', '#8A8F96'];
+    private const array COLORS = ['var(--accent)', 'var(--violet)', 'var(--ok)', 'var(--bad)', 'var(--dim-2)'];
 
     /**
      * @param list<Node> $sources
@@ -110,7 +110,7 @@ final readonly class FlowDiagram
                 'y' => $y,
                 'height' => $height,
                 'labelY' => round($labelY, 1),
-                'color' => $colored ? self::COLORS[min($index, \count(self::COLORS) - 1)] : '#C9C5BC',
+                'color' => $colored ? self::COLORS[min($index, \count(self::COLORS) - 1)] : 'var(--neutral)',
             ];
             $y += $height + self::GAP;
             ++$index;

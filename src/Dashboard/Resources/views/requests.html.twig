@@ -25,13 +25,13 @@
 <div class="sub">{{ 'dashboard.requests.subtitle'|trans }}</div>
 </div>
 <div class="actions">
-<button class="btn" type="button" aria-pressed="false" data-live="{{ path('tollbooth_dashboard_requests_feed', {group: group, q: q}) }}" data-last="{{ rows[0].id ?? '' }}"><span class="dot" style="background: #6B7078"></span>{{ 'dashboard.requests.live'|trans }}</button>
+<button class="btn" type="button" aria-pressed="false" data-live="{{ path('tollbooth_dashboard_requests_feed', {group: group, q: q}) }}" data-last="{{ rows[0].id ?? '' }}"><span class="dot" style="background: var(--dim)"></span>{{ 'dashboard.requests.live'|trans }}</button>
 <a class="btn" href="{{ path('tollbooth_dashboard_requests_export', {group: group, q: q}) }}" download>{{ 'dashboard.requests.export'|trans }}</a>
 </div>
 </div>
 
 <form class="filters" method="get" action="{{ path('tollbooth_dashboard_requests', {group: group}) }}">
-<label class="flt query"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="#8A867D" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="4.5"></circle><path d="m9.5 9.5 3 3"></path></svg><span class="sr">{{ 'dashboard.requests.filter'|trans }}</span><input type="text" name="q" value="{{ q }}" placeholder="consumer:acme-erp status:4xx duration:>100"></label>
+<label class="flt query"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="stroke: var(--faint)" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="4.5"></circle><path d="m9.5 9.5 3 3"></path></svg><span class="sr">{{ 'dashboard.requests.filter'|trans }}</span><input type="text" name="q" value="{{ q }}" placeholder="consumer:acme-erp status:4xx duration:>100"></label>
 {% set endpoint_options = {} %}
 {% for ep in endpoints %}{% set endpoint_options = endpoint_options|merge({(ep.name): ep.method ~ ' ' ~ ep.path}) %}{% endfor %}
 {{ _self.chip('endpoint', 'endpoint', endpoint_options, filter, group) }}
