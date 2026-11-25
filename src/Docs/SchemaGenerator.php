@@ -236,7 +236,7 @@ final class SchemaGenerator
     {
         $values = array_map(static fn (\BackedEnum $case): int|string => $case->value, $class::cases());
 
-        return ['type' => \is_int($values[0] ?? null) ? 'integer' : 'string', 'enum' => $values];
+        return ['title' => substr($class, (int) strrpos('\\'.$class, '\\')), 'type' => \is_int($values[0] ?? null) ? 'integer' : 'string', 'enum' => $values];
     }
 
     /**
