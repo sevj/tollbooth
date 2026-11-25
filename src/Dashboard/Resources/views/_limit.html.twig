@@ -1,0 +1,4 @@
+{%- set units = {86400: 'day', 3600: 'hour', 60: 'minute', 1: 'second'} -%}
+{%- set unit = null -%}
+{%- for seconds, name in units -%}{%- if unit is null and limit.window % seconds == 0 -%}{%- set unit = ('dashboard.unit.' ~ name)|trans({'%count%': limit.window // seconds}, 'tollbooth') -%}{%- endif -%}{%- endfor -%}
+{{ limit.limit >= 10000 ? limit.limit|tb_compact : limit.limit|tb_number }}<span class="mu unit"> / {{ unit }}</span>

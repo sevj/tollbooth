@@ -7,6 +7,7 @@ dashboard:
     endpoints: Endpoints
     models: Models
     requests: Requests
+    consumers: Consumers
     openapi: OpenAPI spec
     collector:
       ok: collector healthy
@@ -252,3 +253,89 @@ dashboard:
     headers_note: rebuilt from what was recorded
     body: Response body
     body_not_stored: Response bodies are not stored.
+  changes:
+    kind:
+      breaking: breaking
+      risky: risky
+      added: added
+      changed: changed
+      deprecated: deprecated
+  consumers:
+    title: Consumers & quotas
+    crumb: consumers
+    summary: '%active% active of %count%'
+    plans: '{0}no plan|{1}1 plan|]1,Inf[%count% plans'
+    default_plan: default
+    keys: '{0}no key|{1}1 key|]1,Inf[%count% keys'
+    no_cap: no cap
+    fixed_window: clock-aligned windows
+    flow: Who calls what
+    flow_sub: 'share of %count% calls in 24 h · consumer → resource'
+    no_traffic: No call in the last 24 hours.
+    others: others
+    table: Consumers
+    filter: Filter consumers
+    show:
+      all: all
+      near: near limit
+      throttled: throttled
+      idle: idle
+    col:
+      consumer: consumer
+      key: key
+      plan: plan
+      calls: calls 24h
+      quota: daily quota
+      peak: peak / min
+      errors: errors
+      seen: last seen
+    anonymous: '{1}anonymous · 1 IP|]1,Inf[anonymous · %count% IPs'
+    never: never
+    none: No consumer matches this filter.
+    shown: '%shown% of %count% consumers'
+  consumer:
+    key_id: key %id%
+    expires: expires %date%
+    requests: Open requests
+    kpi:
+      calls: Calls 24h
+      quota: Daily quota
+      peak: Peak / min
+      throttled: Throttled
+      errors: Errors
+    of: '% of %count%'
+    quota: Daily quota
+    quota_sub: resets 00:00 UTC · clock-aligned window
+    quota_none: no daily limit on this plan
+    quota_label: Calls since midnight, %count% so far
+    exhausted: The quota ran out at %time%. Every call then gets a 429 until midnight.
+    runs_out: At this pace the quota runs out around %time%. Every call then gets a 429 until midnight.
+    within: '%count% calls today, within the quota at this pace.'
+    today: '%count% calls today.'
+    minute: Minute limiter
+    minute_sub: last hour
+    minute_label: Calls per minute over the last hour
+    over: '{1}The minute limit refused calls in 1 minute of the last hour.|]1,Inf[The minute limit refused calls in %count% minutes of the last hour.'
+    under: No call refused by the minute limit in the last hour.
+    endpoints: Endpoints used
+    no_calls: No call in the last 24 hours.
+    upcoming: Upcoming changes
+    deprecated: deprecated
+    deprecated_sunset: deprecated, sunset on %date%
+    called: '— called %count% times in 30 days.'
+    nothing_upcoming: Nothing it uses is about to change.
+    key: Key
+    hashed: stored hashed
+    kv:
+      id: id
+      expires: expires
+      ips: allowed IPs
+      seen: last seen
+    never_expires: never
+    any_ip: any
+    limits: Plan limits
+  unit:
+    day: '{1}day|]1,Inf[%count% days'
+    hour: '{1}hour|]1,Inf[%count% hours'
+    minute: '{1}min|]1,Inf[%count% min'
+    second: '{1}s|]1,Inf[%count% s'
