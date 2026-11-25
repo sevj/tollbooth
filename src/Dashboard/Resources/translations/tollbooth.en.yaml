@@ -11,6 +11,7 @@ dashboard:
     changes: Changes
     health: Health
     openapi: OpenAPI spec
+    configuration: Configuration
     collector:
       ok: collector healthy
       warning: collector lagging
@@ -330,6 +331,7 @@ dashboard:
     ready: 503 only on critical
     token: details are only shown to a probe that sends the token
   consumers:
+    manage_plans: Manage plans
     title: Consumers & quotas
     crumb: consumers
     summary: '%active% active of %count%'
@@ -449,3 +451,56 @@ dashboard:
     confirm_revoke: 'Revoke the key of %name%? Every call with it will be refused.'
     configured: declared in the configuration, read-only
     revoked: 'The key of %name% is revoked.'
+  configuration:
+    title: Configuration
+    crumb: configuration
+    subtitle: Rate limit plans are edited here. Everything else is set in config/packages/tollbooth.yaml; this page shows the current values.
+    section:
+      general: General
+      group: This API group
+      output: Response format
+      auth: Authentication
+      rate_limit: Rate limiting
+      monitoring: Monitoring
+      docs: Documentation
+      health: Health
+      changes: Changes
+      dashboard: Dashboard
+  plans:
+    title: Rate limit plans
+    new: New plan
+    new_crumb: new plan
+    edit: Edit
+    edit_title: 'Plan %name%'
+    delete: Delete
+    confirm_delete: 'Delete the plan %name%?'
+    saved: 'The plan %name% is saved. It applies from the next call.'
+    deleted: 'The plan %name% is deleted.'
+    explain: "A plan sets how many calls a consumer can make, across every endpoint. Each API key has a plan; without one, it follows the default plan."
+    read_only: Plans come from the configuration and are read-only. Enable tollbooth.rate_limit.doctrine_plans to create and edit them here.
+    disabled: Rate limiting is turned off (tollbooth.rate_limit).
+    none: No plan yet.
+    default: default
+    anonymous: anonymous
+    col:
+      plan: plan
+      limits: limits
+      keys: keys
+      source: source
+    source:
+      config: configuration
+      dashboard: dashboard
+    form_sub: The limits apply to each consumer of the plan, over clock-aligned windows.
+    name: Name
+    name_help: Lowercase letters, digits, dashes and underscores. It cannot change later.
+    limits: Limits
+    limits_help: 'One limit per line, as count/period: 60/minute, 100/10 seconds, 10000/day. Name one with "name:", for instance burst: 10/10 seconds.'
+    create: Create the plan
+    save: Save
+    error:
+      name_required: Give the plan a name.
+      name_format: Use only lowercase letters, digits, - and _.
+      name_taken: A plan already has this name.
+      limits_required: Give at least one limit.
+      limits_format: '"%line%" is not a limit. Write it as 60/minute or 100/10 seconds.'
+      limits_duplicate: Two limits have the same name. Name them with "name:".

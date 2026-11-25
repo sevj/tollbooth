@@ -140,6 +140,7 @@ final class DemoKernel extends Kernel
                 ],
                 'default_plan' => 'free',
                 'anonymous_plan' => 'free',
+                'doctrine_plans' => ['enabled' => true, 'connection' => 'monitoring'],
             ],
             'monitoring' => ['enabled' => true, 'connection' => 'monitoring'],
             'docs' => ['title' => 'Shop API', 'version' => '2.5.0'],

@@ -84,6 +84,7 @@ Twig, rendered on the server, assets shipped prebuilt, every string translated (
 - [x] Consumers and a consumer page: quotas, minute limiter, endpoints used, upcoming changes, key
 - [x] Changes and Health screens
 - [x] API key management from the UI, with a Doctrine key provider
+- [x] Configuration screen: rate limit plans edited from the UI and stored with Doctrine, current settings
 
 ## Later
 - [ ] HMAC request signatures and mTLS consumers

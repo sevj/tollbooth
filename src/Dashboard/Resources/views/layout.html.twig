@@ -40,12 +40,11 @@
 {% if shell.changes is not null %}
 <a class="nav{% if shell.screen == 'changes' %} on{% endif %}" href="{{ path('tollbooth_dashboard_changes', {group: shell.group}) }}"{% if shell.screen == 'changes' %} aria-current="page"{% endif %}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="4" cy="3.5" r="1.8"></circle><circle cx="12" cy="12.5" r="1.8"></circle><path d="M4 5.3V14.5M12 10.7V6.5a2 2 0 0 0-2-2H7M8.5 3 7 4.5 8.5 6"></path></svg>{{ 'dashboard.nav.changes'|trans }}{% if shell.changes > 0 %}<span class="count" style="color: #FF8A7A">{{ shell.changes }}</span>{% endif %}</a>
 {% endif %}
-{% if shell.health or shell.docs %}
 <div class="sep"></div>
-{% endif %}
 {% if shell.health %}
 <a class="nav{% if shell.screen == 'health' %} on{% endif %}" href="{{ path('tollbooth_dashboard_health', {group: shell.group}) }}"{% if shell.screen == 'health' %} aria-current="page"{% endif %}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1.5 8.5h3l1.5-4 3 7.5 1.5-3.5h4"></path></svg>{{ 'dashboard.nav.health'|trans }}</a>
 {% endif %}
+<a class="nav{% if shell.screen == 'configuration' %} on{% endif %}" href="{{ path('tollbooth_dashboard_configuration', {group: shell.group}) }}"{% if shell.screen == 'configuration' %} aria-current="page"{% endif %}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"></path><circle cx="10.5" cy="4.5" r="1.5"></circle><circle cx="5.5" cy="11.5" r="1.5"></circle></svg>{{ 'dashboard.nav.configuration'|trans }}</a>
 {% if shell.docs %}
 <a class="nav" href="{{ shell.docs }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M5 4 1.5 8 5 12M11 4l3.5 4-3.5 4M9.5 2.5l-3 11"></path></svg>{{ 'dashboard.nav.openapi'|trans }}</a>
 {% endif %}

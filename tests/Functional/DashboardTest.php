@@ -13,6 +13,8 @@ use Tollbooth\Changes\SnapshotStore;
 use Tollbooth\Dashboard\Keys\FormGuard;
 use Tollbooth\Monitoring\CallRecord;
 use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
+use Tollbooth\RateLimit\Doctrine\DoctrinePlanStore;
+use Tollbooth\RateLimit\Plans;
 use Tollbooth\Tests\Fixtures\TestKernel;
 
 final class DashboardTest extends FunctionalTestCase
@@ -295,6 +297,9 @@ final class DashboardTest extends FunctionalTestCase
         $client = self::createClient(['environment' => 'monitoring']);
         $this->storage()->setup();
         $this->keyStore()->setup();
+        $plans = self::getContainer()->get(DoctrinePlanStore::class);
+        self::assertInstanceOf(DoctrinePlanStore::class, $plans);
+        $plans->setup();
 
         return $client;
     }
@@ -363,6 +368,53 @@ final class DashboardTest extends FunctionalTestCase
         $client->request('POST', '/_tollbooth/consumers/default/'.$key->id.'/revoke', ['_token' => $guard->token('revoke', $key->id)], server: ['HTTP_ORIGIN' => 'http://localhost']);
         self::assertResponseRedirects('/_tollbooth/consumers/default?revoked=acme-erp', 303);
         self::assertNull($this->keyStore()->find($key->id));
+    }
+
+    public function testPlansAreCreatedEditedAndDeletedFromTheConfigurationScreen(): void
+    {
+        $client = $this->monitoredClient();
+        $guard = new FormGuard('test');
+
+        $client->request('GET', '/_tollbooth/configuration/default', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<h2 id="plans-title">Rate limit plans<span class="m">0</span></h2>', $html);
+        self::assertStringContainsString('<span>tollbooth.monitoring.calls_retention_days</span><span>7</span>', $html);
+        self::assertStringNotContainsString('probe-secret', $html);
+
+        $client->request('POST', '/_tollbooth/configuration/default/plans/new', ['_token' => $guard->token('plan_create'), 'name' => 'Partner!', 'limits' => "60/minute\nlots/day"], server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseStatusCodeSame(422);
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('Use only lowercase letters, digits, - and _.', $html);
+        self::assertStringContainsString('&quot;lots/day&quot; is not a limit.', $html);
+
+        $client->request('POST', '/_tollbooth/configuration/default/plans/new', ['_token' => $guard->token('plan_create'), 'name' => 'partner', 'limits' => "burst: 10/10 seconds\n600/minute"]);
+        self::assertResponseRedirects('/_tollbooth/configuration/default?saved=partner#plans-title', 303);
+        self::assertSame(['partner' => [['name' => 'burst', 'limit' => 10, 'window' => 10, 'scope' => 'plan'], ['name' => 'minute', 'limit' => 600, 'window' => 60, 'scope' => 'plan']]], $this->plans()->all());
+
+        $client->request('GET', '/_tollbooth/configuration/default/plans/partner');
+        self::assertStringContainsString(">burst: 10/10 seconds\n600/minute</textarea>", (string) $client->getResponse()->getContent());
+        $client->request('POST', '/_tollbooth/configuration/default/plans/partner', ['_token' => $guard->token('plan_edit', 'partner'), 'limits' => '1000/day']);
+        self::assertResponseRedirects('/_tollbooth/configuration/default?saved=partner#plans-title', 303);
+        self::assertSame(['partner' => [['name' => 'day', 'limit' => 1000, 'window' => 86400, 'scope' => 'plan']]], $this->plans()->all());
+
+        $client->request('GET', '/_tollbooth/consumers/default/keys/new');
+        self::assertStringContainsString('<option value="partner">partner</option>', (string) $client->getResponse()->getContent());
+
+        $client->request('POST', '/_tollbooth/configuration/default/plans/partner/delete', ['_token' => $guard->token('plan_edit', 'partner')]);
+        self::assertResponseStatusCodeSame(403);
+        $client->request('POST', '/_tollbooth/configuration/default/plans/partner/delete', ['_token' => $guard->token('plan_delete', 'partner')]);
+        self::assertResponseRedirects('/_tollbooth/configuration/default?deleted=partner#plans-title', 303);
+        self::assertSame([], $this->plans()->all());
+    }
+
+    private function plans(): Plans
+    {
+        $plans = self::getContainer()->get(Plans::class);
+        self::assertInstanceOf(Plans::class, $plans);
+        $plans->reset();
+
+        return $plans;
     }
 
     private function storage(): DoctrineCallStorage

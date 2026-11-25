@@ -13,6 +13,7 @@ use Tollbooth\Dashboard\Traffic\TrafficReader;
 use Tollbooth\Monitoring\CallQuery;
 use Tollbooth\Monitoring\CallReaderInterface;
 use Tollbooth\Monitoring\Stats;
+use Tollbooth\RateLimit\Plans;
 
 /**
  * @internal
@@ -26,15 +27,10 @@ final class ConsumerDirectory
      */
     private ?array $keys = null;
 
-    /**
-     * @param array<string, list<LimitArray>> $plans
-     */
     public function __construct(
         private readonly CallReaderInterface $calls,
         private readonly ?ApiKeyProviderInterface $provider = null,
-        private readonly array $plans = [],
-        private readonly ?string $defaultPlan = null,
-        private readonly ?string $anonymousPlan = null,
+        private readonly ?Plans $plans = null,
         private readonly ?ClockInterface $clock = null,
     ) {
     }
@@ -46,15 +42,15 @@ final class ConsumerDirectory
     {
         $counts = [];
         foreach ($this->keys() as $key) {
-            $plan = $key->plan ?? $this->defaultPlan;
+            $plan = $key->plan ?? $this->defaultPlan();
             if (null !== $plan) {
                 $counts[$plan] = ($counts[$plan] ?? 0) + 1;
             }
         }
 
         $plans = [];
-        foreach ($this->plans as $name => $limits) {
-            $plans[] = ['name' => $name, 'limits' => $limits, 'keys' => $counts[$name] ?? 0, 'default' => $name === $this->defaultPlan];
+        foreach ($this->plans?->all() ?? [] as $name => $limits) {
+            $plans[] = ['name' => $name, 'limits' => $limits, 'keys' => $counts[$name] ?? 0, 'default' => $name === $this->defaultPlan()];
         }
 
         return $plans;
@@ -92,7 +88,7 @@ final class ConsumerDirectory
         }
 
         if ([] !== $anonymous) {
-            $plan = $this->anonymousPlan ?? $this->defaultPlan;
+            $plan = $this->anonymousPlan() ?? $this->defaultPlan();
             $rows[ConsumerRow::ANONYMOUS] = new ConsumerRow(
                 ConsumerRow::ANONYMOUS,
                 'anonymous',
@@ -132,7 +128,19 @@ final class ConsumerDirectory
      */
     public function limitsOf(?string $plan): array
     {
-        return $this->plans[$plan ?? ''] ?? $this->plans[$this->defaultPlan ?? ''] ?? [];
+        $all = $this->plans?->all() ?? [];
+
+        return $all[$plan ?? ''] ?? $all[$this->defaultPlan() ?? ''] ?? [];
+    }
+
+    private function defaultPlan(): ?string
+    {
+        return null === $this->plans ? null : $this->plans->defaultPlan;
+    }
+
+    private function anonymousPlan(): ?string
+    {
+        return null === $this->plans ? null : $this->plans->anonymousPlan;
     }
 
     public static function startOfDay(int $now): int
@@ -160,7 +168,7 @@ final class ConsumerDirectory
     private function row(string $id, string $name, ?ApiKey $key, ?Stats $stats, array $today): ConsumerRow
     {
         $now = $this->now();
-        $plan = null !== $key ? ($key->plan ?? $this->defaultPlan) : null;
+        $plan = null !== $key ? ($key->plan ?? $this->defaultPlan()) : null;
         $limits = null !== $key ? $this->limitsOf($plan) : [];
         $last = $this->calls->recent(new CallQuery(consumerId: $id, limit: 1))[0] ?? null;
         $peak = null;
