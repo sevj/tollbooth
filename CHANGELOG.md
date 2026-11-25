@@ -8,6 +8,18 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- `#[DeprecatedEndpoint(since:, sunset:, link:)]` adds `Deprecation`, `Sunset` and `Link` headers to every
+  response of the endpoint and marks its OpenAPI operation `deprecated`. With
+  `tollbooth.changes.gone_after_sunset`, a retired endpoint answers 410.
+- `tollbooth:contract:snapshot <version>` saves the OpenAPI documents of every group under
+  `tollbooth.changes.directory`, to be committed with the release.
+- `tollbooth:diff [base]` compares the code (or `--target`) with a snapshot and classifies every change as
+  breaking, risky, added, changed or deprecated, taking its direction into account. It reports the impact
+  on monitored traffic, suggests the next version, prints a consumer changelog with `--format=markdown`,
+  and fails CI with `--fail-on=breaking|risky`.
+- Health finding: deprecated endpoints still called in the last 7 days, and by whom.
+
 ## [0.8.0] - 2026-11-25
 
 ### Added

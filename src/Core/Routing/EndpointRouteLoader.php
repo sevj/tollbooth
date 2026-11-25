@@ -26,6 +26,7 @@ final class EndpointRouteLoader extends Loader
     public const string AUTH_ATTRIBUTE = '_tollbooth_auth';
     public const string SCOPES_ATTRIBUTE = '_tollbooth_scopes';
     public const string LIMITS_ATTRIBUTE = '_tollbooth_limits';
+    public const string DEPRECATION_ATTRIBUTE = '_tollbooth_deprecation';
 
     private bool $loaded = false;
 
@@ -64,6 +65,7 @@ final class EndpointRouteLoader extends Loader
                     self::AUTH_ATTRIBUTE => $endpoint->auth,
                     self::SCOPES_ATTRIBUTE => $endpoint->scopes,
                     self::LIMITS_ATTRIBUTE => $endpoint->limits,
+                    self::DEPRECATION_ATTRIBUTE => $endpoint->deprecation,
                 ],
                 requirements: $endpoint->requirements,
                 methods: [$endpoint->method],

@@ -9,16 +9,17 @@ namespace Tollbooth\Core\Metadata;
  *
  * @phpstan-import-type LimitArray from Limit
  *
- * @phpstan-type EndpointArray array{name: string, method: string, path: string, status: int, serviceId: string, class: class-string, file: string, requirements: array<string, string>, group: string, envelope: string, case: string, auth: list<string>, scopes: list<string>, limits: list<LimitArray>}
+ * @phpstan-type EndpointArray array{name: string, method: string, path: string, status: int, serviceId: string, class: class-string, file: string, requirements: array<string, string>, group: string, envelope: string, case: string, auth: list<string>, scopes: list<string>, limits: list<LimitArray>, deprecation: array{since: int, sunset: ?int, link: ?string}|null}
  */
 final readonly class EndpointMetadata
 {
     /**
-     * @param class-string          $class
-     * @param array<string, string> $requirements
-     * @param list<string>          $auth
-     * @param list<string>          $scopes
-     * @param list<LimitArray>      $limits
+     * @param class-string                                        $class
+     * @param array<string, string>                               $requirements
+     * @param list<string>                                        $auth
+     * @param list<string>                                        $scopes
+     * @param list<LimitArray>                                    $limits
+     * @param array{since: int, sunset: ?int, link: ?string}|null $deprecation
      */
     public function __construct(
         public string $name,
@@ -35,6 +36,7 @@ final readonly class EndpointMetadata
         public array $auth = ['anonymous'],
         public array $scopes = [],
         public array $limits = [],
+        public ?array $deprecation = null,
     ) {
     }
 
@@ -63,6 +65,7 @@ final readonly class EndpointMetadata
             'auth' => $this->auth,
             'scopes' => $this->scopes,
             'limits' => $this->limits,
+            'deprecation' => $this->deprecation,
         ];
     }
 

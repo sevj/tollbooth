@@ -22,12 +22,18 @@ use Tollbooth\Auth\Command\GenerateApiKeyCommand;
 use Tollbooth\Auth\ConsumerValueResolver;
 use Tollbooth\Auth\Health\ApiKeyFindings;
 use Tollbooth\Auth\TokenConsumerResolver;
+use Tollbooth\Changes\Command\DiffCommand;
+use Tollbooth\Changes\Command\SnapshotCommand;
+use Tollbooth\Changes\CurrentContract;
+use Tollbooth\Changes\Impact;
+use Tollbooth\Changes\SnapshotStore;
 use Tollbooth\Core\Attribute\Endpoint;
 use Tollbooth\Core\DependencyInjection\EndpointPass;
 use Tollbooth\Core\Health\FindingProviderInterface;
 use Tollbooth\Core\Health\HealthCheckInterface;
 use Tollbooth\Core\Health\MetadataCheck;
 use Tollbooth\Core\Http\BodyValueResolver;
+use Tollbooth\Core\Http\DeprecationListener;
 use Tollbooth\Core\Http\EndpointListener;
 use Tollbooth\Core\Http\QueryValueResolver;
 use Tollbooth\Core\Http\TimingListener;
@@ -60,6 +66,7 @@ use Tollbooth\Monitoring\CollectorListener;
 use Tollbooth\Monitoring\Command\MaintenanceCommand;
 use Tollbooth\Monitoring\Command\SetupCommand;
 use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
+use Tollbooth\Monitoring\Health\DeprecatedUsageFindings;
 use Tollbooth\Monitoring\Health\MonitoringCheck;
 use Tollbooth\Monitoring\Health\TrafficFindings;
 use Tollbooth\Monitoring\RollupInterface;
@@ -80,6 +87,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
  * @phpstan-type AuthConfig array{default: list<string>, api_key_header: string, api_key_provider: ?string, api_keys: array<string, ApiKeyConfig>}
  * @phpstan-type MonitoringConfig array{enabled: bool, connection: string, table_prefix: string, calls_retention_days: int, aggregates_retention_days: int, auto_maintenance: bool, cache_pool: string}
  * @phpstan-type DocsConfig array{enabled: bool, path: string, title: string, version: string, ui: bool}
+ * @phpstan-type ChangesConfig array{enabled: bool, directory: string, impact_days: int, gone_after_sunset: bool}
  * @phpstan-type HealthConfig array{enabled: bool, probe_path: string, token: ?string, error_rate: float, unused_days: int, key_expiry_days: int, max_lag_minutes: int}
  * @phpstan-type RateLimitConfig array{enabled: bool, plans: array<string, list<string>|array<string, string>>, default_plan: ?string, anonymous_plan: ?string, cache_pool: string, legacy_headers: bool}
  */
@@ -223,6 +231,24 @@ final class TollboothBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('changes')
+                    ->canBeDisabled()
+                    ->children()
+                        ->scalarNode('directory')
+                            ->defaultValue('%kernel.project_dir%/tollbooth/contract')
+                            ->info('Where contract snapshots are written. Commit this directory.')
+                        ->end()
+                        ->integerNode('impact_days')
+                            ->defaultValue(30)
+                            ->min(1)
+                            ->info('Days of monitored traffic used to measure the impact of a change.')
+                        ->end()
+                        ->booleanNode('gone_after_sunset')
+                            ->defaultFalse()
+                            ->info('Answer 410 Gone once the sunset date of a deprecated endpoint has passed.')
+                        ->end()
+                    ->end()
+                ->end()
                 ->arrayNode('health')
                     ->canBeDisabled()
                     ->children()
@@ -330,7 +356,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig} $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -358,6 +384,14 @@ final class TollboothBundle extends AbstractBundle
         if ($config['health']['enabled']) {
             $this->loadHealth($config, $container, $builder);
         }
+        if ($config['changes']['enabled'] && $config['docs']['enabled']) {
+            $this->loadChanges($config, $container);
+        }
+
+        $container->services()->set(DeprecationListener::class)
+            ->args([$config['changes']['gone_after_sunset'], service('clock')->nullOnInvalid()])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => 30])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::RESPONSE, 'method' => 'onResponse']);
 
         $services = $container->services();
         $services->set(EndpointRegistry::class);
@@ -446,7 +480,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig} $config
+     * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig} $config
      */
     private function loadDocs(array $config, ContainerConfigurator $container): void
     {
@@ -481,7 +515,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig} $config
      */
     private function loadHealth(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -502,6 +536,9 @@ final class TollboothBundle extends AbstractBundle
             $services->set(MonitoringCheck::class)
                 ->args([service(DoctrineCallStorage::class), $config['monitoring']['calls_retention_days'], $health['max_lag_minutes'], service('clock')->nullOnInvalid()])
                 ->tag(self::INTERNAL_CHECK, ['priority' => 60]);
+            $services->set(DeprecatedUsageFindings::class)
+                ->args([service(CallReaderInterface::class), service(EndpointRegistry::class), 7, service('clock')->nullOnInvalid()])
+                ->tag(FindingProviderInterface::TAG);
             $services->set(TrafficFindings::class)
                 ->args([service(CallReaderInterface::class), service(EndpointRegistry::class), $health['unused_days'], $health['error_rate'], 20, service('clock')->nullOnInvalid()])
                 ->tag(FindingProviderInterface::TAG);
@@ -545,6 +582,34 @@ final class TollboothBundle extends AbstractBundle
 
         $builder->registerForAutoconfiguration(HealthCheckInterface::class)->addTag(HealthCheckInterface::TAG);
         $builder->registerForAutoconfiguration(FindingProviderInterface::class)->addTag(FindingProviderInterface::TAG);
+    }
+
+    /**
+     * @param array{docs: DocsConfig, monitoring: MonitoringConfig, changes: ChangesConfig} $config
+     */
+    private function loadChanges(array $config, ContainerConfigurator $container): void
+    {
+        $services = $container->services();
+
+        $services->set(CurrentContract::class)
+            ->args([service(OpenApiGenerator::class)]);
+        $services->set(SnapshotStore::class)
+            ->args([$config['changes']['directory']]);
+        $services->set(Impact::class)
+            ->args([
+                $config['monitoring']['enabled'] ? service(CallReaderInterface::class) : null,
+                service('clock')->nullOnInvalid(),
+                $config['changes']['impact_days'],
+            ]);
+
+        if (class_exists(Application::class)) {
+            $services->set(SnapshotCommand::class)
+                ->args([service(CurrentContract::class), service(SnapshotStore::class), $config['docs']['version'], service('clock')->nullOnInvalid()])
+                ->tag('console.command');
+            $services->set(DiffCommand::class)
+                ->args([service(CurrentContract::class), service(SnapshotStore::class), service(Impact::class)])
+                ->tag('console.command');
+        }
     }
 
     /**

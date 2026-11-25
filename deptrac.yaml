@@ -46,5 +46,5 @@ deptrac:
     RateLimit: [Core, Auth]
     Monitoring: [Core, Auth]
     Health: [Core]
-    Changes: [Core]
+    Changes: [Core, Docs, Monitoring]
     Dashboard: [Core, Auth, Docs, RateLimit, Monitoring, Health, Changes]

@@ -95,7 +95,7 @@ final class HealthTest extends FunctionalTestCase
         $messages = array_column($report['findings'], 'message');
         self::assertContains('The health report at /_tollbooth/health.json is outside any firewall: anyone can read it.', $messages);
         self::assertContains('The documentation at /_tollbooth/docs is outside any firewall: anyone can read it.', $messages);
-        self::assertNotEmpty(preg_grep('/^5 endpoints received no call in 30 days: /', $messages));
+        self::assertNotEmpty(preg_grep('/^6 endpoints received no call in 30 days: /', $messages));
         self::assertIsArray($report['facts']);
         self::assertSame(['tollbooth', 'symfony', 'php', 'environment', 'conventions', 'rate_limit', 'monitoring'], array_keys($report['facts']));
         self::assertSame('monitoring', $report['facts']['environment']);
@@ -111,6 +111,16 @@ final class HealthTest extends FunctionalTestCase
         self::assertIsArray($report['checks']);
         self::assertIsArray($report['checks'][1]);
         self::assertSame('Aggregation is 58 minutes behind. Check auto_maintenance, or schedule tollbooth:monitoring:maintain.', $report['checks'][1]['summary']);
+    }
+
+    public function testDeprecatedEndpointsStillCalledAreFindings(): void
+    {
+        $this->client->request('GET', '/api/v1/things/7');
+        $this->client->request('GET', '/_tollbooth/health.json');
+
+        $report = $this->json($this->client);
+        self::assertIsArray($report['findings']);
+        self::assertContains('GET /v1/things/{id} is deprecated (sunset 2027-03-01) and was called 1 time in 7 days by ip:127.0.0.1.', array_column($report['findings'], 'message'));
     }
 
     public function testExpiredApiKeysAreFindings(): void

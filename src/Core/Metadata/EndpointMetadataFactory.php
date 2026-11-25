@@ -6,6 +6,7 @@ namespace Tollbooth\Core\Metadata;
 
 use Tollbooth\Core\Attribute\Auth;
 use Tollbooth\Core\Attribute\Body;
+use Tollbooth\Core\Attribute\DeprecatedEndpoint;
 use Tollbooth\Core\Attribute\Endpoint;
 use Tollbooth\Core\Attribute\PublicEndpoint;
 use Tollbooth\Core\Attribute\Query;
@@ -74,7 +75,43 @@ final class EndpointMetadataFactory
             auth: array_map(static fn (AuthMethod $method): string => $method->value, $auth),
             scopes: [AuthMethod::Anonymous] === $auth ? [] : $this->scopes($class, $group, $method, $path),
             limits: $this->limits($class, $group, $name),
+            deprecation: $this->deprecation($class),
         );
+    }
+
+    /**
+     * @param \ReflectionClass<*> $class
+     *
+     * @return array{since: int, sunset: ?int, link: ?string}|null
+     */
+    private function deprecation(\ReflectionClass $class): ?array
+    {
+        $attribute = $class->getAttributes(DeprecatedEndpoint::class)[0] ?? null;
+        if (null === $attribute) {
+            return null;
+        }
+
+        $deprecation = $attribute->newInstance();
+        $since = $this->date($class, 'since', $deprecation->since);
+        $sunset = null === $deprecation->sunset ? null : $this->date($class, 'sunset', $deprecation->sunset);
+        if (null !== $sunset && $sunset < $since) {
+            throw new InvalidEndpointException(\sprintf('Endpoint "%s" has a sunset date before its deprecation date.', $class->getName()));
+        }
+
+        return ['since' => $since, 'sunset' => $sunset, 'link' => $deprecation->link];
+    }
+
+    /**
+     * @param \ReflectionClass<*> $class
+     */
+    private function date(\ReflectionClass $class, string $field, string $value): int
+    {
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value, new \DateTimeZone('UTC'));
+        if (false === $date || $date->format('Y-m-d') !== $value) {
+            throw new InvalidEndpointException(\sprintf('Endpoint "%s" declares the %s date "%s"; write it as YYYY-MM-DD.', $class->getName(), $field, $value));
+        }
+
+        return $date->getTimestamp();
     }
 
     /**

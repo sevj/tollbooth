@@ -44,7 +44,7 @@ Modules live side by side under `src/`, one namespace each:
 | `Dashboard` | Server-rendered operator UI |
 
 - `ROADMAP.md` lists what is done, in progress and planned. Update it in the branch that delivers a feature.
-- Dependencies point one way: every module may depend on `Core`, `Dashboard` may depend on every module, nothing depends on `Dashboard`, and feature modules do not depend on each other except through `Core` interfaces, or on `Auth` for the `Consumer` that rate limiting and monitoring key on. `deptrac.yaml` enforces it.
+- Dependencies point one way: every module may depend on `Core`, `Dashboard` may depend on every module, nothing depends on `Dashboard`, and feature modules do not depend on each other except through `Core` interfaces, or on `Auth` for the `Consumer` that rate limiting and monitoring key on. `Changes` compares the documents `Docs` produces and measures impact with `Monitoring`. `deptrac.yaml` enforces it.
 - Inside a module, keep layers apart: public API (attributes, interfaces, value objects), compile time (metadata extraction, compiler passes, cache warmers), runtime (listeners, controllers, services) and infrastructure (storage adapters).
 - Reflection happens at compile time only. The request path reads compiled metadata.
 - Every module except `Core` can be disabled in `tollbooth.*` config. A disabled module registers no service.
