@@ -221,3 +221,58 @@ pre.code{margin:0;padding:18px 20px;font:12.5px/1.7 var(--mono);color:var(--text
 .legend-line{display:flex;align-items:center;gap:6px}
 .legend-line i{width:22px;display:inline-block;border-top:1px solid var(--accent)}
 .legend-line i.nested{border-top:1px dashed var(--edge)}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.flt{height:32px;padding:0 10px;background:var(--panel);border:1px solid var(--line);color:var(--neutral);font:12px var(--mono);display:inline-flex;align-items:center;gap:8px;cursor:pointer;list-style:none}
+.flt::-webkit-details-marker{display:none}
+.flt b{color:var(--text);font-weight:500}
+.flt.on{border-color:var(--edge)}
+.flt .x{padding:0 2px}
+.flt.query{flex:1 1 280px;cursor:text}
+.flt.query input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--text);font:12px var(--mono)}
+.chip{position:relative}
+.chip ul{position:absolute;z-index:10;left:0;top:36px;min-width:200px;max-height:320px;overflow:auto;margin:0;padding:4px;list-style:none;background:var(--raise);border:1px solid var(--line-strong)}
+.chip li a{display:block;padding:7px 10px;color:var(--text-soft);font:12px var(--mono);white-space:nowrap}
+.chip li a:hover,.chip li a[aria-current]{background:var(--sel);color:var(--text-strong)}
+.rq{display:grid;grid-template-columns:96px 48px minmax(0,1fr) 46px 60px 110px;gap:12px;align-items:center;height:36px;padding:0 16px;border-bottom:1px solid #1B1E22;font:12px var(--mono);color:var(--text-soft)}
+a.rq:hover{background:#17191C;color:var(--text-strong)}
+.rq.sel{background:#1D2024;box-shadow:inset 0 0 0 1px var(--edge)}
+.rq.fresh{animation:fresh 1.6s ease-out}
+@keyframes fresh{from{background:rgba(240,180,41,.18)}to{background:transparent}}
+.rq.th{font-size:10px;height:34px;border-bottom-color:var(--line)}
+.rq .me{font-weight:600;font-size:11px}
+.rq .pa,.rq .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rq .r{text-align:right}
+.sc{font:600 11px var(--mono);padding:2px 6px;text-align:center}
+.c2{background:#1D2A20;color:var(--ok)}.c4{background:#2D1D1B;color:var(--bad)}.c429{background:#33290F;color:var(--accent)}.c5{background:var(--bad);color:var(--bg)}
+.list-foot{font:12px var(--mono);color:var(--muted);padding:12px 16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}
+.cd-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.cd-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cd-title .sc{font-size:13px;padding:4px 8px}
+.cd-title .m{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.cd-title .btn{margin-left:auto}
+.btn.sm{height:28px;font-size:12px}
+.cd-error{font-size:12px;overflow-wrap:anywhere}
+.cd-block{padding:16px 20px;border-bottom:1px solid var(--line)}
+.cd-block.flush{padding:0}
+.cd-sub{display:flex;justify-content:space-between;gap:12px;margin-bottom:10px;font-size:13px;font-weight:600}
+.cd-sub .m{font-size:12px;font-weight:400}
+.cd-sub.pad{padding:14px 20px 0;margin-bottom:0}
+.cd-block pre.code{padding:14px 20px;font-size:12px}
+.kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 14px;font:12px var(--mono)}
+.kv>span:nth-child(odd){color:var(--faint)}
+.kv>*{overflow-wrap:anywhere}
+.ps{display:grid;grid-template-columns:18px 120px minmax(0,1fr) 70px;gap:10px;align-items:center;font:12px var(--mono);height:26px;color:var(--text-soft)}
+.ps i{width:8px;height:8px;background:var(--ok)}
+.ps .r{text-align:right;color:var(--muted)}
+.ps>span:nth-child(3){color:var(--muted)}
+.ps.stopped i{background:var(--bad)}.ps.stopped{color:var(--bad)}.ps.stopped>span:nth-child(3){color:var(--bad)}
+.ps.skipped,.ps.none{color:#5E5A53}.ps.skipped i,.ps.none i{background:transparent;border:1px solid #3A3E44}.ps.skipped>span:nth-child(3),.ps.none>span:nth-child(3){color:#5E5A53}
+.lim{font:12px var(--mono)}
+.lim+.lim{margin-top:14px}
+.lim-line{display:flex;justify-content:space-between;gap:12px;margin-bottom:6px}
+.lim-line .warn{color:var(--accent)}
+.lim-track{height:8px;background:var(--line-soft)}
+.lim-track div{height:8px;background:var(--accent)}
+.lim-track.full{background:repeating-linear-gradient(135deg,var(--accent) 0 6px,var(--bg) 6px 11px)}
+.lim-track.full div{display:none}

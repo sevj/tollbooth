@@ -80,7 +80,7 @@ Twig, rendered on the server, assets shipped prebuilt, every string translated (
 - [x] Map: resources, traffic overlay, model references, "needs attention", Mermaid export
 - [x] Endpoint: pipeline, declaration, body, responses, examples, latency, status codes, consumers, errors
 - [x] Models: diagram, usage, serialized preview per convention, SVG export
-- [ ] Requests: live tail, filters, call detail with limiter state
+- [x] Requests: live tail, filters, call detail with limiter state, NDJSON export
 - [ ] Consumers and a consumer page: quotas, minute limiter, endpoints used, upcoming changes, key
 - [ ] Changes and Health screens
 - [ ] API key management from the UI, with a Doctrine key provider

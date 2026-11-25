@@ -1,0 +1,119 @@
+{% extends '@TollboothDashboard/layout.html.twig' %}
+{% trans_default_domain 'tollbooth' %}
+
+{% set group = shell.group %}
+{% set q = filter ~ '' %}
+
+{% block title %}{{ 'dashboard.requests.title'|trans }} · {{ group }}{% endblock %}
+
+{% block crumbs %}<a href="{{ path('tollbooth_dashboard_map', {group: group}) }}">{{ group }}</a> <span class="slash">/</span> <span class="here">{{ 'dashboard.requests.crumb'|trans }}</span>{% endblock %}
+
+{% macro chip(key, label, options, filter, group) %}
+{% set current = filter.get(key) %}
+<details class="chip">
+<summary class="flt{% if current %} on{% endif %}">{{ label }} <b>{{ current ?? 'dashboard.requests.any'|trans({}, 'tollbooth') }}</b>{% if current %} <a class="mu x" href="{{ path('tollbooth_dashboard_requests', {group: group, q: filter.with(key, null)}) }}" aria-label="{{ 'dashboard.requests.clear'|trans({'%filter%': label}, 'tollbooth') }}">×</a>{% endif %}</summary>
+<ul>
+{% for value, text in options %}<li><a href="{{ path('tollbooth_dashboard_requests', {group: group, q: filter.with(key, value ~ '')}) }}"{% if current == value ~ '' %} aria-current="true"{% endif %}>{{ text }}</a></li>{% endfor %}
+</ul>
+</details>
+{% endmacro %}
+
+{% block body %}
+<div class="head">
+<div>
+<h1>{{ 'dashboard.requests.title'|trans }}</h1>
+<div class="sub">{{ 'dashboard.requests.subtitle'|trans }}</div>
+</div>
+<div class="actions">
+<button class="btn" type="button" aria-pressed="false" data-live="{{ path('tollbooth_dashboard_requests_feed', {group: group, q: q}) }}" data-last="{{ rows[0].id ?? '' }}"><span class="dot" style="background: #6B7078"></span>{{ 'dashboard.requests.live'|trans }}</button>
+<a class="btn" href="{{ path('tollbooth_dashboard_requests_export', {group: group, q: q}) }}" download>{{ 'dashboard.requests.export'|trans }}</a>
+</div>
+</div>
+
+<form class="filters" method="get" action="{{ path('tollbooth_dashboard_requests', {group: group}) }}">
+<label class="flt query"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="#8A867D" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="4.5"></circle><path d="m9.5 9.5 3 3"></path></svg><span class="sr">{{ 'dashboard.requests.filter'|trans }}</span><input type="text" name="q" value="{{ q }}" placeholder="consumer:acme-erp status:4xx duration:>100"></label>
+{% set endpoint_options = {} %}
+{% for ep in endpoints %}{% set endpoint_options = endpoint_options|merge({(ep.name): ep.method ~ ' ' ~ ep.path}) %}{% endfor %}
+{{ _self.chip('endpoint', 'endpoint', endpoint_options, filter, group) }}
+{{ _self.chip('status', 'status', {'2xx': '2xx', '4xx': '4xx', '429': '429', '5xx': '5xx'}, filter, group) }}
+{% if filter.get('consumer') %}{{ _self.chip('consumer', 'consumer', {}, filter, group) }}{% endif %}
+{{ _self.chip('duration', 'duration', {'>100': '> 100 ms', '>500': '> 500 ms', '>1000': '> 1 s'}, filter, group) }}
+{% set last_options = {} %}
+{% for key, seconds in constant('Tollbooth\\Dashboard\\Requests\\RequestFilter::LAST') %}{% set last_options = last_options|merge({(key): ('dashboard.requests.last.' ~ key)|trans}) %}{% endfor %}
+<details class="chip">
+<summary class="flt">{{ 'dashboard.requests.last.label'|trans }} <b>{{ ('dashboard.requests.last.' ~ filter.last)|trans }}</b></summary>
+<ul>{% for value, text in last_options %}<li><a href="{{ path('tollbooth_dashboard_requests', {group: group, q: filter.with('last', value)}) }}"{% if filter.last == value %} aria-current="true"{% endif %}>{{ text }}</a></li>{% endfor %}</ul>
+</details>
+</form>
+
+<div class="cols">
+<section class="panel" style="flex: 1.15 1 480px; min-width: 0" aria-label="{{ 'dashboard.requests.list'|trans }}">
+<div style="overflow-x: auto"><div style="min-width: 560px">
+<div class="rq th"><span>{{ 'dashboard.requests.col.time'|trans }}</span><span>{{ 'dashboard.requests.col.method'|trans }}</span><span>{{ 'dashboard.requests.col.path'|trans }}</span><span>{{ 'dashboard.requests.col.status'|trans }}</span><span class="r">ms</span><span>{{ 'dashboard.requests.col.consumer'|trans }}</span></div>
+<div data-rows>
+{% include '@TollboothDashboard/_request_rows.html.twig' with {rows: rows, filter: filter, group: group, names: names, prefix: prefix, selected: detail ? detail.call.id : null} only %}
+</div>
+{% if rows is empty %}<div class="empty">{{ 'dashboard.requests.none'|trans }}</div>{% endif %}
+</div></div>
+<div class="list-foot"><span>{{ 'dashboard.requests.matching'|trans({'%count%': count, '%shown%': rows|length}) }}</span>{% if older %}<a href="{{ path('tollbooth_dashboard_requests', {group: group, q: q, before: older}) }}">{{ 'dashboard.requests.older'|trans }}</a>{% endif %}</div>
+</section>
+
+<section class="panel" id="call" style="flex: 1 1 420px; min-width: 0" aria-label="{{ 'dashboard.requests.detail'|trans }}">
+{% if detail %}
+{% set call = detail.call %}
+{% set ep = detail.endpoint %}
+{% set tone = call.status == 429 ? 'c429' : (call.status >= 500 ? 'c5' : (call.status >= 400 ? 'c4' : 'c2')) %}
+<div class="cd-head">
+<div class="cd-title">
+<span class="sc {{ tone }}">{{ call.status }}</span>
+<span class="m"><span class="{{ call.method }}">{{ call.method }}</span> {{ call.path }}</span>
+<button class="btn sm" type="button" data-copy="{{ curl }}"><span data-copy-label data-done="{{ 'dashboard.endpoint.copied'|trans }}">{{ 'dashboard.requests.copy_curl'|trans }}</span></button>
+</div>
+{% if call.error %}<div class="m mu cd-error">{{ call.error }}</div>{% endif %}
+</div>
+<div class="cd-block">
+<div class="kv">
+<span>{{ 'dashboard.requests.kv.id'|trans }}</span><span>{{ call.id }}</span>
+<span>{{ 'dashboard.requests.kv.received'|trans }}</span><span>{{ (call.occurredAt // 1000)|date('Y-m-d H:i:s', 'UTC') }}.{{ '%03d'|format(call.occurredAt % 1000) }} UTC</span>
+<span>{{ 'dashboard.requests.kv.consumer'|trans }}</span><a href="{{ path('tollbooth_dashboard_requests', {group: group, q: filter.with('consumer', ' ' in call.consumerName ? call.consumerId : call.consumerName)}) }}">{{ call.consumerName }}{% if call.consumerId != call.consumerName %} · {{ call.consumerId }}{% endif %}</a>
+<span>{{ 'dashboard.requests.kv.client'|trans }}</span><span>{{ ('dashboard.auth.' ~ call.authMethod)|trans }}{% if call.ip %} · {{ call.ip }}{% endif %}</span>
+<span>{{ 'dashboard.requests.kv.endpoint'|trans }}</span>{% if ep %}<a href="{{ path('tollbooth_dashboard_endpoint', {group: group, name: ep.name}) }}">{{ ep.class|split('\\')|last }}</a>{% else %}<span>{{ call.endpoint }}</span>{% endif %}
+{% if call.responseSize is not null %}<span>{{ 'dashboard.requests.kv.size'|trans }}</span><span>{{ call.responseSize|tb_number }} B</span>{% endif %}
+</div>
+</div>
+
+<div class="cd-block">
+<div class="cd-sub"><span>{{ 'dashboard.requests.pipeline'|trans }}</span><span class="m mu">{% if detail.stoppedAt %}{{ 'dashboard.requests.stopped'|trans({'%step%': ('dashboard.endpoint.step.' ~ detail.stoppedAt)|trans}) }} · {% endif %}{{ call.duration|round(1) }} ms</span></div>
+{% for step in detail.pipeline %}
+<div class="ps {{ step.state }}"><i></i><span>{{ ('dashboard.endpoint.step.' ~ step.key)|trans }}</span><span>{{ ('dashboard.requests.state.' ~ step.state)|trans }}</span><span class="r">{{ step.duration is null ? '·' : step.duration|round(1) ~ ' ms' }}</span></div>
+{% endfor %}
+</div>
+
+{% if detail.limiters is not empty %}
+<div class="cd-block">
+<div class="cd-sub"><span>{{ 'dashboard.requests.limiters'|trans }}</span></div>
+{% for limiter in detail.limiters %}
+<div class="lim">
+<div class="lim-line"><span>{{ limiter.name }} <span class="mu">· {{ limiter.limit|tb_number }} / {{ limiter.window }} s</span></span><span{% if limiter.exhausted %} class="warn"{% endif %}>{{ 'dashboard.requests.left'|trans({'%count%': limiter.remaining|tb_number, '%time%': limiter.resetsAt|date('H:i:s', 'UTC')}) }}</span></div>
+<div class="lim-track{% if limiter.exhausted %} full{% endif %}"><div style="width: {{ (limiter.used * 100)|round(1) }}%"></div></div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+<div class="cd-block flush">
+<div class="cd-sub pad"><span>{{ 'dashboard.requests.headers'|trans }}</span><span class="m mu">{{ 'dashboard.requests.headers_note'|trans }}</span></div>
+<pre class="code">{% for header in detail.headers %}<span class="{{ header[2] ? 'at' : 'mu' }}">{{ header[0] }}{{ loop.first ? '' : ':' }}</span> {{ header[1] }}
+{% endfor %}</pre>
+</div>
+
+<div class="cd-block flush" style="border-bottom: 0">
+<div class="cd-sub pad"><span>{{ 'dashboard.requests.body'|trans }}</span></div>
+{% if detail.problem %}<pre class="code">{{ tb_json(detail.problem) }}</pre>{% else %}<div class="empty">{{ 'dashboard.requests.body_not_stored'|trans }}</div>{% endif %}
+</div>
+{% else %}
+<div class="empty">{{ 'dashboard.requests.pick'|trans }}</div>
+{% endif %}
+</section>
+</div>
+{% endblock %}

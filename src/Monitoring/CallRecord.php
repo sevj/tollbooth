@@ -7,7 +7,8 @@ namespace Tollbooth\Monitoring;
 final readonly class CallRecord
 {
     /**
-     * @param array<string, float> $steps
+     * @param array<string, float>                                                                $steps
+     * @param list<array{name: string, limit: int, window: int, remaining: int, reset: int}>|null $limiters
      */
     public function __construct(
         public string $id,
@@ -25,6 +26,7 @@ final readonly class CallRecord
         public ?int $responseSize = null,
         public ?string $error = null,
         public array $steps = [],
+        public ?array $limiters = null,
     ) {
     }
 

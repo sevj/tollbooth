@@ -57,6 +57,7 @@ use Tollbooth\Dashboard\Controller\EndpointController;
 use Tollbooth\Dashboard\Controller\HomeController;
 use Tollbooth\Dashboard\Controller\MapController;
 use Tollbooth\Dashboard\Controller\ModelsController;
+use Tollbooth\Dashboard\Controller\RequestsController;
 use Tollbooth\Dashboard\DashboardRouteProvider;
 use Tollbooth\Dashboard\Endpoint\EndpointPageBuilder;
 use Tollbooth\Dashboard\GroupCatalog;
@@ -708,7 +709,22 @@ final class TollboothBundle extends AbstractBundle
                 $monitoring && $config['health']['enabled'] ? service(MonitoringCheck::class) : null,
                 $config['docs']['enabled'] && $config['docs']['ui'] ? DocsRouteProvider::PAGE_ROUTE : null,
                 $config['docs']['enabled'] ? service(ModelCatalogFactory::class) : null,
+                $monitoring,
             ]);
+        if ($monitoring) {
+            $services->set(RequestsController::class)
+                ->args([
+                    service(CallReaderInterface::class),
+                    service(CallBreakdownInterface::class),
+                    service(GroupCatalog::class),
+                    service(Shell::class),
+                    service('twig'),
+                    $config['auth']['api_key_header'],
+                    service('clock')->nullOnInvalid(),
+                ])
+                ->public()
+                ->tag('controller.service_arguments');
+        }
         if ($config['docs']['enabled']) {
             $services->set(ModelCatalogFactory::class)
                 ->args([service(OpenApiGenerator::class), service(GroupCatalog::class)]);

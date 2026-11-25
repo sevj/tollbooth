@@ -1,0 +1,11 @@
+{% for row in rows %}
+{% set tone = row.status == 429 ? 'c429' : (row.status >= 500 ? 'c5' : (row.status >= 400 ? 'c4' : 'c2')) %}
+<a class="rq{% if selected and selected == row.id %} sel{% endif %}" href="{{ path('tollbooth_dashboard_requests', {group: group, q: filter ~ '', call: row.id}) }}" data-id="{{ row.id }}" data-search-text="{{ (row.method ~ ' ' ~ row.path ~ ' ' ~ row.consumerName)|lower }}">
+<span class="mu">{{ (row.occurredAt // 1000)|date('H:i:s', 'UTC') }}.{{ '%03d'|format(row.occurredAt % 1000) }}</span>
+<span class="me {{ row.method }}">{{ row.method }}</span>
+<span class="pa" title="{{ names[row.endpoint] ?? row.endpoint }}">{{ prefix and row.path starts with prefix ? row.path|slice(prefix|length) : row.path }}</span>
+<span class="sc {{ tone }}">{{ row.status }}</span>
+<span class="r">{{ row.duration < 10 ? row.duration|round(1) : row.duration|round }}</span>
+<span class="cn">{{ row.consumerName }}</span>
+</a>
+{% endfor %}

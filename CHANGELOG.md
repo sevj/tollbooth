@@ -8,6 +8,21 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Requests screen in the dashboard (`/_tollbooth/requests/{group}`): the recorded calls, newest first,
+  filtered by endpoint, status class or exact status, consumer, minimum duration and period, with a live
+  tail that adds new calls every two seconds and an NDJSON export. Opening a call shows its consumer and
+  client, the pipeline steps it went through and the one that answered, the state of each rate limiter
+  at that moment, and the response headers and problem body rebuilt from what was recorded.
+- Monitoring records the state of each rate limiter with every call, read from the `RateLimit-Policy`
+  and `RateLimit` headers of the response (`CallRecord::$limiters`).
+- `CallQuery` accepts an exact `status`, a `minDuration` in milliseconds, an `after` cursor and an `id`.
+
+### Upgrade notes
+- The monitoring table of calls gains a `limiters` column. Run `bin/console tollbooth:monitoring:setup`,
+  or `ALTER TABLE tollbooth_call ADD limiters TEXT DEFAULT NULL` (with your table prefix). Calls recorded
+  before have no limiter state.
+
 ## [0.12.0] - 2026-11-25
 
 ### Added

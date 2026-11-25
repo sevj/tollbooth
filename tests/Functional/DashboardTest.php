@@ -129,6 +129,37 @@ final class DashboardTest extends FunctionalTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testTheRequestsScreenListsFiltersAndDetailsCalls(): void
+    {
+        $client = $this->monitoredClient();
+        $storage = $this->storage();
+        $this->record($storage, self::NOW - 120, 'tollbooth_get_thing', 200, 12.0, steps: ['auth' => 1.0, 'handler' => 8.0]);
+        $this->record($storage, self::NOW - 60, 'tollbooth_create_thing', 422, 30.0, 'name: This value should not be blank.', 'acme');
+
+        $client->request('GET', '/_tollbooth/requests/default', ['q' => 'consumer:acme'], server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('1 matching · 1 shown', $html);
+        self::assertStringContainsString('<span class="sc c4">422</span>', $html);
+        self::assertStringNotContainsString('<span class="sc c2">200</span>', $html);
+        self::assertStringContainsString('stopped at Hydrate', $html);
+        self::assertStringContainsString('<span class="at">"field"</span>: <span class="s">"name"</span>', $html);
+
+        $client->request('GET', '/_tollbooth/requests/default', ['q' => 'status:2xx duration:>10']);
+        self::assertStringContainsString('<span class="sc c2">200</span>', (string) $client->getResponse()->getContent());
+
+        $client->request('GET', '/_tollbooth/requests/default/feed', ['after' => '000000000000']);
+        $feed = $this->json($client);
+        self::assertIsString($feed['html']);
+        self::assertSame(2, substr_count($feed['html'], 'class="rq'));
+
+        $client->request('GET', '/_tollbooth/requests/default.ndjson');
+        self::assertResponseIsSuccessful();
+        $lines = array_filter(explode("\n", (string) $client->getInternalResponse()->getContent()));
+        self::assertCount(2, $lines);
+        self::assertStringContainsString('"consumer":"Acme ERP"', (string) reset($lines));
+    }
+
     public function testTheDashboardSpeaksTheLanguageOfTheBrowser(): void
     {
         $client = self::createClient();
