@@ -100,7 +100,7 @@
 {% if op %}
 {% set request_fields = op.parameters|merge(op.body) %}
 <section class="panel" aria-labelledby="request-title">
-<div class="ph"><h2 id="request-title">{{ op.bodyModel ? 'dashboard.endpoint.request_body'|trans : 'dashboard.endpoint.parameters'|trans }}{% if op.bodyModel %}<span class="m">{{ op.bodyModel }}</span>{% endif %}</h2></div>
+<div class="ph"><h2 id="request-title">{{ op.bodyModel ? 'dashboard.endpoint.request_body'|trans : 'dashboard.endpoint.parameters'|trans }}{% if op.bodyModel %}<span class="m">{{ op.bodyModel }}</span>{% endif %}</h2>{% if op.bodyModel and shell.models is not null %}<a class="m" style="font-size: 12px" href="{{ path('tollbooth_dashboard_model', {group: ep.group, model: op.bodyModel}) }}">{{ 'dashboard.endpoint.view_model'|trans }}</a>{% endif %}</div>
 {% if request_fields is empty %}
 <div class="empty">{{ 'dashboard.endpoint.no_input'|trans }}</div>
 {% else %}
@@ -114,7 +114,7 @@
 <section class="panel" aria-labelledby="responses-title">
 <div class="ph"><h2 id="responses-title">{{ 'dashboard.endpoint.responses'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.endpoint.errors_as'|trans }}</span></div>
 {% for response in op.responses %}
-<div class="tr resp"><span class="code-tag {{ response.problem ? (response.status == 429 ? 'warn' : 'bad') : 'ok' }}">{{ response.status }}</span><span>{{ response.model ?? '—' }}</span>{% set key = "dashboard.endpoint.status." ~ response.status %}{% set text = key|trans %}<span class="mu">{{ text == key ? response.description : text }}</span></div>
+<div class="tr resp"><span class="code-tag {{ response.problem ? (response.status == 429 ? 'warn' : 'bad') : 'ok' }}">{{ response.status }}</span><span>{% if response.model and not response.problem and shell.models is not null %}<a href="{{ path('tollbooth_dashboard_model', {group: ep.group, model: response.model|trim('[]', 'right')}) }}">{{ response.model }}</a>{% else %}{{ response.model ?? '—' }}{% endif %}</span>{% set key = "dashboard.endpoint.status." ~ response.status %}{% set text = key|trans %}<span class="mu">{{ text == key ? response.description : text }}</span></div>
 {% endfor %}
 </section>
 

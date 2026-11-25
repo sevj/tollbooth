@@ -5,6 +5,7 @@ dashboard:
     switch_group: Switch API
     map: Map
     endpoints: Endpoints
+    models: Models
     openapi: OpenAPI spec
     collector:
       ok: collector healthy
@@ -86,6 +87,7 @@ dashboard:
     deprecated: deprecated
     deprecated_sunset: deprecated · sunset %date%
     copy_curl: Copy cURL
+    view_model: View model
     copied: Copied
     try: Try it
     kpi:
@@ -162,3 +164,42 @@ dashboard:
     grouped: grouped
     no_errors: No error over the last %range%.
     consumers: '{1}1 consumer|]1,Inf[%count% consumers'
+  models:
+    title: Models
+    crumb: models
+    summary: '{1}1 model, read from your PHP types|]1,Inf[%count% models, read from your PHP types'
+    list: Models
+    view:
+      label: View
+      diagram: Diagram
+      table: Table
+    depth:
+      label: Depth
+      level: depth %count%
+      all: all
+    export: Export · SVG
+    kind:
+      output: Output
+      input: Input
+      enum: Enums
+    kind_one:
+      output: output
+      input: input
+      enum: enum
+    linked: '{1}1 linked model|]1,Inf[%count% linked models'
+    used_in: '{1}used in 1 model|]1,Inf[used in %count% models'
+    legend:
+      direct: direct
+      nested: nested
+      nullable: nullable
+    value: value
+    used_by: Used by
+    endpoints: '{0}no endpoint|{1}1 endpoint|]1,Inf[%count% endpoints'
+    nested_only: No endpoint uses it directly; it is only found inside other models.
+    unused: No endpoint uses this model.
+    role:
+      body: request body
+    serialized_as: Serialized as
+    sent_as: Sent as
+    envelope: Envelope
+    case: Field names

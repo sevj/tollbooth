@@ -100,6 +100,35 @@ final class DashboardTest extends FunctionalTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testTheModelsScreenDrawsAModelAndItsNeighbours(): void
+    {
+        $client = self::createClient();
+        $client->request('GET', '/_tollbooth/models/default');
+        self::assertResponseRedirects();
+
+        foreach (['', '?view=table', '?depth=all&envelope=json_api&case=camel_case'] as $query) {
+            $client->request('GET', '/_tollbooth/models/default/ThingView'.$query, server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+            self::assertResponseIsSuccessful();
+        }
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<text class="md-title" x="12" y="25">ThingView</text>', $html);
+        self::assertStringContainsString('<text class="md-title" x="12" y="25">Color</text>', $html);
+        self::assertStringContainsString('<span class="at">"unitCount"</span>', $html);
+        self::assertStringContainsString('<span class="at">"type"</span>: <span class="s">"things"</span>', $html);
+
+        $client->request('GET', '/_tollbooth/models/default/Color?view=table');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('<span>&quot;red&quot;</span>', (string) $client->getResponse()->getContent());
+
+        $client->request('GET', '/_tollbooth/models/default/ThingView.svg');
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Content-Type', 'image/svg+xml; charset=UTF-8');
+        self::assertStringStartsWith('<?xml', (string) $client->getResponse()->getContent());
+
+        $client->request('GET', '/_tollbooth/models/default/Nope');
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testTheDashboardSpeaksTheLanguageOfTheBrowser(): void
     {
         $client = self::createClient();

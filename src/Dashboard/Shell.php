@@ -7,6 +7,7 @@ namespace Tollbooth\Dashboard;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Tollbooth\Core\Health\HealthCheckInterface;
+use Tollbooth\Dashboard\Models\ModelCatalogFactory;
 
 /**
  * @internal
@@ -20,6 +21,7 @@ final readonly class Shell
         private string $version,
         private ?HealthCheckInterface $collector = null,
         private ?string $docsRoute = null,
+        private ?ModelCatalogFactory $models = null,
     ) {
     }
 
@@ -42,6 +44,7 @@ final readonly class Shell
                     'endpoints' => \count($this->groups->endpoints($name)),
                 ], $this->groups->names()),
                 'endpoints' => \count($this->groups->endpoints($group)),
+                'models' => $this->models?->catalog($group)?->count(),
                 'environment' => $this->environment,
                 'version' => $this->version,
                 'symfony' => Kernel::VERSION,

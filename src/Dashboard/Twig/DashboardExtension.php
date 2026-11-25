@@ -32,6 +32,7 @@ final class DashboardExtension extends AbstractExtension
             new TwigFilter('tb_percent', Format::percent(...)),
             new TwigFilter('tb_signed', Format::signed(...)),
             new TwigFilter('tb_change', Format::change(...)),
+            new TwigFilter('tb_truncate', Format::truncate(...)),
         ];
     }
 

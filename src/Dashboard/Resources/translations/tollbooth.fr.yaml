@@ -5,6 +5,7 @@ dashboard:
     switch_group: Changer d'API
     map: Carte
     endpoints: Endpoints
+    models: Modèles
     openapi: Spécification OpenAPI
     collector:
       ok: collecteur opérationnel
@@ -86,6 +87,7 @@ dashboard:
     deprecated: déprécié
     deprecated_sunset: déprécié · fin le %date%
     copy_curl: Copier cURL
+    view_model: Voir le modèle
     copied: Copié
     try: Essayer
     kpi:
@@ -162,3 +164,42 @@ dashboard:
     grouped: regroupées
     no_errors: Aucune erreur sur les dernières %range%.
     consumers: '{1}1 consommateur|]1,Inf[%count% consommateurs'
+  models:
+    title: Modèles
+    crumb: modèles
+    summary: '{1}1 modèle, lu depuis vos types PHP|]1,Inf[%count% modèles, lus depuis vos types PHP'
+    list: Modèles
+    view:
+      label: Vue
+      diagram: Diagramme
+      table: Tableau
+    depth:
+      label: Profondeur
+      level: profondeur %count%
+      all: tout
+    export: Exporter · SVG
+    kind:
+      output: Sortie
+      input: Entrée
+      enum: Enums
+    kind_one:
+      output: sortie
+      input: entrée
+      enum: enum
+    linked: '{1}1 modèle lié|]1,Inf[%count% modèles liés'
+    used_in: '{1}utilisé dans 1 modèle|]1,Inf[utilisé dans %count% modèles'
+    legend:
+      direct: direct
+      nested: imbriqué
+      nullable: nullable
+    value: valeur
+    used_by: Utilisé par
+    endpoints: '{0}aucun endpoint|{1}1 endpoint|]1,Inf[%count% endpoints'
+    nested_only: Aucun endpoint ne l'utilise directement ; il n'apparaît que dans d'autres modèles.
+    unused: Aucun endpoint n'utilise ce modèle.
+    role:
+      body: corps de requête
+    serialized_as: Sérialisé en
+    sent_as: Envoyé en
+    envelope: Enveloppe
+    case: Noms de champs

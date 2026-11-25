@@ -89,13 +89,19 @@ final readonly class Schemas
         if (\is_array($schema['items'] ?? null)) {
             return $prefix.$this->type($schema['items']).'[]';
         }
+        if (\is_string($schema['title'] ?? null) && \is_array($schema['enum'] ?? null)) {
+            return $prefix.$schema['title'];
+        }
         if (isset($schema['const'])) {
             return \is_scalar($schema['const']) ? (string) json_encode($schema['const'], \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE) : 'const';
         }
         $type = $schema['type'] ?? null;
         $type = \is_array($type) ? implode('|', array_filter($type, 'is_string')) : (\is_string($type) ? $type : 'mixed');
-        if (\is_string($schema['format'] ?? null)) {
-            $type .= '<'.$schema['format'].'>';
+        $format = $schema['format'] ?? null;
+        if ('string' === $type && \in_array($format, ['date-time', 'date', 'time'], true)) {
+            $type = str_replace('-', '', $format);
+        } elseif (\is_string($format)) {
+            $type .= '<'.$format.'>';
         }
 
         return $prefix.match ($type) {
