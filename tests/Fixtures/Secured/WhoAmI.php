@@ -13,10 +13,10 @@ use Tollbooth\Core\Attribute\Endpoint;
 final class WhoAmI
 {
     /**
-     * @return array{id: string, method: string, plan: ?string}
+     * @return array{id: string, name: string, method: string, plan: ?string}
      */
     public function __invoke(Consumer $consumer): array
     {
-        return ['id' => $consumer->id, 'method' => $consumer->method->value, 'plan' => $consumer->plan];
+        return ['id' => $consumer->id, 'name' => $consumer->name, 'method' => $consumer->method->value, 'plan' => $consumer->plan];
     }
 }
