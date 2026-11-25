@@ -34,15 +34,33 @@ for (const menu of document.querySelectorAll('details.groups')) {
 
 for (const tabs of document.querySelectorAll('[data-tabs]')) {
   const buttons = [...tabs.querySelectorAll('[role=tab]')];
+  const select = (button) => {
+    for (const other of buttons) {
+      const selected = other === button;
+      other.setAttribute('aria-selected', String(selected));
+      document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+    }
+  };
   for (const button of buttons) {
     button.addEventListener('click', () => {
-      for (const other of buttons) {
-        const selected = other === button;
-        other.setAttribute('aria-selected', String(selected));
-        document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+      select(button);
+      if ('tabsHash' in tabs.dataset) {
+        history.replaceState(null, '', `#${button.dataset.hash}`);
       }
     });
   }
+  if ('tabsHash' in tabs.dataset) {
+    const wanted = buttons.find((button) => `#${button.dataset.hash}` === location.hash);
+    if (wanted) {
+      select(wanted);
+    }
+  }
+}
+
+for (const link of document.querySelectorAll('a[data-keep-hash]')) {
+  link.addEventListener('click', () => {
+    link.hash = location.hash;
+  });
 }
 
 for (const button of document.querySelectorAll('[data-copy]')) {

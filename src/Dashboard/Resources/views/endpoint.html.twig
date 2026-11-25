@@ -13,7 +13,7 @@
 {% if traffic %}
 <div class="segs" role="group" aria-label="{{ 'dashboard.range.label'|trans }}">
 {% for option in ranges %}
-<a class="seg{% if option == range %} sel{% endif %}" href="{{ path('tollbooth_dashboard_endpoint', {group: ep.group, name: ep.name, range: option.value}) }}"{% if option == range %} aria-current="true"{% endif %}>{{ option.value }}</a>
+<a class="seg{% if option == range %} sel{% endif %}" href="{{ path('tollbooth_dashboard_endpoint', {group: ep.group, name: ep.name, range: option.value}) }}" data-keep-hash{% if option == range %} aria-current="true"{% endif %}>{{ option.value }}</a>
 {% endfor %}
 </div>
 {% endif %}
@@ -66,10 +66,11 @@
 <span class="k">{{ '%02d'|format(loop.index) }}</span>
 <span class="t">{{ ('dashboard.endpoint.step.' ~ step.key)|trans }}</span>
 <span class="c">{% for value in step.lines %}{{ _self.line(value) }}{% if not loop.last %}<br>{% endif %}{% endfor %}</span>
-<span class="f"><span class="{{ step.success ? 'ok' : (step.key == 'rate_limit' ? 'warn' : 'bad') }}">{{ step.codes|join(' · ') }}</span><span class="{{ step.success ? 'ok' : (step.share and step.share > 0.01 ? 'bad' : 'mu') }}">{{ step.share is null ? '—' : step.share|tb_percent(2) }}</span></span>
+<span class="f"><span class="fc"><small>{{ (step.success ? 'dashboard.endpoint.pipeline.answers' : 'dashboard.endpoint.pipeline.refuses')|trans }}</small><span class="{{ step.success ? 'ok' : (step.key == 'rate_limit' ? 'warn' : 'bad') }}">{{ step.codes|join(' · ') }}</span></span>{% if step.share is not null %}<span class="fs"><span class="{{ step.success ? 'ok' : (step.share > 0.01 ? 'bad' : 'mu') }}">{{ step.share|tb_percent(1) }}</span><small>{{ 'dashboard.endpoint.pipeline.of_calls'|trans }}</small></span>{% endif %}</span>
 </div>
 {% endfor %}
 </div>
+<p class="steps-note">{{ (stats ? 'dashboard.endpoint.pipeline.note_traffic' : 'dashboard.endpoint.pipeline.note')|trans({'%range%': range.value}) }}</p>
 {% if page.time %}
 {% set time = page.time %}
 <div class="time">
@@ -84,7 +85,16 @@
 {% endif %}
 </section>
 
-<div class="cols">
+{% if stats %}
+<div class="tabs page-tabs" data-tabs data-tabs-hash>
+<div role="tablist" aria-label="{{ 'dashboard.endpoint.tabs.label'|trans }}" style="display: flex">
+<button type="button" role="tab" id="tab-definition" aria-controls="pane-definition" aria-selected="true" data-hash="definition">{{ 'dashboard.endpoint.tabs.definition'|trans }}</button>
+<button type="button" role="tab" id="tab-stats" aria-controls="pane-stats" aria-selected="false" data-hash="stats">{{ 'dashboard.endpoint.tabs.stats'|trans({'%range%': range.value}) }}</button>
+</div>
+</div>
+{% endif %}
+
+<div class="cols"{% if stats %} role="tabpanel" id="pane-definition" aria-labelledby="tab-definition"{% endif %}>
 <div class="col" style="flex: 1.25 1 520px">
 
 <section class="panel" aria-labelledby="declaration-title">
@@ -110,7 +120,11 @@
 {% endfor %}
 {% endif %}
 </section>
+{% endif %}
+</div>
 
+<div class="col" style="flex: 1 1 380px">
+{% if op %}
 <section class="panel" aria-labelledby="responses-title">
 <div class="ph"><h2 id="responses-title">{{ 'dashboard.endpoint.responses'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.endpoint.errors_as'|trans }}</span></div>
 {% for response in op.responses %}
@@ -134,11 +148,12 @@
 {% if op.responseExample %}<pre class="code" role="tabpanel" id="pane-response" aria-labelledby="tab-response">{{ tb_json(op.responseExample) }}</pre>{% endif %}
 </section>
 {% endif %}
-
+</div>
 </div>
 
-<div class="col" style="flex: 1 1 380px">
 {% if stats %}
+<div class="cols" role="tabpanel" id="pane-stats" aria-labelledby="tab-stats" hidden>
+<div class="col" style="flex: 1 1 440px">
 {% set chart = page.latencyChart %}
 <section class="panel" aria-labelledby="latency-title">
 <div class="ph"><h2 id="latency-title">{{ 'dashboard.endpoint.latency'|trans }}</h2><span class="key"><span style="color: #C9C5BC"><i style="background: #C9C5BC"></i>p50</span><span style="color: #F0B429"><i style="background: #F0B429"></i>p95</span></span></div>
@@ -171,7 +186,9 @@
 </div>
 {% endif %}
 </section>
+</div>
 
+<div class="col" style="flex: 1 1 440px">
 <section class="panel" aria-labelledby="consumers-title">
 <div class="ph"><h2 id="consumers-title">{{ 'dashboard.endpoint.top_consumers'|trans }}</h2></div>
 {% if page.consumers is empty %}
@@ -196,9 +213,9 @@
 {% endfor %}
 {% endif %}
 </section>
+</div>
+</div>
 {% else %}
 <section class="panel"><div class="empty">{{ 'dashboard.map.no_monitoring'|trans }}</div></section>
 {% endif %}
-</div>
-</div>
 {% endblock %}

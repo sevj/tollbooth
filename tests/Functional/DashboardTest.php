@@ -38,6 +38,7 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('<strong>Things</strong>', $html);
         self::assertStringContainsString('/things/{id}', $html);
         self::assertStringContainsString('Turn on tollbooth.monitoring', $html);
+        self::assertStringNotContainsString('id="tab-stats"', $html);
         self::assertStringNotContainsString('Needs attention', $html);
     }
 
@@ -91,6 +92,8 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('Acme ERP', $html);
         self::assertStringContainsString('curl -X POST &#039;http://localhost/api/things&#039;', $html);
         self::assertStringContainsString('where the time goes', $html);
+        self::assertStringContainsString('<small>refuses with</small><span class="bad">422</span></span><span class="fs"><span class="bad">13%</span><small>of calls</small>', $html);
+        self::assertStringContainsString('role="tabpanel" id="pane-stats" aria-labelledby="tab-stats" hidden', $html);
     }
 
     public function testTheEndpointPageWorksWithoutMonitoring(): void
@@ -102,6 +105,7 @@ final class DashboardTest extends FunctionalTestCase
         $html = (string) $client->getResponse()->getContent();
         self::assertStringContainsString('<span class="ep-method GET">GET</span>/things/{id}</h1>', $html);
         self::assertStringContainsString('Turn on tollbooth.monitoring', $html);
+        self::assertStringNotContainsString('id="tab-stats"', $html);
 
         $client->request('GET', '/_tollbooth/endpoints/default/nope');
         self::assertResponseStatusCodeSame(404);

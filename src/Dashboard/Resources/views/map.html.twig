@@ -94,7 +94,7 @@
 {% for endpoint in resource.endpoints %}
 {% set meta = endpoint.metadata %}
 {% set p95 = endpoint.p95 %}
-<a href="{{ path('tollbooth_dashboard_endpoint', {group: map.group, name: meta.name}) }}" class="row{% if live and endpoint.failing %} failing{% endif %}"{% if live %} style="--share: {{ (endpoint.share * 100)|round(1) }}%"{% endif %} data-search-text="{{ (meta.method ~ " " ~ endpoint.path ~ ' ' ~ meta.name ~ ' ' ~ resource.name)|lower }}" title="{{ meta.name }}">
+<a href="{{ path('tollbooth_dashboard_endpoint', {group: map.group, name: meta.name}) }}{% if live %}#stats{% endif %}" class="row{% if live and endpoint.failing %} failing{% endif %}"{% if live %} style="--share: {{ (endpoint.share * 100)|round(1) }}%"{% endif %} data-search-text="{{ (meta.method ~ " " ~ endpoint.path ~ ' ' ~ meta.name ~ ' ' ~ resource.name)|lower }}" title="{{ meta.name }}">
 <span class="me {{ meta.method }}">{{ meta.method }}</span>
 <span class="pa"><span{% if endpoint.deprecated %} class="gone"{% endif %}>{{ endpoint.path }}</span>{% if endpoint.deprecated %}<span class="tag sunset">{{ endpoint.sunset ? 'dashboard.map.tag.sunset'|trans : 'dashboard.map.tag.deprecated'|trans }}</span>{% endif %}{% if live and endpoint.throttling %}<span class="tag throttle" title="{{ 'dashboard.map.throttled_title'|trans({'%count%': endpoint.stats.throttled}) }}"><span>429</span></span>{% endif %}</span>
 {% if not live %}
@@ -130,7 +130,7 @@
 <span class="kind {{ item.kind }}"><span class="dot"></span>{{ ('dashboard.map.attention.kind.' ~ item.kind)|trans }}</span>
 <span class="what"><b class="{{ item.endpoint.method }}">{{ item.endpoint.method }}</b> {{ item.path }}</span>
 <span>{{ ('dashboard.map.attention.' ~ item.message)|trans(params)|raw }}</span>
-<a class="go" href="{{ path('tollbooth_dashboard_endpoint', {group: map.group, name: item.endpoint.name}) }}">{{ 'dashboard.map.attention.open'|trans }}</a>
+<a class="go" href="{{ path('tollbooth_dashboard_endpoint', {group: map.group, name: item.endpoint.name}) }}#stats">{{ 'dashboard.map.attention.open'|trans }}</a>
 </div>
 {% endfor %}
 </div></div>
