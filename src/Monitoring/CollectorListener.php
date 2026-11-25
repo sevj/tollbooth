@@ -6,6 +6,7 @@ namespace Tollbooth\Monitoring;
 
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -35,12 +36,19 @@ final readonly class CollectorListener
             return;
         }
 
+        $now = $this->clock?->now() ?? new \DateTimeImmutable();
         try {
-            $now = $this->clock?->now() ?? new \DateTimeImmutable();
             $this->recorder->record($this->call($request, $event->getResponse(), (int) $now->format('Uv')));
-            $this->rollup?->maybeRun($now->getTimestamp());
         } catch (\Throwable $exception) {
             $this->logger?->error('Tollbooth could not record an API call: {message}', ['message' => $exception->getMessage(), 'exception' => $exception]);
+
+            return;
+        }
+
+        try {
+            $this->rollup?->maybeRun($now->getTimestamp());
+        } catch (\Throwable $exception) {
+            $this->logger?->error('Tollbooth could not aggregate the recorded calls: {message}', ['message' => $exception->getMessage(), 'exception' => $exception]);
         }
     }
 
@@ -63,7 +71,11 @@ final readonly class CollectorListener
             consumerName: $consumer->name ?? 'ip:'.($ip ?? 'unknown'),
             authMethod: $consumer?->method->value ?? 'none',
             ip: $ip,
-            responseSize: $response instanceof StreamedResponse ? null : \strlen((string) $response->getContent()),
+            responseSize: match (true) {
+                $response instanceof BinaryFileResponse => $response->getFile()->getSize() ?: null,
+                $response instanceof StreamedResponse => null,
+                default => \strlen((string) $response->getContent()),
+            },
             error: $response->getStatusCode() >= 400 ? EndpointRequest::error($request) : null,
             steps: EndpointRequest::timings($request),
             limiters: RateLimitHeaders::parse($response->headers->get('RateLimit-Policy'), $response->headers->get('RateLimit')),

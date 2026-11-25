@@ -513,8 +513,8 @@ final class TollboothBundle extends AbstractBundle
         }
 
         $container->services()->set(DeprecationListener::class)
-            ->args([$config['changes']['gone_after_sunset'], service('clock')->nullOnInvalid()])
-            ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => 30])
+            ->args([$config['changes']['enabled'] && $config['changes']['gone_after_sunset'], service('clock')->nullOnInvalid()])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => 6])
             ->tag('kernel.event_listener', ['event' => KernelEvents::RESPONSE, 'method' => 'onResponse']);
 
         $services = $container->services();
@@ -706,7 +706,7 @@ final class TollboothBundle extends AbstractBundle
                 ->args([service(CallReaderInterface::class), service(EndpointRegistry::class), 7, service('clock')->nullOnInvalid()])
                 ->tag(FindingProviderInterface::TAG);
             $services->set(TrafficFindings::class)
-                ->args([service(CallReaderInterface::class), service(EndpointRegistry::class), $health['unused_days'], $health['error_rate'], 20, service('clock')->nullOnInvalid()])
+                ->args([service(CallReaderInterface::class), service(EndpointRegistry::class), min($health['unused_days'], $config['monitoring']['aggregates_retention_days']), $health['error_rate'], 20, service('clock')->nullOnInvalid()])
                 ->tag(FindingProviderInterface::TAG);
         }
 
@@ -1113,7 +1113,7 @@ final class TollboothBundle extends AbstractBundle
 
         $services->set(RateLimitListener::class)
             ->args([service(PlanRegistry::class), service(WindowCounter::class), $rateLimit['legacy_headers']])
-            ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => 6])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => 5])
             ->tag('kernel.event_listener', ['event' => KernelEvents::RESPONSE, 'method' => 'onResponse']);
     }
 

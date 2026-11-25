@@ -152,7 +152,7 @@ Link: <https://docs.example.com/migrate-to-v2>; rel="deprecation"
 ```
 
 - The setting is global: it applies to every deprecated endpoint whose sunset has passed. Push back a sunset date in the attribute if one client needs more time.
-- Since authentication does not run, the dashboard and the health findings now show these calls under the client IP (`ip:203.0.113.7`), not under the consumer. Identify the consumers before the sunset.
+- Authentication still runs first, so the dashboard and the health findings keep showing these calls under the consumer that made them; a call without valid credentials gets a 401 instead of the 410.
 - The `410` responses are still recorded and count as client errors: the map keeps listing these endpoints under "Needs attention" as deprecated endpoints still called, and also as failing once they have at least 20 calls in the range and an error rate above `tollbooth.health.error_rate`.
 
 Without `gone_after_sunset`, the endpoints keep answering normally until you remove them.

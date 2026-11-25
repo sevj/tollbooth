@@ -9,6 +9,13 @@ of `README.md` for the definition of the public API.
 ## [Unreleased]
 
 ### Fixed
+- After the sunset, `gone_after_sunset` answers 410 once the caller is authenticated, so monitoring records
+  the remaining calls under their consumer instead of the client IP; it no longer applies when the Changes
+  module is disabled.
+- Monitoring records the file size of a `BinaryFileResponse` instead of 0, logs a failed aggregation under
+  its own message, and two servers aggregating the same minutes no longer log an error.
+- The unused endpoint finding looks back no further than `monitoring.aggregates_retention_days`, so it no
+  longer names endpoints whose calls were purged.
 - With `tollbooth.rate_limit.enabled: false`, the OpenAPI documents and the dashboard pipeline no longer
   describe group and endpoint limits that nothing counts; with rate limiting on but no plan, the pipeline
   shows the endpoint's own limits.
