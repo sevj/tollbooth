@@ -219,7 +219,7 @@ bin/console tollbooth:api-key:generate acme-erp --scope=orders:read --scope=orde
 | `--scope=<scope>` | Scope granted, repeatable. |
 | `--plan=<plan>` | Rate limit plan. Not checked against the existing plans. |
 | `--test` | Generate a `tb_test_` key instead of a `tb_live_` one. |
-| `--store` | Save the key in the key table instead of printing its configuration. Fails with exit code 1 when `auth.doctrine_keys` is off. |
+| `--store` | Save the key with the key provider that manages keys (the `doctrine_keys` table, or your own `ManageableApiKeyProviderInterface` provider) instead of printing its configuration. Fails with exit code 1 when no provider manages keys, when the name is taken (compared without case) or when `--plan` names no existing plan. |
 
 Without `--store`, the command prints the key and the configuration to paste:
 
@@ -250,6 +250,7 @@ tollbooth:
                 plan: pro
                 expires_at: '2027-03-02'
                 allowed_ips: [203.0.113.0/24, '2001:db8::/32']
+                test: false
 ```
 
 | Key | Meaning |
@@ -269,7 +270,7 @@ Checks run in this order, each answering 401 with its own detail:
 
 | Check | Detail |
 | --- | --- |
-| The header value does not match `tb_(live|test)_<id>_<secret>`, the id is unknown, or the secret does not match the hash | `The API key is not valid.` |
+| The header value does not match `tb_(live|test)_<id>_<secret>`, the id is unknown, the secret does not match the hash, or the prefix does not match the key (`tb_live_` for a key declared with `test: true`, or the reverse) | `The API key is not valid.` |
 | `expires_at` is in the past | `The API key has expired.` |
 | `allowed_ips` is not empty and does not contain the client IP | `The API key is not allowed from this address.` |
 
@@ -365,10 +366,9 @@ When `api_key_provider` is set, it replaces the `api_keys` lookup entirely: keys
 | --- | --- | --- |
 | default | the `api_keys` keys | nothing: keys cannot be managed |
 | `doctrine_keys` on | a chain: `api_keys` first, then the table | the same chain |
-| `api_key_provider` set | your provider | nothing |
-| `api_key_provider` set and `doctrine_keys` on | your provider only | the chain of `api_keys` and the table |
+| `api_key_provider` set | your provider | your provider when it implements `ManageableApiKeyProviderInterface`, nothing otherwise |
 
-The last combination lets the dashboard write keys your provider never reads; avoid it unless your provider also reads the table.
+Setting both `api_key_provider` and `doctrine_keys` stops the build: keys saved in the table would never authenticate. Read the table from your provider instead.
 
 ## Stored keys
 
@@ -413,10 +413,10 @@ bin/console tollbooth:api-key:generate acme-erp --scope=orders:read --plan=pro -
 Behaviour:
 
 - The configured `api_keys` are looked up first and stay read-only: saving or removing a key whose id is declared in configuration throws a `LogicException`.
-- Names are unique in the table. `generate --store` does not check this beforehand: a name already stored makes the insert fail with the database's unique constraint error. The dashboard form refuses a taken name.
+- Names are unique, compared without case: `generate --store` and the dashboard form refuse a taken name, and the command refuses a plan that does not exist.
 - Revoking deletes the row: the key stops working on the next lookup.
 - Rotating keeps the id and replaces the hash: the old secret stops working at once.
-- Key lookups are memoized per service instance, so in a long-running worker (FrankenPHP worker mode, RoadRunner, Messenger consumers) a revocation made by another process may not be seen until the worker restarts.
+- Key lookups are memoized within a request and forgotten between requests (the store is reset with the kernel), so a long-running worker (FrankenPHP worker mode, RoadRunner) sees a revocation made by another process from its next request.
 - If the table cannot be read, calls with a key that is only in the table fail (the lookup throws), and the health check `api_key_storage` turns critical.
 
 Managing keys from the dashboard needs `monitoring` enabled too, because the key screens are part of the consumers screen. See [dashboard.md](dashboard.md).

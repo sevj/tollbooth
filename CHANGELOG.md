@@ -8,7 +8,24 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- A key provider of your own (`auth.api_key_provider`) that implements `ManageableApiKeyProviderInterface`
+  is now used by the dashboard and `tollbooth:api-key:generate --store` to manage keys. Combining
+  `api_key_provider` with `doctrine_keys` stops the build, since the table would never be read.
+- An `expires_at` that is not a date stops the build, instead of making every call with an API key fail.
+- `tollbooth:api-key:generate --store` refuses a name already taken and `--plan` refuses a plan that does
+  not exist, instead of failing on a database error or saving an unknown plan.
+
+### Upgrade notes
+- Add `test: true` to the keys of `tollbooth.auth.api_keys` that start with `tb_test_`: without it, they are
+  refused.
+
 ### Security
+- A key presented with the wrong prefix (`tb_live_` for a test key, or the reverse) is refused. Keys declared
+  in configuration take a `test: true` setting for `tb_test_` keys; `tollbooth:api-key:generate --test`
+  prints it.
+- Stored API keys are looked up again on each request: in a long-running worker (FrankenPHP, RoadRunner),
+  a key revoked by another process used to stay valid until the worker restarted.
 - An endpoint that requires scopes and also accepts anonymous calls no longer lets those calls through:
   they answer 401 with the challenges of the other accepted methods. Before, `[api_key, anonymous]` with
   a scope refused a key without the scope but accepted a call without any key.

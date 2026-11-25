@@ -8,6 +8,7 @@ use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Service\ResetInterface;
 use Tollbooth\Core\Metadata\Limit;
+use Tollbooth\Core\RateLimit\PlanCatalogInterface;
 use Tollbooth\RateLimit\Doctrine\DoctrinePlanStore;
 
 /**
@@ -16,7 +17,7 @@ use Tollbooth\RateLimit\Doctrine\DoctrinePlanStore;
  * @phpstan-import-type LimitArray from Limit
  * @phpstan-import-type PlanSet from DoctrinePlanStore
  */
-final class Plans implements ResetInterface
+final class Plans implements ResetInterface, PlanCatalogInterface
 {
     public const string NAME_PATTERN = '~^[a-z0-9][a-z0-9_-]{0,63}$~';
     private const string CACHE_KEY = 'tollbooth.rate_limit.plans';
@@ -62,6 +63,11 @@ final class Plans implements ResetInterface
             static fn (array $limits): array => array_map(Limit::fromArray(...), $limits),
             $this->all(),
         );
+    }
+
+    public function names(): array
+    {
+        return array_map(strval(...), array_keys($this->all()));
     }
 
     public function defaultPlan(): ?string

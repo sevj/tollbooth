@@ -27,7 +27,7 @@ use Twig\Environment;
 final readonly class KeysController
 {
     public function __construct(
-        private ManageableApiKeyProviderInterface $keys,
+        private ?ManageableApiKeyProviderInterface $keys,
         private ConsumerDirectory $directory,
         private FormGuard $guard,
         private GroupCatalog $groups,
@@ -48,14 +48,14 @@ final readonly class KeysController
         if ($request->isMethod('POST')) {
             $this->guard->check($request, 'create');
             $taken = [];
-            foreach ($this->keys->all() as $key) {
+            foreach ($this->keys()->all() as $key) {
                 $taken[] = $key->name;
             }
             $form = KeyForm::submit($request, $plans, $taken, $this->now());
             if ($form->valid()) {
                 $generated = ApiKeyFormat::generate(!$form->test);
                 $key = new ApiKey($generated['id'], $form->name, $generated['hash'], $form->scopes, $form->plan, $form->expiresAt, $form->allowedIps, $this->now(), $form->test);
-                $this->keys->save($key);
+                $this->keys()->save($key);
 
                 return $this->issued($group, $key, $generated['key'], false);
             }
@@ -76,7 +76,7 @@ final readonly class KeysController
         $generated = ApiKeyFormat::generate(!$key->test);
         $secret = substr($generated['key'], -32);
         $rotated = new ApiKey($key->id, $key->name, ApiKeyFormat::hash($secret), $key->scopes, $key->plan, $key->expiresAt, $key->allowedIps, $key->createdAt, $key->test);
-        $this->keys->save($rotated);
+        $this->keys()->save($rotated);
 
         return $this->issued($group, $rotated, \sprintf('tb_%s_%s_%s', $key->test ? 'test' : 'live', $key->id, $secret), true);
     }
@@ -90,7 +90,7 @@ final readonly class KeysController
             throw new NotFoundHttpException(\sprintf('No plan "%s".', $plan));
         }
 
-        $this->keys->save(new ApiKey($key->id, $key->name, $key->hash, $key->scopes, $plan, $key->expiresAt, $key->allowedIps, $key->createdAt, $key->test));
+        $this->keys()->save(new ApiKey($key->id, $key->name, $key->hash, $key->scopes, $plan, $key->expiresAt, $key->allowedIps, $key->createdAt, $key->test));
 
         return new RedirectResponse($this->urls->generate(DashboardRouteProvider::CONSUMER, ['group' => $group, 'consumer' => $key->id]), 303);
     }
@@ -99,7 +99,7 @@ final readonly class KeysController
     {
         $key = $this->managed($group, $consumer);
         $this->guard->check($request, 'revoke', $key->id);
-        $this->keys->remove($key->id);
+        $this->keys()->remove($key->id);
 
         return new RedirectResponse($this->urls->generate(DashboardRouteProvider::CONSUMERS, ['group' => $group, 'revoked' => $key->name]), 303);
     }
@@ -114,11 +114,16 @@ final readonly class KeysController
         ]), 200, ['Cache-Control' => 'no-store', 'Pragma' => 'no-cache']);
     }
 
+    private function keys(): ManageableApiKeyProviderInterface
+    {
+        return $this->keys ?? throw new NotFoundHttpException('API keys are managed from the dashboard only with tollbooth.auth.doctrine_keys or a key provider implementing ManageableApiKeyProviderInterface.');
+    }
+
     private function managed(string $group, string $id): ApiKey
     {
         $this->assertGroup($group);
-        $key = $this->keys->find($id);
-        if (null === $key || !$this->keys->manages($id)) {
+        $key = $this->keys()->find($id);
+        if (null === $key || !$this->keys()->manages($id)) {
             throw new NotFoundHttpException(\sprintf('No API key "%s" can be changed from the dashboard.', $id));
         }
 

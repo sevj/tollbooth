@@ -37,7 +37,7 @@ final readonly class ApiKeyAuthenticator
     {
         $credentials = ApiKeyFormat::parse((string) $request->headers->get($this->header));
         $key = null === $credentials ? null : $this->keys->find($credentials['id']);
-        if (null === $credentials || null === $key || !ApiKeyFormat::verify($credentials['secret'], $key->hash)) {
+        if (null === $credentials || null === $key || !ApiKeyFormat::verify($credentials['secret'], $key->hash) || $credentials['test'] !== $key->test) {
             throw $this->reject('The API key is not valid.');
         }
 

@@ -26,7 +26,7 @@ final class ApiKeyFormat
     }
 
     /**
-     * @return array{id: string, secret: string}|null
+     * @return array{id: string, secret: string, test: bool}|null
      */
     public static function parse(string $key): ?array
     {
@@ -34,7 +34,7 @@ final class ApiKeyFormat
             return null;
         }
 
-        return ['id' => $matches[2], 'secret' => $matches[3]];
+        return ['id' => $matches[2], 'secret' => $matches[3], 'test' => 'test' === $matches[1]];
     }
 
     public static function hash(string $secret): string

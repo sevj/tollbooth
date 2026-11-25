@@ -30,7 +30,7 @@ tollbooth:
         api_key_provider: App\Security\PartnerKeyProvider   # service id
 ```
 
-When `api_key_provider` is set, it **replaces** the built-in providers for authentication: keys under `tollbooth.auth.api_keys` and in the `doctrine_keys` table are no longer looked up. Do not combine it with `doctrine_keys`.
+When `api_key_provider` is set, it **replaces** the built-in providers for authentication: keys under `tollbooth.auth.api_keys` are no longer looked up, and combining it with `doctrine_keys` stops the build. When your provider implements `ManageableApiKeyProviderInterface`, the dashboard and `tollbooth:api-key:generate --store` create, rotate, re-plan and revoke keys through it.
 
 ### Key format and hash
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tollbooth\Auth\ApiKey;
 
 /**
- * @phpstan-type ApiKeyConfig array{id: string, hash: string, scopes: list<string>, plan: ?string, expires_at: ?string, allowed_ips: list<string>}
+ * @phpstan-type ApiKeyConfig array{id: string, hash: string, scopes: list<string>, plan: ?string, expires_at: ?string, allowed_ips: list<string>, test?: bool}
  */
 final class InMemoryApiKeyProvider implements ListableApiKeyProviderInterface
 {
@@ -47,6 +47,7 @@ final class InMemoryApiKeyProvider implements ListableApiKeyProviderInterface
                 plan: $key['plan'],
                 expiresAt: null === $key['expires_at'] ? null : new \DateTimeImmutable($key['expires_at']),
                 allowedIps: $key['allowed_ips'],
+                test: $key['test'] ?? false,
             );
         }
 

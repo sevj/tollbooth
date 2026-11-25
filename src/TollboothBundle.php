@@ -24,6 +24,7 @@ use Tollbooth\Auth\ApiKey\ManageableApiKeyProviderInterface;
 use Tollbooth\Auth\Command\GenerateApiKeyCommand;
 use Tollbooth\Auth\Command\SetupApiKeysCommand;
 use Tollbooth\Auth\ConsumerValueResolver;
+use Tollbooth\Auth\DependencyInjection\ManageableKeyProviderPass;
 use Tollbooth\Auth\Doctrine\DoctrineApiKeyStore;
 use Tollbooth\Auth\Health\ApiKeyFindings;
 use Tollbooth\Auth\Health\ApiKeyStoreCheck;
@@ -251,8 +252,15 @@ final class TollboothBundle extends AbstractBundle
                                     ->scalarNode('hash')->isRequired()->cannotBeEmpty()->end()
                                     ->arrayNode('scopes')->scalarPrototype()->end()->end()
                                     ->scalarNode('plan')->defaultNull()->end()
-                                    ->scalarNode('expires_at')->defaultNull()->end()
+                                    ->scalarNode('expires_at')
+                                        ->defaultNull()
+                                        ->validate()
+                                            ->ifTrue(static fn (mixed $date): bool => null !== $date && (!\is_string($date) || false === strtotime($date)))
+                                            ->thenInvalid('%s is not a date. Write it as "2027-03-01" or "2027-03-01T12:00:00+00:00".')
+                                        ->end()
+                                    ->end()
                                     ->arrayNode('allowed_ips')->scalarPrototype()->end()->end()
+                                    ->booleanNode('test')->defaultFalse()->info('Whether the key starts with tb_test_ rather than tb_live_.')->end()
                                 ->end()
                             ->end()
                         ->end()
@@ -552,6 +560,7 @@ final class TollboothBundle extends AbstractBundle
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(new EndpointPass());
+        $container->addCompilerPass(new ManageableKeyProviderPass());
     }
 
     /**
@@ -565,13 +574,20 @@ final class TollboothBundle extends AbstractBundle
             ->args([$auth['api_keys']]);
 
         $stored = $auth['doctrine_keys']['enabled'];
+        if (null !== $auth['api_key_provider']) {
+            if ($stored) {
+                throw new \LogicException('tollbooth.auth.api_key_provider replaces the built-in key providers, so it cannot be combined with tollbooth.auth.doctrine_keys: keys saved in the table would never authenticate. Read the table from your provider, or drop one of the two settings.');
+            }
+            $container->parameters()->set(ManageableKeyProviderPass::PROVIDER_PARAMETER, $auth['api_key_provider']);
+        }
         if ($stored) {
             if (!class_exists(Connection::class)) {
                 throw new \LogicException('Tollbooth stores API keys with Doctrine DBAL. Run "composer require doctrine/dbal", or disable tollbooth.auth.doctrine_keys.');
             }
             $connection = $auth['doctrine_keys']['connection'];
             $services->set(DoctrineApiKeyStore::class)
-                ->args([service(str_contains($connection, '.') ? $connection : 'doctrine.dbal.'.$connection.'_connection'), $auth['doctrine_keys']['table_prefix']]);
+                ->args([service(str_contains($connection, '.') ? $connection : 'doctrine.dbal.'.$connection.'_connection'), $auth['doctrine_keys']['table_prefix']])
+                ->tag('kernel.reset', ['method' => 'reset']);
             $services->set(ChainApiKeyProvider::class)
                 ->args([service(InMemoryApiKeyProvider::class), service(DoctrineApiKeyStore::class)]);
             $services->alias(ManageableApiKeyProviderInterface::class, ChainApiKeyProvider::class);
@@ -593,7 +609,7 @@ final class TollboothBundle extends AbstractBundle
 
         if (class_exists(Application::class)) {
             $services->set(GenerateApiKeyCommand::class)
-                ->args([$stored ? service(ManageableApiKeyProviderInterface::class) : null])
+                ->args([service(ManageableApiKeyProviderInterface::class)->nullOnInvalid(), service(Plans::class)->nullOnInvalid()])
                 ->tag('console.command');
             if ($stored) {
                 $services->set(SetupApiKeysCommand::class)
@@ -841,25 +857,23 @@ final class TollboothBundle extends AbstractBundle
                     service(Shell::class),
                     service('twig'),
                     service('translator'),
-                    $config['auth']['doctrine_keys']['enabled'] ? service(ManageableApiKeyProviderInterface::class) : null,
+                    service(ManageableApiKeyProviderInterface::class)->nullOnInvalid(),
                 ])
                 ->public()
                 ->tag('controller.service_arguments');
-            if ($config['auth']['doctrine_keys']['enabled']) {
-                $services->set(KeysController::class)
-                    ->args([
-                        service(ManageableApiKeyProviderInterface::class),
-                        service(ConsumerDirectory::class),
-                        service(FormGuard::class),
-                        service(GroupCatalog::class),
-                        service(Shell::class),
-                        service('twig'),
-                        service('router'),
-                        service('clock')->nullOnInvalid(),
-                    ])
+            $services->set(KeysController::class)
+                ->args([
+                    service(ManageableApiKeyProviderInterface::class)->nullOnInvalid(),
+                    service(ConsumerDirectory::class),
+                    service(FormGuard::class),
+                    service(GroupCatalog::class),
+                    service(Shell::class),
+                    service('twig'),
+                    service('router'),
+                    service('clock')->nullOnInvalid(),
+                ])
                     ->public()
-                    ->tag('controller.service_arguments');
-            }
+                ->tag('controller.service_arguments');
             $services->set(RequestsController::class)
                 ->args([
                     service(CallReaderInterface::class),
