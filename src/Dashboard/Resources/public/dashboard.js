@@ -31,3 +31,32 @@ for (const menu of document.querySelectorAll('details.groups')) {
     }
   });
 }
+
+for (const tabs of document.querySelectorAll('[data-tabs]')) {
+  const buttons = [...tabs.querySelectorAll('[role=tab]')];
+  for (const button of buttons) {
+    button.addEventListener('click', () => {
+      for (const other of buttons) {
+        const selected = other === button;
+        other.setAttribute('aria-selected', String(selected));
+        document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+      }
+    });
+  }
+}
+
+for (const button of document.querySelectorAll('[data-copy]')) {
+  button.addEventListener('click', async () => {
+    const label = button.querySelector('[data-copy-label]');
+    try {
+      await navigator.clipboard.writeText(button.dataset.copy);
+    } catch {
+      return;
+    }
+    if (label) {
+      const text = label.textContent;
+      label.textContent = label.dataset.done;
+      setTimeout(() => { label.textContent = text; }, 1500);
+    }
+  });
+}

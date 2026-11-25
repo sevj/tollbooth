@@ -59,6 +59,11 @@ final class GroupCatalog
         return '' === $mount ? '/' : $mount;
     }
 
+    public function pathPrefix(): string
+    {
+        return $this->defaultMount;
+    }
+
     /**
      * @return list<string>
      */

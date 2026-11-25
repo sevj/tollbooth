@@ -1,0 +1,204 @@
+{% extends '@TollboothDashboard/layout.html.twig' %}
+{% trans_default_domain 'tollbooth' %}
+
+{% set ep = page.endpoint %}
+{% set op = page.operation %}
+{% set stats = page.stats %}
+
+{% block title %}{{ ep.method }} {{ ep.path }} · {{ ep.group }}{% endblock %}
+
+{% block crumbs %}<a href="{{ path('tollbooth_dashboard_map', {group: ep.group}) }}">{{ ep.group }}</a> <span class="slash">/</span> {{ 'dashboard.endpoint.crumb'|trans }} <span class="slash">/</span> <span class="here">{{ ep.method }} {{ ep.path }}</span>{% endblock %}
+
+{% block toolbar %}
+{% if traffic %}
+<div class="segs" role="group" aria-label="{{ 'dashboard.range.label'|trans }}">
+{% for option in ranges %}
+<a class="seg{% if option == range %} sel{% endif %}" href="{{ path('tollbooth_dashboard_endpoint', {group: ep.group, name: ep.name, range: option.value}) }}"{% if option == range %} aria-current="true"{% endif %}>{{ option.value }}</a>
+{% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% macro line(value) %}{% if value is iterable %}{{ ('dashboard.endpoint.pipeline.' ~ value.key)|trans(value.parameters, 'tollbooth') }}{% else %}{{ value }}{% endif %}{% endmacro %}
+
+{% block body %}
+<div class="head" style="align-items: flex-start">
+<div style="min-width: 0">
+<h1 class="ep-title"><span class="ep-method {{ ep.method }}">{{ ep.method }}</span>{{ ep.path }}</h1>
+<div class="ep-meta">
+<span class="name">{{ ep.name }}</span>
+<span>{{ ep.class }}</span>
+<span>{{ 'dashboard.endpoint.resource'|trans({'%resource%': page.resource}) }}</span>
+{% if ep.deprecation %}
+<span class="deprecated">{{ ep.deprecation.sunset ? 'dashboard.endpoint.deprecated_sunset'|trans({'%date%': ep.deprecation.sunset|date('Y-m-d', 'UTC')}) : 'dashboard.endpoint.deprecated'|trans }}</span>
+{% else %}
+<span class="stable">{{ 'dashboard.endpoint.stable'|trans }}</span>
+{% endif %}
+</div>
+</div>
+<div class="actions">
+<button class="btn" type="button" data-copy="{{ snippets.curl }}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="4.5" y="4.5" width="8" height="8"></rect><path d="M9.5 4.5v-3h-8v8h3"></path></svg><span data-copy-label data-done="{{ 'dashboard.endpoint.copied'|trans }}">{{ 'dashboard.endpoint.copy_curl'|trans }}</span></button>
+{% if docs_route %}
+<a class="btn" href="{{ path('tollbooth_docs_openapi', {group: ep.group}) }}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M5 3.5 1.5 7 5 10.5M9 3.5 12.5 7 9 10.5"></path></svg>OpenAPI</a>
+<a class="btn pri" href="{{ path(docs_route, {group: ep.group}) }}#tag/{{ page.resource }}"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 1.5v9l8-4.5z" fill="currentColor"></path></svg>{{ 'dashboard.endpoint.try'|trans }}</a>
+{% endif %}
+</div>
+</div>
+
+{% if stats %}
+{% set p50 = stats.percentile(0.5) %}
+{% set p95 = stats.percentile(0.95) %}
+<div class="stats">
+<div class="stat"><div class="th">{{ 'dashboard.endpoint.kpi.calls'|trans({'%range%': range.value}) }}</div><div class="v">{{ stats.calls|tb_number }}</div></div>
+<div class="stat"><div class="th">p50</div><div class="v">{% if p50 is not null %}{{ p50|round }}<small>ms</small>{% else %}—{% endif %}</div></div>
+<div class="stat"><div class="th">p95</div><div class="v">{% if p95 is not null %}{{ p95|round }}<small>ms</small>{% else %}—{% endif %}</div></div>
+<div class="stat"><div class="th">{{ 'dashboard.endpoint.kpi.errors'|trans }}</div><div class="v{% if stats.errorRate > 0.01 %} bad{% endif %}">{{ stats.errorRate|tb_percent(1) }}</div></div>
+<div class="stat"><div class="th">{{ 'dashboard.endpoint.kpi.throttled'|trans }}</div><div class="v">{{ stats.throttled|tb_number }}</div></div>
+</div>
+{% endif %}
+
+<section class="panel" aria-labelledby="pipeline-title">
+<div class="ph"><h2 id="pipeline-title">{{ 'dashboard.endpoint.pipeline.title'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.endpoint.pipeline.subtitle'|trans }}</span></div>
+<div class="steps">
+{% for step in page.steps %}
+{% if not loop.first %}<div class="chev" aria-hidden="true">›</div>{% endif %}
+<div class="st{% if step.key == 'rate_limit' %} limit{% endif %}{% if step.key == 'handler' %} handler{% endif %}{% if step.off %} off{% endif %}">
+<span class="k">{{ '%02d'|format(loop.index) }}</span>
+<span class="t">{{ ('dashboard.endpoint.step.' ~ step.key)|trans }}</span>
+<span class="c">{% for value in step.lines %}{{ _self.line(value) }}{% if not loop.last %}<br>{% endif %}{% endfor %}</span>
+<span class="f"><span class="{{ step.success ? 'ok' : (step.key == 'rate_limit' ? 'warn' : 'bad') }}">{{ step.codes|join(' · ') }}</span><span class="{{ step.success ? 'ok' : (step.share and step.share > 0.01 ? 'bad' : 'mu') }}">{{ step.share is null ? '—' : step.share|tb_percent(2) }}</span></span>
+</div>
+{% endfor %}
+</div>
+{% if page.time %}
+{% set time = page.time %}
+<div class="time">
+<div style="display: flex; justify-content: space-between; margin-bottom: 8px"><span class="m mu" style="font-size: 12px">{{ 'dashboard.endpoint.time.title'|trans({'%count%': time.sample}) }}</span><span class="m" style="font-size: 12px">{{ time.total|round }} ms</span></div>
+<div class="bar" role="img" aria-label="{% for key, ms in time.segments %}{{ ('dashboard.endpoint.time.' ~ key)|trans }} {{ ms }} ms{% if not loop.last %}, {% endif %}{% endfor %}">
+{% for key, ms in time.segments %}{% if ms > 0 %}<div class="seg-{{ key }}" style="flex: {{ ms }}"></div>{% endif %}{% endfor %}
+</div>
+<div class="legend-row">
+{% for key, ms in time.segments %}<span{% if key == 'handler' %} style="color: #EDEAE3"{% elseif key == 'rate_limit' %} style="color: #F0B429"{% endif %}>{{ ('dashboard.endpoint.time.' ~ key)|trans }} {{ ms|round(1) }}</span>{% endfor %}
+</div>
+</div>
+{% endif %}
+</section>
+
+<div class="cols">
+<div class="col" style="flex: 1.25 1 520px">
+
+<section class="panel" aria-labelledby="declaration-title">
+<div class="ph"><h2 id="declaration-title">{{ 'dashboard.endpoint.declaration'|trans }}</h2>{% if page.declaration %}<span class="m mu" style="font-size: 12px">{{ page.declaration.file }}</span>{% endif %}</div>
+{% if page.declaration %}
+<pre class="code">{{ tb_php(page.declaration.code) }}{% if page.declaration.truncated %}
+<span class="mu">    …</span>{% endif %}</pre>
+{% else %}
+<div class="empty">{{ 'dashboard.endpoint.no_source'|trans }}</div>
+{% endif %}
+</section>
+
+{% if op %}
+{% set request_fields = op.parameters|merge(op.body) %}
+<section class="panel" aria-labelledby="request-title">
+<div class="ph"><h2 id="request-title">{{ op.bodyModel ? 'dashboard.endpoint.request_body'|trans : 'dashboard.endpoint.parameters'|trans }}{% if op.bodyModel %}<span class="m">{{ op.bodyModel }}</span>{% endif %}</h2></div>
+{% if request_fields is empty %}
+<div class="empty">{{ 'dashboard.endpoint.no_input'|trans }}</div>
+{% else %}
+<div class="tr th"><span>{{ 'dashboard.endpoint.field'|trans }}</span><span>{{ 'dashboard.endpoint.type'|trans }}</span><span>{{ 'dashboard.endpoint.rules'|trans }}</span></div>
+{% for field in request_fields %}
+<div class="tr"><span>{% if field.prefix %}<span class="mu2">{{ field.prefix }}</span>{% endif %}{{ field.name }}</span><span class="{{ field.model ? '' : 'mu' }}">{% if field.in %}{{ ('dashboard.endpoint.in.' ~ field.in)|trans }} · {% endif %}{{ field.type }}</span><span>{{ field.rules|join(' · ') ?: '—' }}</span></div>
+{% endfor %}
+{% endif %}
+</section>
+
+<section class="panel" aria-labelledby="responses-title">
+<div class="ph"><h2 id="responses-title">{{ 'dashboard.endpoint.responses'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.endpoint.errors_as'|trans }}</span></div>
+{% for response in op.responses %}
+<div class="tr resp"><span class="code-tag {{ response.problem ? (response.status == 429 ? 'warn' : 'bad') : 'ok' }}">{{ response.status }}</span><span>{{ response.model ?? '—' }}</span>{% set key = "dashboard.endpoint.status." ~ response.status %}{% set text = key|trans %}<span class="mu">{{ text == key ? response.description : text }}</span></div>
+{% endfor %}
+</section>
+
+<section class="panel" data-tabs>
+<div class="tabs">
+<div role="tablist" aria-label="{{ 'dashboard.endpoint.example'|trans }}" style="display: flex">
+<button type="button" role="tab" id="tab-curl" aria-controls="pane-curl" aria-selected="{{ op.responseExample ? 'false' : 'true' }}">cURL</button>
+<button type="button" role="tab" id="tab-php" aria-controls="pane-php" aria-selected="false">PHP</button>
+<button type="button" role="tab" id="tab-js" aria-controls="pane-js" aria-selected="false">JS</button>
+{% if op.responseExample %}<button type="button" role="tab" id="tab-response" aria-controls="pane-response" aria-selected="true">{{ 'dashboard.endpoint.response_tab'|trans({'%status%': op.successStatus}) }}</button>{% endif %}
+</div>
+{% if op.responseContentType %}<span class="ct">{{ op.responseContentType }}</span>{% endif %}
+</div>
+<pre class="code" role="tabpanel" id="pane-curl" aria-labelledby="tab-curl"{% if op.responseExample %} hidden{% endif %}>{{ snippets.curl }}</pre>
+<pre class="code" role="tabpanel" id="pane-php" aria-labelledby="tab-php" hidden>{{ snippets.php }}</pre>
+<pre class="code" role="tabpanel" id="pane-js" aria-labelledby="tab-js" hidden>{{ snippets.javascript }}</pre>
+{% if op.responseExample %}<pre class="code" role="tabpanel" id="pane-response" aria-labelledby="tab-response">{{ tb_json(op.responseExample) }}</pre>{% endif %}
+</section>
+{% endif %}
+
+</div>
+
+<div class="col" style="flex: 1 1 380px">
+{% if stats %}
+{% set chart = page.latencyChart %}
+<section class="panel" aria-labelledby="latency-title">
+<div class="ph"><h2 id="latency-title">{{ 'dashboard.endpoint.latency'|trans }}</h2><span class="key"><span style="color: #C9C5BC"><i style="background: #C9C5BC"></i>p50</span><span style="color: #F0B429"><i style="background: #F0B429"></i>p95</span></span></div>
+<div class="chart">
+<div class="axis"><span>{{ chart.max }}</span><span>{{ (chart.max * 2 / 3)|round }}</span><span>{{ (chart.max / 3)|round }}</span><span>0</span></div>
+<div style="flex: 1; min-width: 0">
+<svg width="100%" height="150" viewBox="0 0 300 150" preserveAspectRatio="none" role="img" aria-label="{{ 'dashboard.endpoint.latency_label'|trans({'%range%': range.value}) }}">
+<path d="M0 0.5H300M0 50H300M0 100H300M0 149.5H300" stroke="#1F2226" stroke-width="1" vector-effect="non-scaling-stroke"></path>
+<polyline points="{{ chart.p95 }}" fill="none" stroke="#F0B429" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline>
+<polyline points="{{ chart.p50 }}" fill="none" stroke="#C9C5BC" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline>
+</svg>
+<div class="xs"><span>−{{ range.value }}</span><span>{{ 'dashboard.endpoint.now'|trans }}</span></div>
+</div>
+</div>
+</section>
+
+<section class="panel" aria-labelledby="status-title">
+<div class="ph"><h2 id="status-title">{{ 'dashboard.endpoint.status_codes'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.endpoint.calls'|trans({'%count%': page.statuses|reduce((a, b) => a + b, 0)}) }}</span></div>
+{% set slices = page.statusSlices %}
+{% if slices is empty %}
+<div class="empty">{{ 'dashboard.endpoint.no_calls'|trans }}</div>
+{% else %}
+<div style="padding: 18px 20px">
+<div class="split" role="img" aria-label="{% for slice in slices %}{{ slice.label }} {{ slice.share|tb_percent(1) }}{% if not loop.last %}, {% endif %}{% endfor %}">
+{% for slice in slices %}<div class="{{ slice.tone }}" style="flex: {{ slice.calls }}"></div>{% endfor %}
+</div>
+<div class="split-legend">
+{% for slice in slices %}<i class="{{ slice.tone }}"></i><span>{{ slice.label }}{% if slice.codes|length == 1 %} {{ tb_status_text(slice.codes[0]) }}{% endif %}</span><span class="mu">{{ slice.calls|tb_number }}</span>{% endfor %}
+</div>
+</div>
+{% endif %}
+</section>
+
+<section class="panel" aria-labelledby="consumers-title">
+<div class="ph"><h2 id="consumers-title">{{ 'dashboard.endpoint.top_consumers'|trans }}</h2></div>
+{% if page.consumers is empty %}
+<div class="empty">{{ 'dashboard.endpoint.no_calls'|trans }}</div>
+{% else %}
+{% set top = page.consumers|first.calls %}
+<div class="bars">
+{% for consumer in page.consumers %}
+<div><div class="line"><span>{{ consumer.label }}</span><span class="mu">{{ consumer.calls|tb_number }}</span></div><div class="track"><div class="fill" style="width: {{ (consumer.calls / max(top, 1) * 100)|round(1) }}%"></div></div></div>
+{% endfor %}
+</div>
+{% endif %}
+</section>
+
+<section class="panel" aria-labelledby="errors-title">
+<div class="ph"><h2 id="errors-title">{{ 'dashboard.endpoint.recent_errors'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.endpoint.grouped'|trans }}</span></div>
+{% if page.errors is empty %}
+<div class="empty"><span class="dot ok"></span> {{ 'dashboard.endpoint.no_errors'|trans({'%range%': range.value}) }}</div>
+{% else %}
+{% for error in page.errors %}
+<div class="err"><span class="code-tag {{ error.status == 429 ? 'warn' : 'bad' }}">{{ error.status }}</span><div style="flex: 1; min-width: 0"><div class="msg">{{ error.error ?? tb_status_text(error.status) }}</div><div class="sub">×{{ error.calls|tb_number }} · {{ 'dashboard.endpoint.consumers'|trans({'%count%': error.consumers}) }} · {% set ago = tb_ago(error.lastSeenAt) %}{{ ("dashboard.ago." ~ ago.unit)|trans({"%count%": ago.count}) }}</div></div></div>
+{% endfor %}
+{% endif %}
+</section>
+{% else %}
+<section class="panel"><div class="empty">{{ 'dashboard.map.no_monitoring'|trans }}</div></section>
+{% endif %}
+</div>
+</div>
+{% endblock %}

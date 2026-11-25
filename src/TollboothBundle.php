@@ -53,9 +53,11 @@ use Tollbooth\Core\Routing\RouteProviderInterface;
 use Tollbooth\Core\Security\AuthMethod;
 use Tollbooth\Dashboard\Assets;
 use Tollbooth\Dashboard\Controller\AssetController;
+use Tollbooth\Dashboard\Controller\EndpointController;
 use Tollbooth\Dashboard\Controller\HomeController;
 use Tollbooth\Dashboard\Controller\MapController;
 use Tollbooth\Dashboard\DashboardRouteProvider;
+use Tollbooth\Dashboard\Endpoint\EndpointPageBuilder;
 use Tollbooth\Dashboard\GroupCatalog;
 use Tollbooth\Dashboard\LocaleListener;
 use Tollbooth\Dashboard\Map\MapBuilder;
@@ -73,6 +75,7 @@ use Tollbooth\Health\HealthController;
 use Tollbooth\Health\HealthRouteProvider;
 use Tollbooth\Health\HealthRunner;
 use Tollbooth\Monitoring\AutoRollup;
+use Tollbooth\Monitoring\CallBreakdownInterface;
 use Tollbooth\Monitoring\CallReaderInterface;
 use Tollbooth\Monitoring\CallRecorderInterface;
 use Tollbooth\Monitoring\CollectorListener;
@@ -712,6 +715,28 @@ final class TollboothBundle extends AbstractBundle
             ->args([service(MapBuilder::class), service(Shell::class), service('twig')])
             ->public()
             ->tag('controller.service_arguments');
+        $services->set(EndpointPageBuilder::class)
+            ->args([
+                service(GroupCatalog::class),
+                $config['rate_limit']['enabled'] && [] !== $config['rate_limit']['plans'],
+                param('kernel.project_dir'),
+                $monitoring ? service(TrafficReader::class) : null,
+                $monitoring ? service(CallBreakdownInterface::class) : null,
+                $config['docs']['enabled'] ? service(OpenApiGenerator::class) : null,
+                service('clock')->nullOnInvalid(),
+            ]);
+        $services->set(EndpointController::class)
+            ->args([
+                service(EndpointPageBuilder::class),
+                service(GroupCatalog::class),
+                service(Shell::class),
+                service('twig'),
+                $config['auth']['api_key_header'],
+                $monitoring,
+                $config['docs']['enabled'] && $config['docs']['ui'] ? DocsRouteProvider::PAGE_ROUTE : null,
+            ])
+            ->public()
+            ->tag('controller.service_arguments');
         $services->set(AssetController::class)
             ->args([service(Assets::class)])
             ->public()
@@ -775,6 +800,7 @@ final class TollboothBundle extends AbstractBundle
         $services->alias(CallRecorderInterface::class, DoctrineCallStorage::class);
         $services->alias(CallReaderInterface::class, DoctrineCallStorage::class);
         $services->alias(RollupInterface::class, DoctrineCallStorage::class);
+        $services->alias(CallBreakdownInterface::class, DoctrineCallStorage::class);
 
         $services->set(AutoRollup::class)
             ->args([

@@ -45,6 +45,43 @@ final class Format
         return ($rounded > 0 ? '+' : '−').number_format(abs($rounded), $decimals, '.', self::THIN_SPACE).$suffix;
     }
 
+    /**
+     * @return array{unit: 'now'|'minutes'|'hours'|'days', count: int}
+     */
+    public static function ago(int $milliseconds, ?int $now = null): array
+    {
+        $seconds = max(0, ($now ?? time()) - intdiv($milliseconds, 1000));
+
+        return match (true) {
+            $seconds < 60 => ['unit' => 'now', 'count' => 0],
+            $seconds < 3600 => ['unit' => 'minutes', 'count' => intdiv($seconds, 60)],
+            $seconds < 86400 => ['unit' => 'hours', 'count' => intdiv($seconds, 3600)],
+            default => ['unit' => 'days', 'count' => intdiv($seconds, 86400)],
+        };
+    }
+
+    public static function json(string $json): string
+    {
+        $escaped = htmlspecialchars($json, \ENT_NOQUOTES | \ENT_SUBSTITUTE, 'UTF-8');
+
+        return (string) preg_replace_callback(
+            '/("(?:[^"\\\\]|\\\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/',
+            static function (array $match): string {
+                $string = $match[1] ?? '';
+                $colon = $match[2] ?? '';
+                $literal = $match[3] ?? '';
+
+                return match (true) {
+                    '' !== $colon => '<span class="at">'.$string.'</span>'.$colon,
+                    '' !== $string => '<span class="s">'.$string.'</span>',
+                    '' !== $literal => '<span class="kw">'.$literal.'</span>',
+                    default => '<span class="nu">'.$match[0].'</span>',
+                };
+            },
+            $escaped,
+        );
+    }
+
     public static function change(float $ratio): string
     {
         if ($ratio >= 9.5) {

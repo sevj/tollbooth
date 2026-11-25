@@ -61,6 +61,45 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('class="row failing"', $html);
     }
 
+    public function testTheEndpointPageShowsItsContractAndItsTraffic(): void
+    {
+        $client = $this->monitoredClient();
+        $storage = $this->storage();
+        for ($i = 0; $i < 20; ++$i) {
+            $this->record($storage, self::NOW - 600 + $i, 'tollbooth_create_thing', 201, 30.0 + $i, steps: ['auth' => 1.0, 'hydrate' => 2.0, 'handler' => 20.0, 'serialize' => 3.0]);
+        }
+        for ($i = 0; $i < 3; ++$i) {
+            $this->record($storage, self::NOW - 60 + $i, 'tollbooth_create_thing', 422, 12.0, 'name: This value should not be blank.', 'acme');
+        }
+
+        $client->request('GET', '/_tollbooth/endpoints/default/create_thing?range=1h', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<span class="ep-method POST">POST</span>/things</h1>', $html);
+        self::assertStringContainsString('<span class="at">#[</span><span class="at">Endpoint</span>', $html);
+        self::assertStringContainsString('body → CreateThingInput', $html);
+        self::assertStringContainsString('<div class="stat"><div class="th">Calls 1h</div><div class="v">23</div></div>', $html);
+        self::assertStringContainsString('<div class="msg">name: This value should not be blank.</div><div class="sub">×3 · 1 consumer', $html);
+        self::assertStringContainsString('Acme ERP', $html);
+        self::assertStringContainsString('curl -X POST &#039;http://localhost/api/things&#039;', $html);
+        self::assertStringContainsString('where the time goes', $html);
+    }
+
+    public function testTheEndpointPageWorksWithoutMonitoring(): void
+    {
+        $client = self::createClient();
+        $client->request('GET', '/_tollbooth/endpoints/default/get_thing', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<span class="ep-method GET">GET</span>/things/{id}</h1>', $html);
+        self::assertStringContainsString('Turn on tollbooth.monitoring', $html);
+
+        $client->request('GET', '/_tollbooth/endpoints/default/nope');
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testTheDashboardSpeaksTheLanguageOfTheBrowser(): void
     {
         $client = self::createClient();
@@ -122,7 +161,10 @@ final class DashboardTest extends FunctionalTestCase
         return $storage;
     }
 
-    private function record(DoctrineCallStorage $storage, int $at, string $endpoint, int $status, float $duration, ?string $error = null, string $consumer = 'ip:127.0.0.1'): void
+    /**
+     * @param array<string, float> $steps
+     */
+    private function record(DoctrineCallStorage $storage, int $at, string $endpoint, int $status, float $duration, ?string $error = null, string $consumer = 'ip:127.0.0.1', array $steps = []): void
     {
         $storage->record(new CallRecord(
             id: CallRecord::newId($at * 1000),
@@ -137,6 +179,7 @@ final class DashboardTest extends FunctionalTestCase
             consumerName: 'acme' === $consumer ? 'Acme ERP' : $consumer,
             authMethod: 'api_key',
             error: $error,
+            steps: $steps,
         ));
     }
 }

@@ -99,6 +99,24 @@ final class MonitoringTest extends FunctionalTestCase
         self::assertSame(300.0, $totals[1]->durationMax);
     }
 
+    public function testCallsAreBrokenDownByStatusAndErrorsAreGrouped(): void
+    {
+        $storage = $this->storage();
+        $this->record($storage, self::NOW - 300, 'list', 200, 10.0);
+        $this->record($storage, self::NOW - 200, 'list', 200, 10.0);
+        $this->record($storage, self::NOW - 100, 'list', 404, 10.0, 'acme');
+        $this->record($storage, self::NOW - 50, 'list', 404, 10.0);
+        $this->record($storage, self::NOW - 40, 'list', 500, 10.0);
+        $this->record($storage, self::NOW - 30, 'create', 404, 10.0);
+
+        self::assertSame([200 => 2, 404 => 2, 500 => 1], $storage->statuses(self::NOW - 3600, self::NOW + 60, new CallQuery(endpoint: 'list')));
+
+        $errors = $storage->errors(self::NOW - 3600, self::NOW + 60, new CallQuery(endpoint: 'list'));
+        self::assertCount(2, $errors);
+        self::assertSame([404, null, 2, 2, (self::NOW - 50) * 1000], [$errors[0]->status, $errors[0]->error, $errors[0]->calls, $errors[0]->consumers, $errors[0]->lastSeenAt]);
+        self::assertSame([500, 1, 1], [$errors[1]->status, $errors[1]->calls, $errors[1]->consumers]);
+    }
+
     public function testConsumerTotalsCarryTheirName(): void
     {
         $storage = $this->storage();

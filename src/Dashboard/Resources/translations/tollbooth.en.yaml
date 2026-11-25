@@ -4,6 +4,7 @@ dashboard:
     label: Dashboard
     switch_group: Switch API
     map: Map
+    endpoints: Endpoints
     openapi: OpenAPI spec
     collector:
       ok: collector healthy
@@ -72,3 +73,92 @@ dashboard:
       errors_cause: Error rate %rate%, mostly %cause%
       throttling: '%count% × 429, from %consumers% hitting their quota'
       slow: p95 %p95%, up %increase% against the last 7 days
+      open: Open endpoint
+  ago:
+    now: just now
+    minutes: '{1}1 min ago|]1,Inf[%count% min ago'
+    hours: '{1}1 hour ago|]1,Inf[%count% hours ago'
+    days: '{1}1 day ago|]1,Inf[%count% days ago'
+  endpoint:
+    crumb: endpoints
+    resource: resource %resource%
+    stable: stable
+    deprecated: deprecated
+    deprecated_sunset: deprecated · sunset %date%
+    copy_curl: Copy cURL
+    copied: Copied
+    try: Try it
+    kpi:
+      calls: Calls %range%
+      errors: Errors
+      throttled: Throttled
+    pipeline:
+      title: Request pipeline
+      subtitle: every call goes through these steps, with this endpoint's configuration
+      public: public
+      scope: scope %scopes%
+      plan: consumer plan
+      plan_extra: + consumer plan
+      'off': not limited
+      body: body → %model%
+      query: '{1}1 query parameter|]1,Inf[%count% query parameters'
+      path: '{1}1 path parameter|]1,Inf[%count% path parameters'
+      no_input: no input
+      no_body: no body
+      constrained: '{0}no constrained field|{1}1 constrained field|]1,Inf[%count% constrained fields'
+      nested: '{0}no nested field|{1}1 nested field|]1,Inf[%count% nested fields'
+      no_content: no content
+    step:
+      auth: Auth
+      rate_limit: Rate limit
+      hydrate: Hydrate
+      validate: Validate
+      handler: Handler
+      serialize: Serialize
+    time:
+      title: 'where the time goes, calls around the p95 (of %count% recent)'
+      kernel: kernel
+      auth: auth
+      rate_limit: limiter
+      hydrate: hydrate · validate
+      handler: handler
+      serialize: serialize
+    declaration: Declaration
+    no_source: The source file of this endpoint cannot be read.
+    request_body: Request body
+    parameters: Parameters
+    no_input: This endpoint takes no parameter and no body.
+    field: field
+    type: type
+    rules: rules
+    in:
+      path: path
+      query: query
+      header: header
+    responses: Responses
+    errors_as: 'errors: application/problem+json'
+    status:
+      200: OK
+      201: created
+      202: accepted, processed later
+      204: no content
+      400: malformed query or body
+      401: credentials missing or rejected
+      403: a required scope is missing
+      404: the resource does not exist
+      415: the body is not JSON
+      422: 'violations[] per field'
+      429: RateLimit headers and Retry-After
+    example: Example
+    response_tab: '%status% response'
+    latency: Latency
+    latency_label: p50 and p95 latency over the last %range%
+    now: now
+    status_codes: Status codes
+    calls: '{0}no call|{1}1 call|]1,Inf[%count% calls'
+    no_calls: No call over this period.
+    top_consumers: Top consumers
+    recent_errors: Recent errors
+    grouped: grouped
+    no_errors: No error over the last %range%.
+    consumers: '{1}1 consumer|]1,Inf[%count% consumers'
