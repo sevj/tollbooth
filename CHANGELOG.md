@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-25
+
 ### Added
 - Health probes: `/_tollbooth/health/live` answers as long as PHP does, `/_tollbooth/health/ready` gives
   the overall status and fails with 503 on a critical check. Its details need the `tollbooth.health.token`.
