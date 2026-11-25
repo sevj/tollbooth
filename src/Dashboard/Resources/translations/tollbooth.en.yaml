@@ -1,0 +1,74 @@
+dashboard:
+  environment: Kernel environment
+  nav:
+    label: Dashboard
+    switch_group: Switch API
+    map: Map
+    openapi: OpenAPI spec
+    collector:
+      ok: collector healthy
+      warning: collector lagging
+      critical: collector down
+  search:
+    label: Search
+    placeholder: Search endpoints, models, consumers
+  range:
+    label: Time range
+  envelope:
+    plain: plain
+    data: data envelope
+    json_api: JSON:API
+  case:
+    preserve: names as declared
+    snake_case: snake_case
+    camel_case: camelCase
+  auth:
+    api_key: key
+    jwt: jwt
+    user: user
+    anonymous: open
+  map:
+    title: API map
+    crumb: map
+    count:
+      endpoints: '{1}1 endpoint|]1,Inf[%count% endpoints|{0}no endpoint'
+      resources: '{1}1 resource|]1,Inf[%count% resources|{0}no resource'
+      models: '{1}1 model|]1,Inf[%count% models|{0}no model'
+    mode:
+      label: Map mode
+      structure: Structure
+      live: Live traffic
+    export: Export · Mermaid
+    kpi:
+      requests: Requests
+      error_rate: Error rate
+      p95: Latency p95
+      throttled: Throttled · 429
+      consumers: Active consumers
+      of_keys: '{1}of 1 key|]1,Inf[of %count% keys|{0}no key'
+    resources: Resources
+    legend:
+      share: traffic share
+      reference: model reference
+      live: calls · p95
+      structure: status · auth
+    reference_title: '%from% → %to% through %label%'
+    tag:
+      sunset: SUNSET
+      deprecated: DEPRECATED
+    throttled_title: '%count% calls refused with 429'
+    no_monitoring: Turn on tollbooth.monitoring to see traffic, errors and latency on the map.
+    attention:
+      title: Needs attention
+      none: Nothing needs attention over the last %range%.
+      kind:
+        deprecated: DEPRECATED
+        errors: ERRORS
+        throttling: THROTTLING
+        slow: SLOW
+      deprecated: Still called %calls% times by %consumers%
+      deprecated_sunset: Still called %calls% times by %consumers%, sunset on %sunset%
+      errors: Error rate %rate%
+      errors_cause: Error rate %rate%, mostly %cause%
+      throttling: '%count% × 429, from %consumers% hitting their quota'
+      slow: p95 %p95%, up %increase% against the last 7 days

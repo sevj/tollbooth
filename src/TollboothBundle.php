@@ -14,6 +14,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Translation\Translator;
 use Tollbooth\Auth\AccessListener;
 use Tollbooth\Auth\ApiKey\ApiKeyAuthenticator;
 use Tollbooth\Auth\ApiKey\ApiKeyProviderInterface;
@@ -50,6 +51,18 @@ use Tollbooth\Core\Problem\ProblemFactory;
 use Tollbooth\Core\Routing\EndpointRouteLoader;
 use Tollbooth\Core\Routing\RouteProviderInterface;
 use Tollbooth\Core\Security\AuthMethod;
+use Tollbooth\Dashboard\Assets;
+use Tollbooth\Dashboard\Controller\AssetController;
+use Tollbooth\Dashboard\Controller\HomeController;
+use Tollbooth\Dashboard\Controller\MapController;
+use Tollbooth\Dashboard\DashboardRouteProvider;
+use Tollbooth\Dashboard\GroupCatalog;
+use Tollbooth\Dashboard\LocaleListener;
+use Tollbooth\Dashboard\Map\MapBuilder;
+use Tollbooth\Dashboard\Map\Thresholds;
+use Tollbooth\Dashboard\Shell;
+use Tollbooth\Dashboard\Traffic\TrafficReader;
+use Tollbooth\Dashboard\Twig\DashboardExtension;
 use Tollbooth\Docs\Command\ExportOpenApiCommand;
 use Tollbooth\Docs\DocsController;
 use Tollbooth\Docs\DocsRouteProvider;
@@ -89,6 +102,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
  * @phpstan-type DocsConfig array{enabled: bool, path: string, title: string, version: string, ui: bool}
  * @phpstan-type ChangesConfig array{enabled: bool, directory: string, impact_days: int, gone_after_sunset: bool}
  * @phpstan-type HealthConfig array{enabled: bool, probe_path: string, token: ?string, error_rate: float, unused_days: int, key_expiry_days: int, max_lag_minutes: int}
+ * @phpstan-type DashboardConfig array{enabled: bool, path: string, locale: ?string}
  * @phpstan-type RateLimitConfig array{enabled: bool, plans: array<string, list<string>|array<string, string>>, default_plan: ?string, anonymous_plan: ?string, cache_pool: string, legacy_headers: bool}
  */
 final class TollboothBundle extends AbstractBundle
@@ -283,6 +297,21 @@ final class TollboothBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('dashboard')
+                    ->canBeDisabled()
+                    ->info('Operator dashboard. Needs symfony/twig-bundle and symfony/translation; turned off when they are missing. Protect its path with a firewall.')
+                    ->children()
+                        ->scalarNode('path')
+                            ->defaultValue('/_tollbooth')
+                            ->info('Base path of the dashboard pages.')
+                        ->end()
+                        ->enumNode('locale')
+                            ->values([null, 'en', 'fr'])
+                            ->defaultNull()
+                            ->info('Language of the dashboard. Defaults to the language the browser prefers.')
+                        ->end()
+                    ->end()
+                ->end()
                 ->arrayNode('rate_limit')
                     ->canBeDisabled()
                     ->children()
@@ -356,10 +385,19 @@ final class TollboothBundle extends AbstractBundle
         }
 
         $builder->prependExtensionConfig('framework', ['serializer' => ['named_serializers' => $namedSerializers]]);
+
+        if (!$builder->hasExtension('twig') || !class_exists(Translator::class)) {
+            $builder->prependExtensionConfig('tollbooth', ['dashboard' => ['enabled' => false]]);
+
+            return;
+        }
+
+        $builder->prependExtensionConfig('twig', ['paths' => [__DIR__.'/Dashboard/Resources/views' => 'TollboothDashboard']]);
+        $builder->prependExtensionConfig('framework', ['translator' => ['paths' => [__DIR__.'/Dashboard/Resources/translations']]]);
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig, dashboard: DashboardConfig} $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -389,6 +427,9 @@ final class TollboothBundle extends AbstractBundle
         }
         if ($config['changes']['enabled'] && $config['docs']['enabled']) {
             $this->loadChanges($config, $container);
+        }
+        if ($config['dashboard']['enabled']) {
+            $this->loadDashboard($config, $container);
         }
 
         $container->services()->set(DeprecationListener::class)
@@ -518,7 +559,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig, dashboard: DashboardConfig} $config
      */
     private function loadHealth(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -554,6 +595,9 @@ final class TollboothBundle extends AbstractBundle
         $exposed = ['health report' => rtrim($config['docs']['path'], '/').'/health.json'];
         if ($config['docs']['enabled']) {
             $exposed['documentation'] = rtrim($config['docs']['path'], '/').'/docs';
+        }
+        if ($config['dashboard']['enabled']) {
+            $exposed['dashboard'] = rtrim($config['dashboard']['path'], '/').'/map';
         }
         $services->set(ExposureFindings::class)
             ->args([$exposed, service('security.firewall.map')->nullOnInvalid()])
@@ -616,6 +660,87 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
+     * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig, dashboard: DashboardConfig} $config
+     */
+    private function loadDashboard(array $config, ContainerConfigurator $container): void
+    {
+        $services = $container->services();
+        $monitoring = $config['monitoring']['enabled'];
+
+        $groups = [];
+        foreach ($config['groups'] as $name => $group) {
+            $groups[$name] = [
+                'mount' => self::joinPaths($config['path_prefix'], $group['prefix']),
+                'prefix' => self::joinPaths($group['prefix']),
+                'path' => null === $group['path'] ? null : self::joinPaths($group['path']),
+            ];
+        }
+
+        $services->set(GroupCatalog::class)
+            ->args([service(EndpointRegistry::class), $groups, self::joinPaths($config['path_prefix'])]);
+        $services->set(Thresholds::class)
+            ->args([$config['health']['error_rate']]);
+        if ($monitoring) {
+            $services->set(TrafficReader::class)
+                ->args([service(CallReaderInterface::class)]);
+        }
+        $services->set(MapBuilder::class)
+            ->args([
+                service(GroupCatalog::class),
+                service(Thresholds::class),
+                $monitoring ? service(TrafficReader::class) : null,
+                $config['docs']['enabled'] ? service(OpenApiGenerator::class) : null,
+                service(ApiKeyProviderInterface::class),
+                service('clock')->nullOnInvalid(),
+            ]);
+        $services->set(Assets::class);
+        $services->set(Shell::class)
+            ->args([
+                service(GroupCatalog::class),
+                service('router'),
+                param('kernel.environment'),
+                self::version(),
+                $monitoring && $config['health']['enabled'] ? service(MonitoringCheck::class) : null,
+                $config['docs']['enabled'] && $config['docs']['ui'] ? DocsRouteProvider::PAGE_ROUTE : null,
+            ]);
+
+        $services->set(HomeController::class)
+            ->args([service(GroupCatalog::class), service('router')])
+            ->public()
+            ->tag('controller.service_arguments');
+        $services->set(MapController::class)
+            ->args([service(MapBuilder::class), service(Shell::class), service('twig')])
+            ->public()
+            ->tag('controller.service_arguments');
+        $services->set(AssetController::class)
+            ->args([service(Assets::class)])
+            ->public()
+            ->tag('controller.service_arguments');
+
+        $services->set(DashboardExtension::class)
+            ->args([service(Assets::class), service('router')])
+            ->tag('twig.extension');
+        $services->set(LocaleListener::class)
+            ->args([$config['dashboard']['locale']])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'priority' => 20]);
+        $services->set(DashboardRouteProvider::class)
+            ->args([$config['dashboard']['path']])
+            ->tag(RouteProviderInterface::TAG);
+    }
+
+    private static function joinPaths(string ...$paths): string
+    {
+        $joined = implode('/', array_filter(array_map(static fn (string $path): string => trim($path, '/'), $paths), static fn (string $path): bool => '' !== $path));
+
+        return '' === $joined ? '' : '/'.$joined;
+    }
+
+    private static function version(): string
+    {
+        return InstalledVersions::isInstalled('tollbooth/tollbooth-bundle') ? (string) InstalledVersions::getPrettyVersion('tollbooth/tollbooth-bundle') : 'dev';
+    }
+
+    /**
      * @param array{output: array{envelope: string, case: string}, rate_limit: RateLimitConfig, monitoring: MonitoringConfig} $config
      *
      * @return array<string, string>
@@ -623,7 +748,7 @@ final class TollboothBundle extends AbstractBundle
     private static function facts(array $config): array
     {
         return array_filter([
-            'tollbooth' => InstalledVersions::isInstalled('tollbooth/tollbooth-bundle') ? (string) InstalledVersions::getPrettyVersion('tollbooth/tollbooth-bundle') : 'dev',
+            'tollbooth' => self::version(),
             'symfony' => Kernel::VERSION,
             'php' => \PHP_VERSION.(\function_exists('opcache_get_status') && false !== @opcache_get_status(false) ? ' · opcache on' : ''),
             'environment' => '%kernel.environment%',

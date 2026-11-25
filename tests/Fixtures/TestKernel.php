@@ -10,6 +10,7 @@ use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
+use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Kernel;
@@ -27,6 +28,9 @@ final class TestKernel extends Kernel
         yield new FrameworkBundle();
         if ('auth' === $this->environment) {
             yield new SecurityBundle();
+        }
+        if (\in_array($this->environment, ['test', 'monitoring'], true)) {
+            yield new TwigBundle();
         }
         yield new TollboothBundle();
     }
