@@ -82,6 +82,20 @@ final class EndpointTest extends FunctionalTestCase
         self::assertSame(['name', 'quantity'], $this->fields($problem));
     }
 
+    public function testNestedListsInTheBodyAreHydratedAndValidated(): void
+    {
+        $client = self::createClient();
+        $client->jsonRequest('POST', '/api/things/7/tags', ['tags' => [['label' => 'fragile', 'color' => 'red'], ['label' => 'heavy']]]);
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame(['fragile:red', 'heavy:amber'], $this->json($client));
+
+        $client->jsonRequest('POST', '/api/things/7/tags', ['tags' => [['label' => '']]]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(['tags[0].label'], $this->fields($this->json($client)));
+    }
+
     public function testWrongTypeInBodyAnswersValidationProblem(): void
     {
         $client = self::createClient();
