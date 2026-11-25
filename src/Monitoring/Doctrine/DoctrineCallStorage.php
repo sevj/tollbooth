@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tollbooth\Monitoring\Doctrine;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Schema\Schema;
@@ -70,6 +71,15 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
             return 0;
         }
 
+        try {
+            return $this->aggregate($from, $until);
+        } catch (UniqueConstraintViolationException) {
+            return 0;
+        }
+    }
+
+    private function aggregate(int $from, int $until): int
+    {
         return (int) $this->connection->transactional(function (Connection $connection) use ($from, $until): int {
             $columns = ['minute', 'group_name', 'endpoint', 'consumer_id', 'consumer_name', 'calls', 'client_errors', 'server_errors', 'throttled', 'duration_sum', 'duration_max', ...$this->latencyColumns()];
             $select = $this->rawAggregate(['minute', 'group_name', 'endpoint', 'consumer_id'])

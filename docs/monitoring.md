@@ -75,7 +75,7 @@ One `Tollbooth\Monitoring\CallRecord` per request routed to an endpoint, whateve
 | `consumerName` | `string` | The consumer name, same fallback. Truncated to 190 characters. |
 | `authMethod` | `string` | `api_key`, `jwt`, `user`, `anonymous`, or `none` when authentication failed. |
 | `ip` | `?string` | `Request::getClientIp()`. |
-| `responseSize` | `?int` | Length of the response body in bytes; `null` for a `StreamedResponse`. |
+| `responseSize` | `?int` | Length of the response body in bytes: the file size for a `BinaryFileResponse`, `null` for a `StreamedResponse`. |
 | `error` | `?string` | For a status of 400 or more raised as an exception: the first violation as `field: message` for a validation error, otherwise the problem's `detail` or `title`. For a status of 500 or more: the exception class only. At most 255 characters. `null` otherwise. |
 | `steps` | `array<string, float>` | Milliseconds spent in each step that ran: `auth`, `rate_limit`, `hydrate`, `handler`, `serialize`. A call refused at authentication has only `auth`. |
 | `limiters` | `?list<array{name, limit, window, remaining, reset}>` | Each rate limit as sent in the `RateLimit-Policy` and `RateLimit` response headers; `null` when the response had none. |

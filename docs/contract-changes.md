@@ -306,7 +306,7 @@ tollbooth:
         gone_after_sunset: true
 ```
 
-Once the current time is at or after the sunset date, the endpoint answers before authentication and rate limiting:
+Once the current time is at or after the sunset date, the endpoint answers after authentication but before rate limiting (when `tollbooth.changes` is enabled):
 
 ```http
 HTTP/1.1 410 Gone
@@ -318,7 +318,7 @@ Link: <https://docs.example.com/migrate-to-v2>; rel="deprecation"
 {"type":"about:blank","title":"Gone","status":410,"detail":"This endpoint was retired on 2027-03-01."}
 ```
 
-Because authentication does not run, monitoring records these calls under the client IP (`ip:203.0.113.7`), not under the consumer. Look at the consumers of the endpoint before the sunset. The step-by-step procedure is in [guides/deprecating-an-api-version.md](guides/deprecating-an-api-version.md).
+Authentication runs first, so monitoring records these calls under the consumer that made them; a call without valid credentials gets the usual 401 instead of the 410.
 
 ## Running the diff in CI
 

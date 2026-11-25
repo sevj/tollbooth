@@ -307,7 +307,7 @@ See [openapi.md](openapi.md).
 | `health.probe_path` | string | `/_tollbooth/health` | Base path of the `/live` and `/ready` probes. |
 | `health.token` | string or null | `null` | Token that unlocks the checks in the `/ready` answer, sent as `Authorization: Bearer <token>` or `?token=<token>`. `null` or empty: `/ready` only ever gives the status. |
 | `health.error_rate` | float, 0 to 1 | `0.05` | Error rate (4xx except 429, and 5xx) over the last hour above which an endpoint with at least 20 calls becomes a finding. The dashboard uses the same threshold. Needs monitoring. |
-| `health.unused_days` | int, at least 1 | `30` | Endpoints without any call in this many days become a finding. Needs monitoring. |
+| `health.unused_days` | int, at least 1 | `30` | Endpoints without any call in this many days become a finding. Needs monitoring. Capped at `monitoring.aggregates_retention_days`, since older calls are purged. |
 | `health.key_expiry_days` | int, at least 1 | `14` | API keys expiring within this many days become a warning finding. |
 | `health.max_lag_minutes` | int, at least 1 | `10` | The monitoring check turns to warning when aggregation is more than this many minutes behind. |
 

@@ -511,7 +511,7 @@ bin/console tollbooth:contract:snapshot 2.0.0
            gone_after_sunset: true
    ```
 
-   From then on, monitoring records the remaining calls under the client IP, since authentication no longer runs on these endpoints.
+   Authentication still runs first, so monitoring keeps recording the remaining calls under the consumer that made them.
 
 2. Delete the `App\Api\Legacy` classes and the `legacy` group from the configuration.
 3. Run `bin/console tollbooth:diff`: every removed endpoint is reported `BREAKING … The endpoint is removed.` with its recent traffic. That is the expected outcome of the sunset; save the snapshot of the new version in the same change (`bin/console tollbooth:contract:snapshot 3.0.0`) so that the CI diff is clean afterwards.
@@ -528,5 +528,5 @@ Tollbooth does not hide these; plan around them.
 | Firewall users have no scopes | A user authenticated by your own authenticator, with a session or an `Authorization: Bearer` token, is a `user` consumer without scopes. | Do not require scopes on those groups. |
 | No plan per user | `user` and `jwt` consumers get `default_plan`. | Use API keys for clients that need their own quota. |
 | OpenAPI of `Response` endpoints | An endpoint declared to return a `Response` is documented without the shape of its body: a file or stream as a binary body, a `JsonResponse` as free-form JSON. The old JSON shape is not described, and there is no way to exclude an endpoint from the document. | Accept it for deprecated legacy endpoints, or keep the documentation UI pointed at the v2 group only. See [openapi.md](../openapi.md#known-limits). |
-| Response size of file downloads | Monitoring records the size of a `BinaryFileResponse` as 0 bytes, and of a `StreamedResponse` as unknown. | None needed; status, duration and consumer are recorded. |
+| Response size of file downloads | Monitoring records the file size of a `BinaryFileResponse` and leaves the size of a `StreamedResponse` unknown. | None needed; status, duration and consumer are recorded. |
 | No group-level deprecation | `#[DeprecatedEndpoint]` goes on each class. | Add it to every class of the legacy namespace. |
