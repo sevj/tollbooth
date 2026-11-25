@@ -7,7 +7,7 @@ namespace Tollbooth\Dashboard\Consumers;
 /**
  * @internal
  *
- * @phpstan-type Node array{label: string, share: float, y: float, height: float, labelY: float, color: string}
+ * @phpstan-type Node array{label: string, id: ?string, share: float, y: float, height: float, labelY: float, color: string}
  * @phpstan-type Flow array{path: string, color: string, title: string}
  */
 final readonly class FlowDiagram
@@ -33,8 +33,9 @@ final readonly class FlowDiagram
 
     /**
      * @param array<string, array<string, int>> $calls
+     * @param array<string, string>             $ids   consumer id of each source label
      */
-    public static function build(array $calls): self
+    public static function build(array $calls, array $ids = []): self
     {
         $sourceTotals = array_map('array_sum', $calls);
         $targetTotals = [];
@@ -50,7 +51,7 @@ final readonly class FlowDiagram
         }
 
         $scale = (self::HEIGHT - self::GAP * (max(\count($sourceTotals), \count($targetTotals)) - 1)) / $total;
-        $sources = self::nodes($sourceTotals, $total, $scale, true);
+        $sources = self::nodes($sourceTotals, $total, $scale, true, $ids);
         $targets = self::nodes($targetTotals, $total, $scale, false);
 
         $targetOffsets = [];
@@ -88,11 +89,12 @@ final readonly class FlowDiagram
     }
 
     /**
-     * @param array<string, int> $totals
+     * @param array<string, int>    $totals
+     * @param array<string, string> $ids
      *
      * @return array<string, Node>
      */
-    private static function nodes(array $totals, int $total, float $scale, bool $colored): array
+    private static function nodes(array $totals, int $total, float $scale, bool $colored, array $ids = []): array
     {
         $nodes = [];
         $y = 0.0;
@@ -103,6 +105,7 @@ final readonly class FlowDiagram
             $labelY = max($y + $height / 2 + 4, $labelY + 15);
             $nodes[(string) $label] = [
                 'label' => (string) $label,
+                'id' => $ids[(string) $label] ?? null,
                 'share' => $value / $total,
                 'y' => $y,
                 'height' => $height,

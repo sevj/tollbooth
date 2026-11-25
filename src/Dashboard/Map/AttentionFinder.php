@@ -36,11 +36,12 @@ final readonly class AttentionFinder
         foreach ($endpoints as $endpoint) {
             if ($endpoint->deprecated() && $endpoint->calls() > 0) {
                 $sunset = $endpoint->sunset();
+                $consumers = $this->consumers($group, $window, $endpoint, false);
                 $found[] = new Attention(Attention::DEPRECATED, $endpoint->metadata, $endpoint->path, null === $sunset ? 'deprecated' : 'deprecated_sunset', [
                     'calls' => $endpoint->calls(),
-                    'consumers' => $this->consumers($group, $window, $endpoint, false),
+                    'consumers' => self::names($consumers),
                     'sunset' => null === $sunset ? '' : gmdate('Y-m-d', $sunset),
-                ]);
+                ], $consumers);
             }
         }
         foreach ($endpoints as $endpoint) {
@@ -50,10 +51,11 @@ final readonly class AttentionFinder
         }
         foreach ($endpoints as $endpoint) {
             if ($endpoint->throttling && null !== $endpoint->stats) {
+                $consumers = $this->consumers($group, $window, $endpoint, true);
                 $found[] = new Attention(Attention::THROTTLING, $endpoint->metadata, $endpoint->path, 'throttling', [
                     'count' => $endpoint->stats->throttled,
-                    'consumers' => $this->consumers($group, $window, $endpoint, true),
-                ]);
+                    'consumers' => self::names($consumers),
+                ], $consumers);
             }
         }
         foreach ($endpoints as $endpoint) {
@@ -102,17 +104,28 @@ final readonly class AttentionFinder
         return $call->status.' · '.$error;
     }
 
-    private function consumers(string $group, Window $window, MapEndpoint $endpoint, bool $throttledOnly): string
+    /**
+     * @return list<array{id: string, label: string}>
+     */
+    private function consumers(string $group, Window $window, MapEndpoint $endpoint, bool $throttledOnly): array
     {
-        $names = [];
+        $consumers = [];
         foreach ($this->traffic->byConsumer($window, $group, $endpoint->metadata->routeName()) as $consumer) {
             if (!$throttledOnly || $consumer->throttled > 0) {
-                $names[] = $consumer->label;
+                $consumers[] = ['id' => $consumer->key, 'label' => $consumer->label];
             }
         }
 
-        $shown = \array_slice($names, 0, 2);
-        $more = \count($names) - \count($shown);
+        return $consumers;
+    }
+
+    /**
+     * @param list<array{id: string, label: string}> $consumers
+     */
+    private static function names(array $consumers): string
+    {
+        $shown = array_column(\array_slice($consumers, 0, 2), 'label');
+        $more = \count($consumers) - \count($shown);
 
         return implode(', ', $shown).($more > 0 ? ' +'.$more : '');
     }

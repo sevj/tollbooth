@@ -300,6 +300,7 @@ a.rq:hover{background:#17191C;color:var(--text-strong)}
 svg.flow{display:block;margin:0 auto}
 svg.flow text{font:12px var(--mono);fill:var(--text)}
 svg.flow .pct{fill:var(--faint)}
+svg.flow a:hover text{fill:var(--accent);text-decoration:underline}
 .kt{display:grid;grid-template-columns:minmax(150px,1.3fr) 130px 84px 100px minmax(150px,1.2fr) 100px 60px 70px 120px;gap:14px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line-soft);font:12px var(--mono)}
 .kt.th{font-size:10px}
 .kt:last-child{border-bottom:0}

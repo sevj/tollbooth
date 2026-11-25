@@ -197,7 +197,7 @@
 {% set top = page.consumers|first.calls %}
 <div class="bars">
 {% for consumer in page.consumers %}
-<div><div class="line"><span>{{ consumer.label }}</span><span class="mu">{{ consumer.calls|tb_number }}</span></div><div class="track"><div class="fill" style="width: {{ (consumer.calls / max(top, 1) * 100)|round(1) }}%"></div></div></div>
+<div><div class="line"><a href="{{ path('tollbooth_dashboard_consumer', {group: ep.group, consumer: consumer.key}) }}">{{ consumer.label }}</a><span class="mu">{{ consumer.calls|tb_number }}</span></div><div class="track"><div class="fill" style="width: {{ (consumer.calls / max(top, 1) * 100)|round(1) }}%"></div></div></div>
 {% endfor %}
 </div>
 {% endif %}

@@ -43,11 +43,13 @@ final readonly class ConsumerInsights
         $top = \array_slice($consumers, 0, self::TOP_CONSUMERS);
 
         $calls = [];
+        $ids = [];
         $remaining = [];
         foreach ($this->calls->totals($now - 86400, $now + 60, 'endpoint', new CallQuery(group: $group)) as $stats) {
             $remaining[$stats->key] = $stats->calls;
         }
         foreach ($top as $consumer) {
+            $ids[$consumer->label] = $consumer->key;
             foreach ($this->calls->totals($now - 86400, $now + 60, 'endpoint', new CallQuery(group: $group, consumerId: $consumer->key)) as $stats) {
                 $resource = $resources[$stats->key] ?? '/';
                 $calls[$consumer->label][$resource] = ($calls[$consumer->label][$resource] ?? 0) + $stats->calls;
@@ -82,7 +84,7 @@ final readonly class ConsumerInsights
             $calls[$source] = $folded;
         }
 
-        return FlowDiagram::build($calls);
+        return FlowDiagram::build($calls, $ids);
     }
 
     public function page(string $group, string $id): ?ConsumerPage

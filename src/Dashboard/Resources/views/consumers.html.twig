@@ -46,7 +46,7 @@
 <g fill-opacity="0.34">{% for f in flow.flows %}<path fill="{{ f.color }}" d="{{ f.path }}"><title>{{ f.title }}</title></path>{% endfor %}</g>
 {% for node in flow.sources %}<rect x="0" y="{{ node.y }}" width="12" height="{{ max(node.height, 1) }}" fill="{{ node.color }}"></rect>{% endfor %}
 {% for node in flow.targets %}<rect x="628" y="{{ node.y }}" width="12" height="{{ max(node.height, 1) }}" fill="#C9C5BC"></rect>{% endfor %}
-<g text-anchor="end">{% for node in flow.sources %}<text x="-12" y="{{ node.labelY }}">{{ node.label|tb_truncate(14) }} <tspan class="pct">{{ node.share|tb_percent(0) }}</tspan></text>{% endfor %}</g>
+<g text-anchor="end">{% for node in flow.sources %}{% if node.id %}<a href="{{ path('tollbooth_dashboard_consumer', {group: group, consumer: node.id}) }}">{% endif %}<text x="-12" y="{{ node.labelY }}">{{ node.label|tb_truncate(14) }} <tspan class="pct">{{ node.share|tb_percent(0) }}</tspan></text>{% if node.id %}</a>{% endif %}{% endfor %}</g>
 <g>{% for node in flow.targets %}<text x="652" y="{{ node.labelY }}">{{ node.label|tb_truncate(18) }} <tspan class="pct">{{ node.share|tb_percent(0) }}</tspan></text>{% endfor %}</g>
 </g>
 </svg>

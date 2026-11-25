@@ -62,7 +62,7 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('<strong>57</strong>', $html);
         self::assertStringContainsString('Needs attention<span class="m">2</span>', $html);
         self::assertStringContainsString('sunset on <span class="v">2027-03-01</span>', $html);
-        self::assertStringContainsString('by <span class="v">Acme ERP</span>', $html);
+        self::assertStringContainsString('by <span class="v"><a href="/_tollbooth/consumers/default/acme">Acme ERP</a></span>', $html);
         self::assertStringContainsString('mostly <span class="v">422 · name: This value should not be blank.</span>', $html);
         self::assertStringContainsString('class="row failing"', $html);
         self::assertStringContainsString('<span class="e bad">96.2%</span>', $html);
@@ -89,7 +89,7 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('body → CreateThingInput', $html);
         self::assertStringContainsString('<div class="stat"><div class="th">Calls 1h</div><div class="v">23</div></div>', $html);
         self::assertStringContainsString('<div class="msg">name: This value should not be blank.</div><div class="sub">×3 · 1 consumer', $html);
-        self::assertStringContainsString('Acme ERP', $html);
+        self::assertStringContainsString('<a href="/_tollbooth/consumers/default/acme">Acme ERP</a>', $html);
         self::assertStringContainsString('curl -X POST &#039;http://localhost/api/things&#039;', $html);
         self::assertStringContainsString('where the time goes', $html);
         self::assertStringContainsString('<small>refuses with</small><span class="bad">422</span></span><span class="fs"><span class="bad">13%</span><small>of calls</small>', $html);
@@ -187,6 +187,7 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('<a href="/_tollbooth/consumers/default/acme">Acme ERP</a>', $html);
         self::assertStringContainsString('anonymous · 1 IP', $html);
         self::assertStringContainsString('Acme ERP <tspan class="pct">80%</tspan>', $html);
+        self::assertMatchesRegularExpression('~<a href="/_tollbooth/consumers/default/acme"><text [^>]+>Acme ERP ~', $html);
 
         $client->request('GET', '/_tollbooth/consumers/default?show=throttled');
         self::assertStringNotContainsString('anonymous · 1 IP', (string) $client->getResponse()->getContent());

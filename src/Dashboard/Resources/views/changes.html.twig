@@ -57,7 +57,7 @@
 <div class="ch">
 <span class="el">{{ change.element|replace({"Attributes.": "."}) }}</span>
 <span>{{ change.message }}</span>
-<span class="mu">{% if item.impact is not null %}{% if item.impact.calls > 0 %}{{ 'dashboard.changes.impact'|trans({'%calls%': item.impact.calls|tb_number, '%consumers%': item.impact.consumers|slice(0, 3)|join(', ') ~ (item.impact.consumers|length > 3 ? ' +' ~ (item.impact.consumers|length - 3) : '')}) }}{% else %}{{ 'dashboard.changes.no_impact'|trans }}{% endif %}{% else %}{{ 'dashboard.changes.operations'|trans({'%count%': change.operations|length}) }}{% endif %}</span>
+<span class="mu">{% if item.impact is not null %}{% if item.impact.calls > 0 %}{% set impact = item.impact %}{% set links = [] %}{% for consumer in impact.consumers|slice(0, 3) %}{% set links = links|merge(['<a href="' ~ path('tollbooth_dashboard_consumer', {group: group, consumer: impact.consumer_ids[loop.index0]})|e ~ '">' ~ consumer|e ~ '</a>']) %}{% endfor %}{{ 'dashboard.changes.impact'|trans({'%calls%': impact.calls|tb_number|e, '%consumers%': links|join(', ') ~ (impact.consumers|length > 3 ? ' +' ~ (impact.consumers|length - 3) : '')})|raw }}{% else %}{{ 'dashboard.changes.no_impact'|trans }}{% endif %}{% else %}{{ 'dashboard.changes.operations'|trans({'%count%': change.operations|length}) }}{% endif %}</span>
 </div>
 {% endfor %}
 {% endfor %}

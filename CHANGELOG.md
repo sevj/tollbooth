@@ -8,6 +8,15 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- Consumer names in the dashboard now open the consumer's page wherever they appear: top consumers
+  of an endpoint, the "Needs attention" list of the map, the impact of a change, the flow diagram of
+  the consumers screen and the detail of a request (which keeps a link to filter its calls).
+
+### Added
+- The impact of a change, in `tollbooth:diff --format=json`, lists the ids of the consumers
+  next to their names (`consumer_ids`).
+
 ## [0.17.0] - 2026-11-25
 
 ### Changed

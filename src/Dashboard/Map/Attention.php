@@ -17,8 +17,9 @@ final readonly class Attention
     public const string SLOW = 'slow';
 
     /**
-     * @param self::*                         $kind
-     * @param array<string, string|int|float> $parameters
+     * @param self::*                                $kind
+     * @param array<string, string|int|float>        $parameters
+     * @param list<array{id: string, label: string}> $consumers
      */
     public function __construct(
         public string $kind,
@@ -26,6 +27,7 @@ final readonly class Attention
         public string $path,
         public string $message,
         public array $parameters = [],
+        public array $consumers = [],
     ) {
     }
 }
