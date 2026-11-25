@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-25
+
 ### Added
 - Successful `GET` answers of endpoints carry an `ETag` computed from their body, and answer
   `304 Not Modified` without a body when the request's `If-None-Match` matches it. The OpenAPI document
