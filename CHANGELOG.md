@@ -8,6 +8,12 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- Lists of objects in a `#[Body]` (`@param list<OrderItemInput> $items`) were left as arrays of arrays
+  unless the application happened to install `phpdocumentor/type-resolver`, because FrameworkBundle only
+  reads docblock types with it. Tollbooth now requires it, so nested lists are hydrated and validated.
+  Found while building the demo application.
+
 ## [0.9.1] - 2026-11-25
 
 ### Fixed
