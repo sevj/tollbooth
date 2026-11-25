@@ -1,0 +1,82 @@
+{% extends '@TollboothDashboard/layout.html.twig' %}
+{% trans_default_domain 'tollbooth' %}
+
+{% set group = shell.group %}
+{% set query = {group: group, range: range.value, filter: filter, sort: sort, dir: descending ? 'desc' : 'asc'} %}
+
+{% block title %}{{ 'dashboard.endpoints.title'|trans }} · {{ group }}{% endblock %}
+
+{% block crumbs %}<a href="{{ path('tollbooth_dashboard_map', {group: group}) }}">{{ group }}</a> <span class="slash">/</span> <span class="here">{{ 'dashboard.endpoints.crumb'|trans }}</span>{% endblock %}
+
+{% block toolbar %}
+{% if traffic %}
+<div class="segs" role="group" aria-label="{{ 'dashboard.range.label'|trans }}">
+{% for option in ranges %}
+<a class="seg{% if option == range %} sel{% endif %}" href="{{ path('tollbooth_dashboard_endpoints', query|merge({range: option.value})) }}"{% if option == range %} aria-current="true"{% endif %}>{{ option.value }}</a>
+{% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% macro sortable(label, key, query, sort, descending, class) %}
+{% set active = sort == key %}
+{% set dir = active ? (descending ? 'asc' : 'desc') : (key == 'path' ? 'asc' : 'desc') %}
+<a class="sort{{ class ? ' ' ~ class : '' }}{% if active %} on{% endif %}" href="{{ path('tollbooth_dashboard_endpoints', query|merge({sort: key, dir: dir})) }}"{% if active %} aria-sort="{{ descending ? 'descending' : 'ascending' }}"{% endif %}>{{ label }}{% if active %} {{ descending ? '↓' : '↑' }}{% endif %}</a>
+{% endmacro %}
+
+{% block body %}
+<div class="head">
+<div>
+<h1>{{ 'dashboard.endpoints.title'|trans }}</h1>
+<div class="sub">{{ 'dashboard.endpoints.summary'|trans({'%count%': total}) }}{% if traffic %} · {{ 'dashboard.endpoints.over'|trans({'%range%': range.value}) }}{% endif %}</div>
+</div>
+</div>
+
+<section class="panel" aria-labelledby="list-title">
+<div class="ph" style="padding: 12px 20px">
+<h2 id="list-title" style="margin-right: auto">{{ 'dashboard.endpoints.shown'|trans({'%count%': rows|length}) }}</h2>
+<div class="segs inset" role="group" aria-label="{{ 'dashboard.endpoints.filter'|trans }}">
+{% for option in filters %}<a class="seg{% if filter == option %} sel{% endif %}" href="{{ path('tollbooth_dashboard_endpoints', query|merge({filter: option})) }}"{% if filter == option %} aria-current="true"{% endif %}>{{ ('dashboard.endpoints.show.' ~ option)|trans }}</a>{% endfor %}
+</div>
+</div>
+{% if rows is empty %}
+<div class="empty"><span class="dot ok"></span> {{ 'dashboard.endpoints.none'|trans }}</div>
+{% else %}
+<div style="overflow-x: auto"><div class="el-table{% if traffic %} live{% endif %}">
+<div class="el th">
+<span></span>
+{{ _self.sortable('dashboard.endpoints.col.path'|trans, 'path', query, sort, descending, '') }}
+<span>{{ 'dashboard.endpoints.col.resource'|trans }}</span>
+<span>{{ 'dashboard.endpoints.col.auth'|trans }}</span>
+{% if traffic %}
+{{ _self.sortable('dashboard.endpoints.col.calls'|trans, 'calls', query, sort, descending, 'r') }}
+{{ _self.sortable('dashboard.endpoints.col.errors'|trans, 'errors', query, sort, descending, 'r') }}
+{{ _self.sortable('p95', 'p95', query, sort, descending, 'r') }}
+{{ _self.sortable('429', 'throttled', query, sort, descending, 'r') }}
+{% else %}
+<span class="r">{{ 'dashboard.endpoints.col.status'|trans }}</span>
+{% endif %}
+</div>
+{% for row in rows %}
+{% set endpoint = row.endpoint %}
+{% set meta = endpoint.metadata %}
+{% set p95 = endpoint.p95 %}
+<a class="el{% if traffic and endpoint.failing %} failing{% endif %}" href="{{ path('tollbooth_dashboard_endpoint', {group: group, name: meta.name}) }}{% if traffic %}#stats{% endif %}" data-search-text="{{ (meta.method ~ ' ' ~ endpoint.path ~ ' ' ~ meta.name ~ ' ' ~ row.resource)|lower }}">
+<span class="me {{ meta.method }}">{{ meta.method }}</span>
+<span class="pa"><span{% if endpoint.deprecated %} class="gone"{% endif %}>{{ endpoint.path }}</span>{% if endpoint.deprecated %}<span class="tag sunset">{{ endpoint.sunset ? 'dashboard.map.tag.sunset'|trans : 'dashboard.map.tag.deprecated'|trans }}</span>{% endif %}<small>{{ meta.name }}</small></span>
+<span class="mu">{{ row.resource }}</span>
+<span class="mu">{{ meta.auth|map(a => ('dashboard.auth.' ~ a)|trans)|join(' · ') }}</span>
+{% if traffic %}
+<span class="r">{{ endpoint.calls > 0 ? endpoint.calls|tb_number : '—' }}</span>
+<span class="r{% if endpoint.failing %} bad{% elseif endpoint.calls == 0 or endpoint.stats.errorRate == 0 %} mu{% endif %}">{{ endpoint.calls > 0 ? endpoint.stats.errorRate|tb_percent(1) : '—' }}</span>
+<span class="r{% if endpoint.slow %} warn{% endif %}">{% if p95 is not null %}{{ p95|round }}<small>ms</small>{% else %}<span class="mu">—</span>{% endif %}</span>
+<span class="r{% if endpoint.throttling %} warn{% elseif (endpoint.stats.throttled ?? 0) == 0 %} mu{% endif %}">{{ (endpoint.stats.throttled ?? 0)|tb_number }}</span>
+{% else %}
+<span class="r">{{ meta.status }}</span>
+{% endif %}
+</a>
+{% endfor %}
+</div></div>
+{% endif %}
+</section>
+{% endblock %}

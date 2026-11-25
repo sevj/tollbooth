@@ -8,6 +8,12 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- An endpoints screen in the dashboard (`/_tollbooth/endpoints/{group}`), opened from the "Endpoints"
+  menu entry that used to lead to the map: every endpoint of the group with its resource and
+  authentication and, with monitoring, its calls, error rate, p95 and 429s over the chosen range. The
+  list sorts on each column and filters the failing, slow, throttled, deprecated and uncalled endpoints.
+
 ## [0.20.1] - 2026-11-25
 
 ### Fixed
