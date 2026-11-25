@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-11-25
+
 ### Added
 - A `docs/` folder documents every part of the bundle in detail: getting started, one reference page
   per module (endpoints, HTTP contract, configuration, authentication, rate limiting, monitoring,
