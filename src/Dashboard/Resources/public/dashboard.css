@@ -94,6 +94,7 @@ button{font:inherit}
 .canvas svg.links path{fill:none;stroke:var(--edge);stroke-width:1;stroke-dasharray:4 3}
 .lb{position:absolute;font:12px var(--mono);color:var(--muted);line-height:16px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lb.left{text-align:left}
+.lb span{background:var(--panel);padding:0 4px}
 .blk{position:absolute;background:var(--block);border:1px solid var(--sel)}
 .bh{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--line)}
 .bh strong{font-weight:600;font-size:14px}
