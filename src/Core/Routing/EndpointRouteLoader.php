@@ -74,7 +74,14 @@ final class EndpointRouteLoader extends Loader
         }
         $collection->addResource(new ContainerParametersResource([EndpointPass::HASH_PARAMETER => $this->endpointsHash]));
         foreach ($this->providers as $provider) {
-            $collection->addCollection($provider->routes());
+            $routes = $provider->routes();
+            foreach (array_keys($routes->all()) as $name) {
+                $endpoint = $collection->get($name)?->getDefault(self::ENDPOINT_ATTRIBUTE);
+                if (\is_string($endpoint)) {
+                    throw new \LogicException(\sprintf('The route name "%s" of the endpoint "%s" is taken by one of Tollbooth\'s own pages. Rename the endpoint with #[Endpoint(name: ...)].', $name, $endpoint));
+                }
+            }
+            $collection->addCollection($routes);
         }
 
         return $collection;

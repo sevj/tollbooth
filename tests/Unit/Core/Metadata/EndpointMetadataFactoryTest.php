@@ -6,9 +6,11 @@ namespace Tollbooth\Tests\Unit\Core\Metadata;
 
 use PHPUnit\Framework\TestCase;
 use Tollbooth\Core\Attribute\Auth;
+use Tollbooth\Core\Attribute\Body;
 use Tollbooth\Core\Attribute\Endpoint;
 use Tollbooth\Core\Attribute\PublicEndpoint;
 use Tollbooth\Core\Attribute\Query;
+use Tollbooth\Core\Attribute\RateLimit;
 use Tollbooth\Core\Attribute\Scope;
 use Tollbooth\Core\Metadata\EndpointMetadataFactory;
 use Tollbooth\Core\Metadata\Group;
@@ -114,6 +116,30 @@ final class EndpointMetadataFactoryTest extends TestCase
         (new EndpointMetadataFactory())->create('a', new \ReflectionClass(UnknownAuth::class));
     }
 
+    public function testTwoLimitsWithTheSameNameAreRejected(): void
+    {
+        $this->expectException(InvalidEndpointException::class);
+        $this->expectExceptionMessage('declares two rate limits named "burst"');
+
+        (new EndpointMetadataFactory())->create('a', new \ReflectionClass(TwoBursts::class));
+    }
+
+    public function testQueryArgumentsMustHaveASupportedType(): void
+    {
+        $this->expectException(InvalidEndpointException::class);
+        $this->expectExceptionMessage('the #[Query] argument $from has the type "DateTimeImmutable"');
+
+        (new EndpointMetadataFactory())->create('a', new \ReflectionClass(DateQuery::class));
+    }
+
+    public function testBodyArgumentsMustBeObjects(): void
+    {
+        $this->expectException(InvalidEndpointException::class);
+        $this->expectExceptionMessage('the #[Body] argument $raw must be typed with a class');
+
+        (new EndpointMetadataFactory())->create('a', new \ReflectionClass(ScalarBody::class));
+    }
+
     /**
      * @param array{auth?: list<string>, scopes?: list<string>|string} $settings
      */
@@ -190,4 +216,30 @@ final class WrongMethod
 #[Endpoint('GET', '/things')]
 final class NotInvokable
 {
+}
+
+#[Endpoint('GET', '/search')]
+#[RateLimit(burst: '10/10 seconds')]
+#[RateLimit(burst: '20/10 seconds')]
+final class TwoBursts
+{
+    public function __invoke(): void
+    {
+    }
+}
+
+#[Endpoint('GET', '/report')]
+final class DateQuery
+{
+    public function __invoke(#[Query] \DateTimeImmutable $from): void
+    {
+    }
+}
+
+#[Endpoint('POST', '/raw')]
+final class ScalarBody
+{
+    public function __invoke(#[Body] string $raw): void
+    {
+    }
 }
