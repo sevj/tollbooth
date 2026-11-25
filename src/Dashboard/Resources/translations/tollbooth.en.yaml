@@ -386,3 +386,44 @@ dashboard:
     hour: '{1}hour|]1,Inf[%count% hours'
     minute: '{1}min|]1,Inf[%count% min'
     second: '{1}s|]1,Inf[%count% s'
+  keys:
+    new: New API key
+    new_crumb: new key
+    new_sub: The key is shown once, then only its hash is kept.
+    name: Name
+    name_help: The consumer's name, as it appears in monitoring and on the dashboard.
+    plan: Plan
+    no_plan: default plan
+    scopes: Scopes
+    scopes_help: Separated by spaces or commas.
+    expires: Expires on
+    expires_help: Leave empty for a key that does not expire.
+    ips: Allowed IPs
+    ips_help: Addresses or ranges, separated by spaces or commas. Leave empty to accept any address.
+    test: Test key (tb_test_ prefix)
+    cancel: Cancel
+    create: Create the key
+    error:
+      name_format: 'Use letters, digits, dots, dashes and underscores, 64 at most.'
+      name_taken: A key already has this name.
+      plan_unknown: This plan does not exist.
+      scope_format: A scope has characters that are not allowed.
+      expires_format: Use a date such as 2027-03-01.
+      expires_past: The date must be in the future.
+      ip_format: An address or range is not valid.
+    issued: key
+    created: Key created for %name%
+    rotated: New key for %name%
+    once: Copy it now. It is not stored and cannot be shown again.
+    copy: Copy the key
+    created_note: Give it to the consumer through a secure channel.
+    rotated_note: The previous key stopped working as soon as this one was created. Send it to the consumer now.
+    open: Open the consumer
+    back: Back to consumers
+    rotate: Rotate key
+    change_plan: Change plan
+    revoke: Revoke
+    confirm_rotate: 'Rotate the key of %name%? The current key stops working at once.'
+    confirm_revoke: 'Revoke the key of %name%? Every call with it will be refused.'
+    configured: declared in the configuration, read-only
+    revoked: 'The key of %name% is revoked.'

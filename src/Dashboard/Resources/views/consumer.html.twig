@@ -21,6 +21,19 @@
 </div>
 <div class="actions">
 <a class="btn" href="{{ path('tollbooth_dashboard_requests', {group: group, q: 'consumer:' ~ consumer.id}) }}">{{ 'dashboard.consumer.requests'|trans }}</a>
+{% if manageable %}
+{% set key = consumer.key %}
+<form method="post" action="{{ path('tollbooth_dashboard_key_rotate', {group: group, consumer: key.id}) }}" data-confirm="{{ 'dashboard.keys.confirm_rotate'|trans({'%name%': key.name}) }}"><input type="hidden" name="_token" value="{{ tb_token('rotate', key.id) }}"><button class="btn" type="submit">{{ 'dashboard.keys.rotate'|trans }}</button></form>
+{% if plans is not empty %}
+<details class="chip">
+<summary class="btn">{{ 'dashboard.keys.change_plan'|trans }}</summary>
+<ul>{% for plan in plans %}<li><form method="post" action="{{ path('tollbooth_dashboard_key_plan', {group: group, consumer: key.id}) }}"><input type="hidden" name="_token" value="{{ tb_token('plan', key.id) }}"><input type="hidden" name="plan" value="{{ plan }}"><button type="submit" class="menu-item"{% if plan == consumer.plan %} aria-current="true"{% endif %}>{{ plan }}</button></form></li>{% endfor %}</ul>
+</details>
+{% endif %}
+<form method="post" action="{{ path('tollbooth_dashboard_key_revoke', {group: group, consumer: key.id}) }}" data-confirm="{{ 'dashboard.keys.confirm_revoke'|trans({'%name%': key.name}) }}"><input type="hidden" name="_token" value="{{ tb_token('revoke', key.id) }}"><button class="btn dng" type="submit">{{ 'dashboard.keys.revoke'|trans }}</button></form>
+{% elseif consumer.key and stored %}
+<span class="m mu" style="font-size: 12px; align-self: center">{{ 'dashboard.keys.configured'|trans }}</span>
+{% endif %}
 </div>
 </div>
 

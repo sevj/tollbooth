@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Tollbooth\Auth\ApiKey\ManageableApiKeyProviderInterface;
 use Tollbooth\Dashboard\Consumers\ConsumerDirectory;
 use Tollbooth\Dashboard\Consumers\ConsumerInsights;
 use Tollbooth\Dashboard\Consumers\ConsumerRow;
@@ -29,6 +30,7 @@ final readonly class ConsumersController
         private Shell $shell,
         private Environment $twig,
         private TranslatorInterface $translator,
+        private ?ManageableApiKeyProviderInterface $keys = null,
     ) {
     }
 
@@ -56,6 +58,8 @@ final readonly class ConsumersController
             'flow' => $this->insights->flow($group, $this->translator->trans('dashboard.consumers.others', [], 'tollbooth')),
             'show' => $show,
             'filters' => self::FILTERS,
+            'can_create' => null !== $this->keys,
+            'revoked' => $request->query->get('revoked'),
         ]), headers: ['Cache-Control' => 'no-store']);
     }
 
@@ -69,6 +73,9 @@ final readonly class ConsumersController
             'page' => $page,
             'consumer' => $page->consumer,
             'limits' => $this->directory->limitsOf($page->consumer->plan),
+            'manageable' => null !== $page->consumer->key && ($this->keys?->manages($page->consumer->key->id) ?? false),
+            'stored' => null !== $this->keys,
+            'plans' => array_column($this->directory->plans(), 'name'),
         ]), headers: ['Cache-Control' => 'no-store']);
     }
 

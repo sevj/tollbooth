@@ -1,0 +1,24 @@
+{% extends '@TollboothDashboard/layout.html.twig' %}
+{% trans_default_domain 'tollbooth' %}
+
+{% set group = shell.group %}
+
+{% block title %}{{ key.name }} · {{ 'dashboard.keys.issued'|trans }}{% endblock %}
+
+{% block crumbs %}<a href="{{ path('tollbooth_dashboard_map', {group: group}) }}">{{ group }}</a> <span class="slash">/</span> <a href="{{ path('tollbooth_dashboard_consumers', {group: group}) }}">{{ 'dashboard.consumers.crumb'|trans }}</a> <span class="slash">/</span> <span class="here">{{ key.name }}</span>{% endblock %}
+
+{% block body %}
+<div class="head">
+<div>
+<h1>{{ rotated ? 'dashboard.keys.rotated'|trans({'%name%': key.name}) : 'dashboard.keys.created'|trans({'%name%': key.name}) }}</h1>
+<div class="sub">{{ 'dashboard.keys.once'|trans }}</div>
+</div>
+</div>
+
+<section class="panel secret-panel">
+<div class="secret"><code class="m">{{ secret }}</code><button class="btn pri" type="button" data-copy="{{ secret }}"><span data-copy-label data-done="{{ 'dashboard.endpoint.copied'|trans }}">{{ 'dashboard.keys.copy'|trans }}</span></button></div>
+<div class="note"><span class="dot warning"></span><span>{{ rotated ? 'dashboard.keys.rotated_note'|trans : 'dashboard.keys.created_note'|trans }}</span></div>
+</section>
+
+<div class="actions"><a class="btn" href="{{ path('tollbooth_dashboard_consumer', {group: group, consumer: key.id}) }}">{{ 'dashboard.keys.open'|trans }}</a><a class="btn" href="{{ path('tollbooth_dashboard_consumers', {group: group}) }}">{{ 'dashboard.keys.back'|trans }}</a></div>
+{% endblock %}

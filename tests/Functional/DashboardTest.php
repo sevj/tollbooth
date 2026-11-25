@@ -6,8 +6,11 @@ namespace Tollbooth\Tests\Functional;
 
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Filesystem\Filesystem;
+use Tollbooth\Auth\ApiKey\ApiKeyFormat;
+use Tollbooth\Auth\Doctrine\DoctrineApiKeyStore;
 use Tollbooth\Changes\CurrentContract;
 use Tollbooth\Changes\SnapshotStore;
+use Tollbooth\Dashboard\Keys\FormGuard;
 use Tollbooth\Monitoring\CallRecord;
 use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
 use Tollbooth\Tests\Fixtures\TestKernel;
@@ -282,8 +285,75 @@ final class DashboardTest extends FunctionalTestCase
         (new Filesystem())->mkdir(\dirname(TestKernel::monitoringDatabase()));
         $client = self::createClient(['environment' => 'monitoring']);
         $this->storage()->setup();
+        $this->keyStore()->setup();
 
         return $client;
+    }
+
+    /**
+     * @return array<string>
+     */
+    private static function capture(string $pattern, string $subject): array
+    {
+        self::assertSame(1, preg_match($pattern, $subject, $matches));
+
+        return $matches;
+    }
+
+    private function keyStore(): DoctrineApiKeyStore
+    {
+        $store = self::getContainer()->get(DoctrineApiKeyStore::class);
+        self::assertInstanceOf(DoctrineApiKeyStore::class, $store);
+
+        return $store;
+    }
+
+    public function testKeysAreCreatedRotatedAndRevokedFromTheDashboard(): void
+    {
+        $client = $this->monitoredClient();
+        $guard = new FormGuard('test');
+
+        $client->request('GET', '/_tollbooth/consumers/default/keys/new', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+
+        $client->request('POST', '/_tollbooth/consumers/default/keys/new', ['_token' => $guard->token('create'), 'name' => 'bad name!', 'scopes' => 'orders:read', 'expires' => '2020-01-01', 'allowed_ips' => '10.0.0.0/40'], server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseStatusCodeSame(422);
+        $html = (string) $client->getResponse()->getContent();
+        foreach (['Use letters, digits', 'The date must be in the future.', 'An address or range is not valid.'] as $message) {
+            self::assertStringContainsString($message, $html);
+        }
+
+        $client->request('POST', '/_tollbooth/consumers/default/keys/new', ['_token' => $guard->token('create'), 'name' => 'acme-erp', 'scopes' => 'orders:read, orders:write', 'expires' => '2027-03-01', 'allowed_ips' => '203.0.113.0/24'], server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Cache-Control', 'no-store, private');
+        $first = self::capture('/tb_live_([a-z0-9]{12})_([A-Za-z0-9]{32})/', (string) $client->getResponse()->getContent());
+        $key = $this->keyStore()->find($first[1]);
+        self::assertNotNull($key);
+        self::assertSame(['acme-erp', ['orders:read', 'orders:write'], ['203.0.113.0/24'], '2027-03-01'], [$key->name, $key->scopes, $key->allowedIps, $key->expiresAt?->format('Y-m-d')]);
+        self::assertTrue(ApiKeyFormat::verify($first[2], $key->hash));
+
+        $client->request('POST', '/_tollbooth/consumers/default/keys/new', ['_token' => $guard->token('create'), 'name' => 'ACME-ERP'], server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertStringContainsString('A key already has this name.', (string) $client->getResponse()->getContent());
+
+        $client->request('GET', '/_tollbooth/consumers/default/'.$key->id, server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertStringContainsString('Rotate key', (string) $client->getResponse()->getContent());
+
+        $client->request('POST', '/_tollbooth/consumers/default/'.$key->id.'/rotate', ['_token' => $guard->token('rotate', $key->id)]);
+        self::assertResponseIsSuccessful();
+        $second = self::capture('/tb_live_'.$key->id.'_([A-Za-z0-9]{32})/', (string) $client->getResponse()->getContent());
+        $rotated = $this->keyStore()->find($key->id);
+        self::assertNotNull($rotated);
+        self::assertTrue(ApiKeyFormat::verify($second[1], $rotated->hash));
+        self::assertFalse(ApiKeyFormat::verify($first[2], $rotated->hash));
+
+        $client->request('POST', '/_tollbooth/consumers/default/'.$key->id.'/revoke', ['_token' => $guard->token('revoke', $key->id)], server: ['HTTP_ORIGIN' => 'https://evil.example']);
+        self::assertResponseStatusCodeSame(403);
+        $client->request('POST', '/_tollbooth/consumers/default/'.$key->id.'/revoke', ['_token' => $guard->token('rotate', $key->id)]);
+        self::assertResponseStatusCodeSame(403);
+
+        $client->request('POST', '/_tollbooth/consumers/default/'.$key->id.'/revoke', ['_token' => $guard->token('revoke', $key->id)], server: ['HTTP_ORIGIN' => 'http://localhost']);
+        self::assertResponseRedirects('/_tollbooth/consumers/default?revoked=acme-erp', 303);
+        self::assertNull($this->keyStore()->find($key->id));
     }
 
     private function storage(): DoctrineCallStorage

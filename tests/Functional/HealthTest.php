@@ -8,6 +8,7 @@ use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Filesystem\Filesystem;
+use Tollbooth\Auth\Doctrine\DoctrineApiKeyStore;
 use Tollbooth\Core\Health\CheckResult;
 use Tollbooth\Monitoring\CallRecord;
 use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
@@ -27,6 +28,9 @@ final class HealthTest extends FunctionalTestCase
         (new Filesystem())->mkdir(\dirname(TestKernel::monitoringDatabase()));
         $this->client = self::createClient(['environment' => 'monitoring']);
         $this->storage()->setup();
+        $keys = self::getContainer()->get(DoctrineApiKeyStore::class);
+        self::assertInstanceOf(DoctrineApiKeyStore::class, $keys);
+        $keys->setup();
     }
 
     public function testLivenessOnlySaysTheProcessAnswers(): void
@@ -52,7 +56,7 @@ final class HealthTest extends FunctionalTestCase
         $report = $this->json($this->client);
         self::assertIsArray($report['checks']);
         self::assertSame(
-            [['metadata', 'tollbooth', 'ok'], ['monitoring', 'tollbooth', 'ok'], ['external_service', 'application', 'ok']],
+            [['metadata', 'tollbooth', 'ok'], ['monitoring', 'tollbooth', 'ok'], ['api_key_storage', 'tollbooth', 'ok'], ['external_service', 'application', 'ok']],
             array_map(static fn (mixed $check): array => \is_array($check) ? [$check['name'] ?? null, $check['source'] ?? null, $check['status'] ?? null] : [], $report['checks']),
         );
         self::assertSame([], $report['findings']);
@@ -76,7 +80,7 @@ final class HealthTest extends FunctionalTestCase
         $report = $this->json($this->client);
         self::assertSame('critical', $report['status']);
         self::assertIsArray($report['checks']);
-        self::assertSame(['status' => 'critical', 'summary' => 'The check failed with RuntimeException.'], array_intersect_key((array) $report['checks'][2], ['status' => 0, 'summary' => 0]));
+        self::assertSame(['status' => 'critical', 'summary' => 'The check failed with RuntimeException.'], array_intersect_key((array) $report['checks'][3], ['status' => 0, 'summary' => 0]));
     }
 
     public function testWrongTokenIsIgnored(): void

@@ -13,7 +13,11 @@
 <h1>{{ 'dashboard.consumers.title'|trans }}</h1>
 <div class="sub">{{ 'dashboard.consumers.summary'|trans({'%active%': active, '%count%': keys ?? total}) }} · {{ 'dashboard.consumers.plans'|trans({'%count%': plans|length}) }}</div>
 </div>
+{% if can_create %}
+<div class="actions"><a class="btn pri" href="{{ path('tollbooth_dashboard_key_new', {group: group}) }}"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9"></path></svg>{{ 'dashboard.keys.new'|trans }}</a></div>
+{% endif %}
 </div>
+{% if revoked %}<div class="notice" role="status"><span class="dot ok"></span>{{ 'dashboard.keys.revoked'|trans({'%name%': revoked}) }}</div>{% endif %}
 
 {% if plans is not empty %}
 <div class="plans">
