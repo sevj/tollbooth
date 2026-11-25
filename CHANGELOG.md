@@ -8,6 +8,26 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- The consumers screens and API key management work without monitoring: the keys are listed without their
+  traffic.
+- Application normalizers tagged `serializer.normalizer` without a `serializer` attribute also serve
+  Tollbooth's serializers, so they apply to endpoint responses and request bodies without extra tagging.
+- The exposure finding also reports a Tollbooth page that a firewall covers but no `access_control` rule
+  protects with a role.
+
+### Fixed
+- An endpoint whose return type is nullable is documented with its success response and a 204; it used to
+  be documented as a 204 only.
+- An empty answer with a declared status other than 200 carries the group's content type instead of
+  `text/html`.
+- The tokens of the dashboard forms are tied to the session when there is one.
+- The health report route is built from `health.probe_path` (`<probe_path>.json`) instead of `docs.path`;
+  the default URL, `/_tollbooth/health.json`, is unchanged.
+
+### Upgrade notes
+- With a custom `docs.path` or `health.probe_path`, the health report moves to `<health.probe_path>.json`.
+
 ## [0.24.0] - 2026-11-25
 
 ### Security

@@ -419,7 +419,7 @@ Behaviour:
 - Key lookups are memoized within a request and forgotten between requests (the store is reset with the kernel), so a long-running worker (FrankenPHP worker mode, RoadRunner) sees a revocation made by another process from its next request.
 - If the table cannot be read, calls with a key that is only in the table fail (the lookup throws), and the health check `api_key_storage` turns critical.
 
-Managing keys from the dashboard needs `monitoring` enabled too, because the key screens are part of the consumers screen. See [dashboard.md](dashboard.md).
+The key screens are part of the consumers screen, which works without monitoring: it then lists the keys without their traffic. See [dashboard.md](dashboard.md).
 
 ## JWT and user: the firewall
 

@@ -6,6 +6,9 @@ namespace Tollbooth\Tests\Unit\Dashboard;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Tollbooth\Auth\ApiKey\ApiKey;
 use Tollbooth\Auth\ApiKey\ChainApiKeyProvider;
@@ -52,6 +55,19 @@ final class KeysTest extends TestCase
                 $this->addToAssertionCount(1);
             }
         }
+    }
+
+    public function testTokensAreTiedToTheSessionWhenThereIsOne(): void
+    {
+        $stack = new RequestStack();
+        $request = Request::create('http://localhost/_tollbooth/configuration/default');
+        $session = new Session(new MockArraySessionStorage());
+        $session->start();
+        $request->setSession($session);
+        $stack->push($request);
+
+        $guard = new FormGuard('secret', $stack);
+        self::assertNotSame((new FormGuard('secret'))->token('revoke', 'k1'), $guard->token('revoke', 'k1'));
     }
 
     public function testConfiguredKeysStayReadOnlyNextToStoredOnes(): void

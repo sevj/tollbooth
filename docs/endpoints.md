@@ -306,15 +306,7 @@ Declare list return types with a docblock (`@return list<OrderView>`): the OpenA
 
 ### Custom normalizers
 
-Tollbooth serializes with its own named serializers, one per field case, so the application's `serializer` service and its name converter are left untouched. Symfony registers an application normalizer on the default serializer only. To use one in Tollbooth responses and request bodies as well, tag it for every serializer:
-
-```yaml
-# config/services.yaml
-services:
-    App\Serializer\MoneyNormalizer:
-        tags:
-            - { name: serializer.normalizer, serializer: '*' }
-```
+Tollbooth serializes with its own named serializers, one per field case, so the application's `serializer` service and its name converter are left untouched. An application normalizer tagged `serializer.normalizer` without a `serializer` attribute (the autoconfigured case) is registered on the default serializer and on Tollbooth's ones, so it applies to responses and request bodies too. A normalizer tagged for a named serializer keeps that choice.
 
 ### Errors thrown by a handler
 

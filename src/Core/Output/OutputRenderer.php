@@ -22,7 +22,9 @@ final readonly class OutputRenderer
     public function render(mixed $result, int $status, Envelope $envelope, NameCase $case): Response
     {
         if (null === $result) {
-            return new Response(null, Response::HTTP_OK === $status ? Response::HTTP_NO_CONTENT : $status);
+            return Response::HTTP_OK === $status
+                ? new Response(null, Response::HTTP_NO_CONTENT)
+                : new Response(null, $status, ['Content-Type' => $envelope->contentType()]);
         }
 
         $normalized = $this->serializers->for($case)->normalize($result, 'json');

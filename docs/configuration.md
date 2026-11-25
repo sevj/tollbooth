@@ -283,7 +283,7 @@ See [monitoring.md](monitoring.md).
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `docs.enabled` | bool | `true` | Generate OpenAPI documents and serve the documentation routes. Turning it off also turns off the Changes module, and the dashboard loses its models screen. |
-| `docs.path` | string | `/_tollbooth` | Base path of `<path>/docs/{group}` and `<path>/openapi/{group}.json`. The health report route `<path>/health.json` is also built from this path, even when `docs.enabled` is `false`. |
+| `docs.path` | string | `/_tollbooth` | Base path of `<path>/docs/{group}` and `<path>/openapi/{group}.json`. |
 | `docs.title` | string | `API` | `info.title` of the OpenAPI documents. |
 | `docs.version` | string | `1.0.0` | `info.version` of the OpenAPI documents, and the default version of `tollbooth:contract:snapshot`. |
 | `docs.ui` | bool | `true` | Serve the documentation page. When `false`, only the JSON documents are served. |

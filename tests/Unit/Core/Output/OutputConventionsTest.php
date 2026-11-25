@@ -79,6 +79,8 @@ final class OutputConventionsTest extends TestCase
     {
         self::assertSame(204, $this->render(Envelope::Plain, null, 200)->getStatusCode());
         self::assertSame(202, $this->render(Envelope::Plain, null, 202)->getStatusCode());
+        self::assertSame('application/vnd.api+json', $this->render(Envelope::JsonApi, null, 202)->headers->get('Content-Type'));
+        self::assertFalse($this->render(Envelope::Plain, null, 200)->headers->has('Content-Type'));
     }
 
     private function render(Envelope $envelope, mixed $result, int $status): Response

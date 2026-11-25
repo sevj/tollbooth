@@ -92,7 +92,7 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
         $routes->add(self::ASSET, new Route($base.'/assets/{file}', ['_controller' => AssetController::class], ['file' => '[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)?\.(css|js|woff2|svg)'], methods: ['GET']));
 
         $routes->remove(array_merge(
-            $this->monitoring ? [] : [self::REQUESTS, self::REQUESTS_FEED, self::REQUESTS_EXPORT, self::CONSUMERS, self::CONSUMER, self::KEY_NEW, self::KEY_ROTATE, self::KEY_PLAN, self::KEY_REVOKE],
+            $this->monitoring ? [] : [self::REQUESTS, self::REQUESTS_FEED, self::REQUESTS_EXPORT],
             $this->models ? [] : [self::MODELS, self::MODEL, self::MODEL_SVG],
             $this->changes ? [] : [self::CHANGES],
             $this->health ? [] : [self::HEALTH],

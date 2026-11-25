@@ -22,7 +22,7 @@ The routes are added by the `tollbooth` route loader, so they exist once the end
 | --- | --- | --- | --- |
 | `tollbooth_health_live` | `<health.probe_path>/live`, by default `/_tollbooth/health/live` | GET, HEAD | `200 {"status": "ok"}` as long as PHP answers. Runs no check. |
 | `tollbooth_health_ready` | `<health.probe_path>/ready`, by default `/_tollbooth/health/ready` | GET, HEAD | The overall status and check time. `503` when the status is `critical`, `200` otherwise (`degraded` included). The checks are listed only when the request carries the token. Findings are never computed. |
-| `tollbooth_health` | `<docs.path>/health.json`, by default `/_tollbooth/health.json` | GET | The full report: checks, findings and facts, always `200`. |
+| `tollbooth_health` | `<probe_path>.json`, by default `/_tollbooth/health.json` | GET | The full report: checks, findings and facts, always `200`. |
 
 Every answer is JSON with `Cache-Control: no-store`.
 
@@ -148,7 +148,7 @@ tollbooth:
 | `key_expiry_days` | `14` | API key expiry finding. |
 | `max_lag_minutes` | `10` | `monitoring` check. |
 
-The report path comes from `docs.path` (`<docs.path>/health.json`), not from `probe_path`. See [configuration.md](configuration.md#health).
+The report path is `<probe_path>.json`, next to the probes. See [configuration.md](configuration.md#health).
 
 ## Built-in checks
 
@@ -175,7 +175,7 @@ Findings appear only in the full report, the command and the dashboard, never on
 | Deprecated endpoints still called | monitoring on | info; warning when the sunset is less than 30 days away | Each `#[DeprecatedEndpoint]` called in the last 7 days: *GET /v1/users/{id} is deprecated (sunset 2027-03-01) and was called 1342 times in 7 days by acme-erp, mobile-app, ip:203.0.113.7 and 2 more.* |
 | Expired API keys | always, when the key provider implements `ListableApiKeyProviderInterface` | info | *The API key of "acme-erp" expired on 2026-10-01 and is refused.* |
 | API keys expiring soon | same | warning | Keys expiring within `key_expiry_days` days: *The API key of "acme-erp" expires in 9 days, on 2026-12-04.* |
-| Pages outside any firewall | always | info | For the health report (`<docs.path>/health.json`), the documentation (`<docs.path>/docs`, when docs are on) and the dashboard (`<dashboard.path>/map`, when the dashboard is on): *The dashboard at /_tollbooth/map is outside any firewall: anyone can read it.* Raised when no firewall matches the path, when the matching firewall has `security: false`, or when the security bundle is not installed. A firewall that matches but lets anonymous users through (no `access_control` rule) is not detected. |
+| Pages outside any firewall | always | info | For the health report (`<probe_path>.json`), the documentation (`<docs.path>/docs`, when docs are on) and the dashboard (`<dashboard.path>/map`, when the dashboard is on): *The dashboard at /_tollbooth/map is outside any firewall: anyone can read it.* Raised when no firewall matches the path, when the matching firewall has `security: false`, or when the security bundle is not installed. A second message is raised when a firewall covers the path but no `access_control` rule requires a role for it (none, or only `PUBLIC_ACCESS`): *The dashboard at /_tollbooth/map is behind the "main" firewall, but no access_control rule requires a role for it: anyone can read it.* |
 
 Endpoints are named by their route name in the error rate and unused findings (`tollbooth_<group>_<name>`), and by method and path in the deprecation finding.
 

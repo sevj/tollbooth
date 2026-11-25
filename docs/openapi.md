@@ -31,7 +31,7 @@ tollbooth:
 | Key | Default | Effect |
 | --- | --- | --- |
 | `tollbooth.docs.enabled` | `true` | Turns the module on. The [Changes module](contract-changes.md) and the dashboard's Models screen and request/response panels need it. |
-| `tollbooth.docs.path` | `/_tollbooth` | Base of `<path>/docs/{group}` and `<path>/openapi/{group}.json`. The health report (`<path>/health.json`) also lives under it. |
+| `tollbooth.docs.path` | `/_tollbooth` | Base of `<path>/docs/{group}` and `<path>/openapi/{group}.json`. |
 | `tollbooth.docs.title` | `API` | `info.title`. For a group other than `default`, the title is `<title> · <group>`. |
 | `tollbooth.docs.version` | `1.0.0` | `info.version`. |
 | `tollbooth.docs.ui` | `true` | Serves the HTML page. When `false`, `<path>/docs/{group}` answers 404 and the JSON documents stay available. |
@@ -241,6 +241,7 @@ A component is named after the class short name. When two different schemas woul
 | Return type of `__invoke()` | Success response |
 | --- | --- |
 | `void`, `never` or `null` | `204` with `description: No content.` when the declared status is `200`, otherwise the declared status, without content |
+| a nullable type (`?OrderView`) | The declared status with the schema of the non-null type, plus `204` when the declared status is `200` (a `null` result answers 204) |
 | `BinaryFileResponse` or `StreamedResponse` (or a subclass) | The declared status with an `application/octet-stream` body, schema `{"type": "string", "format": "binary"}` |
 | `JsonResponse` (or a subclass) | The declared status with an `application/json` body and an empty (free-form) schema |
 | any other `Response` | The declared status, without content |
@@ -335,4 +336,3 @@ Building a document uses reflection; it never runs on the request path of your e
 - Query parameters carry no validation keywords; only model properties do.
 - Errors your handler throws on purpose (409, 410, 500…) are not listed.
 - `404` is listed for every endpoint with a path placeholder, whether or not the handler can actually answer it.
-- A nullable return type is documented as the declared status, although a `null` result answers `204` at runtime.

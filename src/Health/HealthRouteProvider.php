@@ -14,7 +14,6 @@ use Tollbooth\Core\Routing\RouteProviderInterface;
 final readonly class HealthRouteProvider implements RouteProviderInterface
 {
     public function __construct(
-        private string $path = '/_tollbooth',
         private string $probePath = '/_tollbooth/health',
     ) {
     }
@@ -25,7 +24,7 @@ final readonly class HealthRouteProvider implements RouteProviderInterface
         $routes = new RouteCollection();
         $routes->add('tollbooth_health_live', new Route($probes.'/live', ['_controller' => HealthController::class.'::live'], methods: ['GET', 'HEAD']));
         $routes->add('tollbooth_health_ready', new Route($probes.'/ready', ['_controller' => HealthController::class.'::ready'], methods: ['GET', 'HEAD']));
-        $routes->add('tollbooth_health', new Route(rtrim($this->path, '/').'/health.json', ['_controller' => HealthController::class.'::report'], methods: ['GET']));
+        $routes->add('tollbooth_health', new Route($probes.'.json', ['_controller' => HealthController::class.'::report'], methods: ['GET']));
 
         return $routes;
     }
