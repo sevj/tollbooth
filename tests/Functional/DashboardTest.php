@@ -64,6 +64,8 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('by <span class="v">Acme ERP</span>', $html);
         self::assertStringContainsString('mostly <span class="v">422 · name: This value should not be blank.</span>', $html);
         self::assertStringContainsString('class="row failing"', $html);
+        self::assertStringContainsString('<span class="e bad">96.2%</span>', $html);
+        self::assertStringContainsString('<span class="n">calls</span><span class="e">errors</span>', $html);
     }
 
     public function testTheEndpointPageShowsItsContractAndItsTraffic(): void

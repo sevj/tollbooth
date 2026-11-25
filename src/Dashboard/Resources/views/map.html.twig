@@ -74,39 +74,34 @@
 <span class="GET">GET</span><span class="POST">POST</span><span class="PATCH">PUT · PATCH</span><span class="DELETE">DELETE</span>
 {% if live %}<span class="mu"><span class="swatch-share"></span>{{ 'dashboard.map.legend.share'|trans }}</span>{% endif %}
 <span class="mu"><span class="swatch-ref"></span>{{ 'dashboard.map.legend.reference'|trans }}</span>
-<span class="mu">{{ live ? 'dashboard.map.legend.live'|trans : 'dashboard.map.legend.structure'|trans }}</span>
 </div>
 </div>
-<div class="canvas-wrap">
-<div class="canvas" style="width: {{ map.diagram.width }}px; height: {{ map.diagram.height }}px">
-<svg class="links" width="{{ map.diagram.width }}" height="{{ map.diagram.height }}" aria-hidden="true">
-{% for edge in map.diagram.edges %}<path d="{{ edge.path }}"></path>{% endfor %}
+<div class="layouts" data-layouts>
+{% for diagram in map.diagrams %}
+<div class="canvas-wrap" data-width="{{ diagram.width }}"{% if not loop.first %} hidden{% endif %}>
+<div class="canvas" style="width: {{ diagram.width }}px; height: {{ diagram.height }}px">
+<svg class="links" width="{{ diagram.width }}" height="{{ diagram.height }}" aria-hidden="true">
+{% for edge in diagram.edges %}<path d="{{ edge.path }}"></path>{% endfor %}
 </svg>
-{% for edge in map.diagram.edges %}
+{% for edge in diagram.edges %}
 <div class="lb{% if edge.labelAlign == 'left' %} left{% endif %}" style="left: {{ edge.labelX }}px; top: {{ edge.labelY }}px; width: {{ edge.labelWidth }}px" title="{{ 'dashboard.map.reference_title'|trans({'%from%': edge.from, '%to%': edge.to, '%label%': edge.label}) }}">{{ edge.label }}</div>
 {% endfor %}
 {% for resource in map.resources %}
-{% set box = map.diagram.boxes[resource.name] %}
+{% set box = diagram.boxes[resource.name] %}
 <div class="blk" style="left: {{ box.x }}px; top: {{ box.y }}px; width: {{ box.width }}px; height: {{ box.height }}px">
-<div class="bh"><strong>{{ resource.title }}</strong><span>{{ resource.endpoints|length }}{% if live %} · {{ resource.calls|tb_compact }}{% endif %}</span></div>
+<div class="bh"><strong>{{ resource.title }}</strong><span>{{ 'dashboard.map.count.endpoints'|trans({'%count%': resource.endpoints|length}) }}{% if live %} · {{ 'dashboard.map.block.calls'|trans({'%count%': resource.calls, '%calls%': resource.calls|tb_compact}) }}{% endif %}</span></div>
+<div class="row-h" aria-hidden="true"><span class="me"></span><span class="pa"></span>{% if live %}<span class="n">{{ 'dashboard.map.column.calls'|trans }}</span><span class="e">{{ 'dashboard.map.column.errors'|trans }}</span><span class="p">p95</span>{% else %}<span class="n">{{ 'dashboard.map.column.status'|trans }}</span><span class="au">{{ 'dashboard.map.column.auth'|trans }}</span>{% endif %}</div>
 {% for endpoint in resource.endpoints %}
 {% set meta = endpoint.metadata %}
 {% set p95 = endpoint.p95 %}
 <a href="{{ path('tollbooth_dashboard_endpoint', {group: map.group, name: meta.name}) }}" class="row{% if live and endpoint.failing %} failing{% endif %}"{% if live %} style="--share: {{ (endpoint.share * 100)|round(1) }}%"{% endif %} data-search-text="{{ (meta.method ~ " " ~ endpoint.path ~ ' ' ~ meta.name ~ ' ' ~ resource.name)|lower }}" title="{{ meta.name }}">
 <span class="me {{ meta.method }}">{{ meta.method }}</span>
-<span class="pa{% if endpoint.deprecated %} gone{% endif %}">{{ endpoint.path }}</span>
+<span class="pa"><span{% if endpoint.deprecated %} class="gone"{% endif %}>{{ endpoint.path }}</span>{% if endpoint.deprecated %}<span class="tag sunset">{{ endpoint.sunset ? 'dashboard.map.tag.sunset'|trans : 'dashboard.map.tag.deprecated'|trans }}</span>{% endif %}{% if live and endpoint.throttling %}<span class="tag throttle" title="{{ 'dashboard.map.throttled_title'|trans({'%count%': endpoint.stats.throttled}) }}"><span>429</span></span>{% endif %}</span>
 {% if not live %}
-<span class="n">{{ meta.status }}</span><span class="p mu">{{ meta.auth|map(a => ('dashboard.auth.' ~ a)|trans)|join('·') }}</span>
-{% else %}
-{% if endpoint.deprecated %}
-<span class="tag sunset">{{ endpoint.sunset ? 'dashboard.map.tag.sunset'|trans : 'dashboard.map.tag.deprecated'|trans }}</span>
-{% elseif endpoint.throttling %}
-<span class="tag throttle" title="{{ 'dashboard.map.throttled_title'|trans({'%count%': endpoint.stats.throttled}) }}"><span>429</span></span>
-{% elseif endpoint.failing %}
-<span class="n bad">{{ endpoint.stats.errorRate|tb_percent(1) }}</span>
+<span class="n">{{ meta.status }}</span><span class="au mu">{{ meta.auth|map(a => ('dashboard.auth.' ~ a)|trans)|join('·') }}</span>
 {% else %}
 <span class="n">{{ endpoint.calls|tb_compact }}</span>
-{% endif %}
+<span class="e{% if endpoint.failing %} bad{% endif %}">{% if endpoint.calls > 0 %}{{ endpoint.stats.errorRate|tb_percent(1) }}{% else %}<span class="mu">—</span>{% endif %}</span>
 <span class="p{% if endpoint.slow %} slow{% endif %}">{% if p95 is not null %}{{ p95|round }}ms{% else %}<span class="mu">—</span>{% endif %}</span>
 {% endif %}
 </a>
@@ -115,8 +110,9 @@
 {% endfor %}
 </div>
 </div>
+{% endfor %}
+</div>
 </section>
-
 {% if live %}
 <section class="panel" aria-labelledby="attention-title">
 <div class="ph"><h2 id="attention-title">{{ 'dashboard.map.attention.title'|trans }}<span class="m">{{ map.attention|length }}</span></h2></div>

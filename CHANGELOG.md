@@ -8,6 +8,13 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Changed
+- The dashboard map shows every path whole: blocks widen to the longest path, and the map switches
+  between three and two columns to fit the screen instead of cutting paths short.
+- Each endpoint row of the map has fixed, labelled columns: calls, error rate and p95 with live
+  traffic, success status and authentication in structure mode. The error rate no longer takes the
+  place of the call count, and deprecation and throttling show as tags next to the path.
+
 ## [0.16.0] - 2026-11-25
 
 ### Added

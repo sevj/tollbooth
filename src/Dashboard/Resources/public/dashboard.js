@@ -111,3 +111,16 @@ for (const form of document.querySelectorAll('form[data-confirm]')) {
     if (!window.confirm(form.dataset.confirm)) event.preventDefault();
   });
 }
+
+for (const layouts of document.querySelectorAll('[data-layouts]')) {
+  const options = [...layouts.children];
+  const pick = () => {
+    const room = layouts.clientWidth - 36;
+    const fit = options.find((option) => Number(option.dataset.width) <= room) ?? options[options.length - 1];
+    for (const option of options) {
+      option.hidden = option !== fit;
+    }
+  };
+  pick();
+  new ResizeObserver(pick).observe(layouts);
+}

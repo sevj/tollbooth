@@ -68,8 +68,12 @@ final readonly class MapBuilder
         $models = null === $document ? null : new ModelReferences($document, $resourceByOperation);
         $references = $models?->references() ?? [];
         $rows = [];
+        $characters = 0;
         foreach ($resources as $resource) {
             $rows[$resource->name] = \count($resource->endpoints);
+            foreach ($resource->endpoints as $endpoint) {
+                $characters = max($characters, $endpoint->characters());
+            }
         }
 
         $overview = null;
@@ -91,7 +95,7 @@ final readonly class MapBuilder
             $resources,
             $references,
             $models?->modelCount() ?? 0,
-            MapLayout::arrange($rows, $references),
+            MapLayout::layouts($rows, $references, MapLayout::blockWidth($characters)),
             $overview,
             $attention,
         );

@@ -15,6 +15,7 @@ final readonly class ApiMap
      * @param list<MapResource> $resources
      * @param list<Reference>   $references
      * @param list<Attention>   $attention
+     * @param list<Diagram>     $diagrams
      */
     public function __construct(
         public string $group,
@@ -23,7 +24,7 @@ final readonly class ApiMap
         public array $resources,
         public array $references,
         public int $models,
-        public Diagram $diagram,
+        public array $diagrams,
         public ?Overview $overview = null,
         public array $attention = [],
     ) {
