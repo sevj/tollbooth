@@ -8,6 +8,22 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-25
+
+### Added
+- Successful `GET` answers of endpoints carry an `ETag` computed from their body, and answer
+  `304 Not Modified` without a body when the request's `If-None-Match` matches it. The OpenAPI document
+  lists the header and the 304. `tollbooth.output.etag: false` turns it off.
+- An endpoint whose `__invoke()` returns a Symfony `Response` is documented as such: a file or a stream
+  (`BinaryFileResponse`, `StreamedResponse`) as an `application/octet-stream` binary body, a
+  `JsonResponse` as a free-form JSON body, any other response without a body schema. These classes no
+  longer appear as models.
+
+### Fixed
+- A call that a Symfony firewall authenticates from an `Authorization: Bearer` header (a personal token
+  read by a custom authenticator, for instance) is accepted by endpoints that allow the `user` method.
+  It used to be taken for a JWT and refused with 401 unless the endpoint also allowed `jwt`.
+
 ## [0.22.0] - 2026-11-25
 
 ### Added

@@ -29,6 +29,7 @@ final readonly class EndpointListener
         private OutputRenderer $renderer,
         private ProblemFactory $problems,
         array $apiPrefixes = [],
+        private bool $etag = true,
     ) {
         $this->apiPrefixes = array_values(array_filter(array_map(static fn (string $prefix): string => rtrim($prefix, '/'), $apiPrefixes)));
     }
@@ -42,12 +43,17 @@ final readonly class EndpointListener
 
         $this->timeHandler($request);
         $start = microtime(true);
-        $event->setResponse($this->renderer->render(
+        $response = $this->renderer->render(
             $event->getControllerResult(),
             EndpointRequest::status($request),
             EndpointRequest::envelope($request),
             EndpointRequest::case($request),
-        ));
+        );
+        if ($this->etag && $request->isMethodCacheable() && Response::HTTP_OK === $response->getStatusCode()) {
+            $response->setEtag(hash('xxh128', (string) $response->getContent()));
+            $response->isNotModified($request);
+        }
+        $event->setResponse($response);
         EndpointRequest::addTiming($request, 'serialize', $start);
     }
 

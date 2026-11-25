@@ -79,9 +79,12 @@ tollbooth:
     output:
         envelope: plain    # plain, data or json_api
         case: preserve     # preserve, snake_case or camel_case
+        etag: true         # ETag on successful GET answers, 304 when If-None-Match matches
 ```
 
 `path_prefix` is prepended to every endpoint path. Any error under it, including a 404 or a 405 from the router, answers problem details.
+
+A successful `GET` answer of an endpoint carries an `ETag` computed from its body. A client that sends it back in `If-None-Match` gets `304 Not Modified` without a body while the answer has not changed. An endpoint that returns a Symfony `Response` itself (a file download, a stream) is sent as it is, without an ETag, and is documented in OpenAPI as a binary or free-form body.
 
 ### Output conventions
 

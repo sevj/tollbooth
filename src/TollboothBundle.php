@@ -159,6 +159,10 @@ final class TollboothBundle extends AbstractBundle
                             ->defaultValue(NameCase::Preserve->value)
                             ->info('Case of field names in request and response bodies.')
                         ->end()
+                        ->booleanNode('etag')
+                            ->defaultTrue()
+                            ->info('Send an ETag with the successful GET answers of endpoints, and answer 304 without a body when If-None-Match matches it.')
+                        ->end()
                     ->end()
                 ->end()
                 ->arrayNode('groups')
@@ -454,7 +458,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig, dashboard: DashboardConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string, etag: bool}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig, dashboard: DashboardConfig} $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -532,7 +536,7 @@ final class TollboothBundle extends AbstractBundle
             ->tag('kernel.event_listener', ['event' => KernelEvents::RESPONSE, 'method' => 'onResponse', 'priority' => -1024]);
 
         $services->set(EndpointListener::class)
-            ->args([service(OutputRenderer::class), service(ProblemFactory::class), self::apiPrefixes($config)])
+            ->args([service(OutputRenderer::class), service(ProblemFactory::class), self::apiPrefixes($config), $config['output']['etag']])
             ->tag('kernel.event_listener', ['event' => KernelEvents::VIEW, 'method' => 'onView', 'priority' => 10])
             ->tag('kernel.event_listener', ['event' => KernelEvents::EXCEPTION, 'method' => 'onException', 'priority' => 10]);
 
@@ -600,7 +604,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string, etag: bool}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig} $config
      */
     private function loadDocs(array $config, ContainerConfigurator $container, bool $debug): void
     {
@@ -617,6 +621,7 @@ final class TollboothBundle extends AbstractBundle
                 self::rateLimited($config['rate_limit']),
                 array_map(static fn (array $group): string => rtrim('/'.trim($group['prefix'], '/'), '/'), $config['groups']),
                 $debug ? null : service('cache.system')->nullOnInvalid(),
+                $config['output']['etag'],
             ]);
 
         $services->set(DocsController::class)
@@ -636,7 +641,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig, dashboard: DashboardConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string, etag: bool}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig, dashboard: DashboardConfig} $config
      */
     private function loadHealth(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -971,7 +976,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{output: array{envelope: string, case: string}, rate_limit: RateLimitConfig, monitoring: MonitoringConfig} $config
+     * @param array{output: array{envelope: string, case: string, etag: bool}, rate_limit: RateLimitConfig, monitoring: MonitoringConfig} $config
      *
      * @return array<string, string>
      */

@@ -16,6 +16,34 @@ final class EndpointTest extends FunctionalTestCase
         self::assertSame(['id' => 7, 'name' => 'Thing 7', 'color' => 'red', 'note' => 'hello', 'unitCount' => 0], $this->json($client));
     }
 
+    public function testSuccessfulReadsCarryAnETagAndAnswer304WhenItMatches(): void
+    {
+        $client = self::createClient();
+        $client->request('GET', '/api/things/7');
+        $etag = $client->getResponse()->headers->get('ETag');
+        self::assertNotNull($etag);
+
+        $client->request('GET', '/api/things/7', server: ['HTTP_IF_NONE_MATCH' => $etag]);
+        self::assertResponseStatusCodeSame(304);
+        self::assertSame('', (string) $client->getResponse()->getContent());
+
+        $client->request('GET', '/api/things/8', server: ['HTTP_IF_NONE_MATCH' => $etag]);
+        self::assertResponseStatusCodeSame(200);
+        $client->request('GET', '/api/things/404');
+        self::assertResponseHeaderNotSame('ETag', (string) $etag);
+        self::assertFalse($client->getResponse()->headers->has('ETag'));
+    }
+
+    public function testAReturnedResponseIsSentAsItIs(): void
+    {
+        $client = self::createClient();
+        $client->request('GET', '/api/things/3/file');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertResponseHeaderSame('Content-Type', 'application/octet-stream');
+        self::assertFalse($client->getResponse()->headers->has('ETag'));
+    }
+
     public function testNonNumericIdDoesNotMatchTheRoute(): void
     {
         $client = self::createClient();
