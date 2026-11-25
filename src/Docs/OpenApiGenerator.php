@@ -58,6 +58,7 @@ final class OpenApiGenerator
         private readonly array $groupPrefixes = [],
         private readonly ?CacheInterface $cache = null,
         private readonly bool $etag = true,
+        private readonly bool $limitsEnforced = true,
     ) {
     }
 
@@ -168,7 +169,7 @@ final class OpenApiGenerator
         }
 
         $auth = array_map(AuthMethod::from(...), $endpoint->auth);
-        $limited = $this->hasPlans || [] !== $endpoint->limits;
+        $limited = $this->limitsEnforced && ($this->hasPlans || [] !== $endpoint->limits);
         $statuses = array_keys(array_filter([
             400 => null !== $body || $this->hasQuery($invoke),
             401 => !\in_array(AuthMethod::Anonymous, $auth, true),
@@ -201,7 +202,7 @@ final class OpenApiGenerator
             }
         }
 
-        if ([] !== $endpoint->limits) {
+        if ($this->limitsEnforced && [] !== $endpoint->limits) {
             $operation['x-rate-limits'] = array_map(static fn (array $limit): array => ['name' => $limit['name'], 'limit' => $limit['limit'], 'window' => $limit['window']], $endpoint->limits);
         }
 
@@ -499,7 +500,7 @@ final class OpenApiGenerator
      */
     private function hasLimits(array $endpoints): bool
     {
-        return $this->hasPlans || [] !== array_filter($endpoints, static fn (EndpointMetadata $endpoint): bool => [] !== $endpoint->limits);
+        return $this->limitsEnforced && ($this->hasPlans || [] !== array_filter($endpoints, static fn (EndpointMetadata $endpoint): bool => [] !== $endpoint->limits));
     }
 
     /**

@@ -9,6 +9,11 @@ of `README.md` for the definition of the public API.
 ## [Unreleased]
 
 ### Fixed
+- With `tollbooth.rate_limit.enabled: false`, the OpenAPI documents and the dashboard pipeline no longer
+  describe group and endpoint limits that nothing counts; with rate limiting on but no plan, the pipeline
+  shows the endpoint's own limits.
+- Rate limit counters are updated under a local file lock when the application configures no
+  `lock.factory`: concurrent calls could be under-counted.
 - Dashboard screens of a disabled module (requests, consumers and keys without monitoring, models without
   docs, changes, health) have no route any more: their URL answered 500 instead of 404.
 - The dashboard's forms compare only the host of the browser's `Origin`: behind a proxy that terminates TLS,
