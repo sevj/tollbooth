@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-25
+
 ### Changed
 - With `tollbooth.rate_limit.doctrine_plans` on, the table now holds every plan: all of them, the ones
   that came from the configuration included, are edited and deleted from the dashboard, which also
