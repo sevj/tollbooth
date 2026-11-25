@@ -8,6 +8,18 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-25
+
+### Security
+- A key presented with the wrong prefix (`tb_live_` for a test key, or the reverse) is refused. Keys declared
+  in configuration take a `test: true` setting for `tb_test_` keys; `tollbooth:api-key:generate --test`
+  prints it.
+- Stored API keys are looked up again on each request: in a long-running worker (FrankenPHP, RoadRunner),
+  a key revoked by another process used to stay valid until the worker restarted.
+- An endpoint that requires scopes and also accepts anonymous calls no longer lets those calls through:
+  they answer 401 with the challenges of the other accepted methods. Before, `[api_key, anonymous]` with
+  a scope refused a key without the scope but accepted a call without any key.
+
 ### Fixed
 - After the sunset, `gone_after_sunset` answers 410 once the caller is authenticated, so monitoring records
   the remaining calls under their consumer instead of the client IP; it no longer applies when the Changes
@@ -47,16 +59,12 @@ of `README.md` for the definition of the public API.
 ### Upgrade notes
 - Add `test: true` to the keys of `tollbooth.auth.api_keys` that start with `tb_test_`: without it, they are
   refused.
-
-### Security
-- A key presented with the wrong prefix (`tb_live_` for a test key, or the reverse) is refused. Keys declared
-  in configuration take a `test: true` setting for `tb_test_` keys; `tollbooth:api-key:generate --test`
-  prints it.
-- Stored API keys are looked up again on each request: in a long-running worker (FrankenPHP, RoadRunner),
-  a key revoked by another process used to stay valid until the worker restarted.
-- An endpoint that requires scopes and also accepts anonymous calls no longer lets those calls through:
-  they answer 401 with the challenges of the other accepted methods. Before, `[api_key, anonymous]` with
-  a scope refused a key without the scope but accepted a call without any key.
+- Endpoints that require scopes and accept `anonymous` now refuse anonymous calls (401). Drop the scope
+  or `anonymous` from those endpoints if open access was intended.
+- The build now stops on mistakes it used to accept (empty `auth` lists, duplicate limit names, endpoint
+  route names taken by Tollbooth's pages, `#[Query]` or `#[Body]` arguments of an unsupported type,
+  `api_key_provider` together with `doctrine_keys`, an `expires_at` that is not a date): fix what the
+  message names.
 
 ## [0.23.1] - 2026-11-25
 
