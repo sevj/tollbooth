@@ -8,6 +8,8 @@ dashboard:
     models: Modèles
     requests: Requêtes
     consumers: Consommateurs
+    changes: Changements
+    health: Santé
     openapi: Spécification OpenAPI
     collector:
       ok: collecteur opérationnel
@@ -260,6 +262,51 @@ dashboard:
       added: ajouté
       changed: modifié
       deprecated: déprécié
+    title: Changements
+    crumb: changements
+    subtitle: le contrat de l'API comparé entre deux versions, lu depuis les métadonnées compilées
+    current: code actuel
+    no_snapshot: Pas encore de snapshot du contrat. Enregistrez-en un à chaque release, cet écran comparera le code avec lui.
+    next: Prochaine version
+    impact_from: "impact mesuré sur les %count% derniers jours de trafic"
+    none: Rien n'a changé pour cette API.
+    impact: "%calls% appels de %consumers%"
+    no_impact: aucun appel sur la période
+    operations: "{0}aucune opération|{1}1 opération|]1,Inf[%count% opérations"
+    ci: En CI
+    ci_sub: fait échouer le build sur une rupture
+    changelog: Changelog pour les consommateurs
+    copy: Copier le Markdown
+    releases: Releases
+    releases_sub: un snapshot par release
+    first: premier snapshot
+    unchanged: aucun changement
+    breaking_count: "{0}0 cassant|{1}1 cassant|]1,Inf[%count% cassants"
+  health:
+    title: Santé
+    crumb: santé
+    status:
+      ok: En bonne santé
+      warning: Dégradé
+      critical: En panne
+    summary: "%warnings% avertissement · %criticals% critique · %checks% vérifications"
+    checked: "vérifié à %time% UTC"
+    copy_probe: Copier l'URL de la sonde
+    run: Relancer
+    checks: Vérifications
+    checks_sub: seuils sous tollbooth.health
+    source:
+      tollbooth: tollbooth
+      application: application · HealthCheckInterface
+    findings: Constats
+    findings_sub: à regarder, ils ne changent pas le statut
+    no_findings: Rien à signaler.
+    facts: Faits
+    probes: Sondes
+    probes_sub: pour les outils de disponibilité et les orchestrateurs
+    live: 200 tant que PHP répond
+    ready: 503 seulement si critique
+    token: le détail n'est montré qu'à une sonde qui envoie le jeton
   consumers:
     title: Consommateurs et quotas
     crumb: consommateurs

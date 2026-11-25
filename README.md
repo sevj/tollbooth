@@ -400,6 +400,8 @@ composer require symfony/twig-bundle symfony/translation
 | `/_tollbooth/requests/{group}` | Recorded calls, newest first, filtered with `endpoint:`, `status:4xx` or `status:429`, `consumer:`, `duration:>100` and `last:15m|1h|24h|7d`, with a live tail and an NDJSON export (`/_tollbooth/requests/{group}.ndjson`). A call opens its detail: consumer, pipeline steps and where it stopped, the limiters at that moment, the response headers and problem body rebuilt from what was recorded |
 | `/_tollbooth/consumers/{group}` | Plans with their limits and keys, who calls what (consumers to resources over 24 hours), and every consumer with its plan, calls, daily quota used, peak per minute against its limit, 429s, errors and last call; filtered by near limit, throttled or idle |
 | `/_tollbooth/consumers/{group}/{consumer}` | One consumer: daily quota with the time it runs out at the current pace, the minute limiter over the last hour, endpoints used, upcoming breaking or risky changes and deprecated endpoints it still calls, and its key (id, expiry, allowed IPs, scopes, last call) |
+| `/_tollbooth/changes/{group}` | The contract of the group compared between the latest snapshot (or any two) and the code: changes by kind with the calls and consumers they touch, the next version, the CI command, a Markdown changelog for consumers and the releases with their breaking changes |
+| `/_tollbooth/status/{group}` | The health report: overall status, each check with its duration, findings, facts and the probes with what they answer without a token |
 
 With monitoring enabled, the map shows the traffic over the last hour, day, week or month (`?range=1h|24h|7d|30d`): requests, error rate, p95 latency, throttled calls and active consumers with their trend; each endpoint's share of its resource's calls, its p95, deprecated endpoints, endpoints throttled or answering errors above `tollbooth.health.error_rate`. A "Needs attention" list names the deprecated endpoints still called and by whom, the endpoints that fail (with their most frequent error), those hitting quotas and those whose p95 rose by half against the previous 7 days. `?mode=structure` shows the declared status and authentication instead.
 
@@ -436,7 +438,7 @@ The public API is the contract host applications and API clients rely on:
 - the health routes and the shape of their JSON, and the `tollbooth:health` command;
 - the monitoring tables: a change to their schema is announced with the SQL to run;
 - the documentation routes (`<docs.path>/docs/{group}`, `<docs.path>/openapi/{group}.json`); the content of the OpenAPI documents follows the endpoints and is not itself versioned;
-- the dashboard routes (`<dashboard.path>`, `<dashboard.path>/map/{group}`, `<dashboard.path>/endpoints/{group}/{name}`, `<dashboard.path>/models/{group}/{model}`, `<dashboard.path>/requests/{group}` and `<dashboard.path>/consumers/{group}`); what the pages show and how they look is not versioned;
+- the dashboard routes (`<dashboard.path>`, `<dashboard.path>/map/{group}`, `<dashboard.path>/endpoints/{group}/{name}`, `<dashboard.path>/models/{group}/{model}`, `<dashboard.path>/requests/{group}`, `<dashboard.path>/consumers/{group}`, `<dashboard.path>/changes/{group}` and `<dashboard.path>/status/{group}`); what the pages show and how they look is not versioned;
 - the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, rate limit headers and the `limiters` list, and the problem details shape.
 
 Anything else is internal and may change in any release.

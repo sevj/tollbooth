@@ -56,8 +56,10 @@ use Tollbooth\Dashboard\Changes\ContractChanges;
 use Tollbooth\Dashboard\Consumers\ConsumerDirectory;
 use Tollbooth\Dashboard\Consumers\ConsumerInsights;
 use Tollbooth\Dashboard\Controller\AssetController;
+use Tollbooth\Dashboard\Controller\ChangesController;
 use Tollbooth\Dashboard\Controller\ConsumersController;
 use Tollbooth\Dashboard\Controller\EndpointController;
+use Tollbooth\Dashboard\Controller\HealthController as DashboardHealthController;
 use Tollbooth\Dashboard\Controller\HomeController;
 use Tollbooth\Dashboard\Controller\MapController;
 use Tollbooth\Dashboard\Controller\ModelsController;
@@ -714,10 +716,22 @@ final class TollboothBundle extends AbstractBundle
                 $config['docs']['enabled'] && $config['docs']['ui'] ? DocsRouteProvider::PAGE_ROUTE : null,
                 $config['docs']['enabled'] ? service(ModelCatalogFactory::class) : null,
                 $monitoring,
+                $config['changes']['enabled'] && $config['docs']['enabled'] ? service(ContractChanges::class) : null,
+                $config['health']['enabled'],
             ]);
         if ($config['changes']['enabled'] && $config['docs']['enabled']) {
             $services->set(ContractChanges::class)
-                ->args([service(CurrentContract::class), service(SnapshotStore::class)]);
+                ->args([service(CurrentContract::class), service(SnapshotStore::class), service('cache.app')->nullOnInvalid(), param(EndpointPass::HASH_PARAMETER)]);
+            $services->set(ChangesController::class)
+                ->args([service(ContractChanges::class), service(Impact::class), service(GroupCatalog::class), service(Shell::class), service('twig')])
+                ->public()
+                ->tag('controller.service_arguments');
+        }
+        if ($config['health']['enabled']) {
+            $services->set(DashboardHealthController::class)
+                ->args([service(HealthRunner::class), service(GroupCatalog::class), service(Shell::class), service('twig'), service('router')])
+                ->public()
+                ->tag('controller.service_arguments');
         }
         if ($monitoring) {
             $plans = [];
