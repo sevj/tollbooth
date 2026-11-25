@@ -13,6 +13,7 @@ use Tollbooth\Dashboard\Controller\ConsumersController;
 use Tollbooth\Dashboard\Controller\EndpointController;
 use Tollbooth\Dashboard\Controller\HealthController;
 use Tollbooth\Dashboard\Controller\HomeController;
+use Tollbooth\Dashboard\Controller\KeysController;
 use Tollbooth\Dashboard\Controller\MapController;
 use Tollbooth\Dashboard\Controller\ModelsController;
 use Tollbooth\Dashboard\Controller\RequestsController;
@@ -35,6 +36,10 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
     public const string REQUESTS_EXPORT = 'tollbooth_dashboard_requests_export';
     public const string CONSUMERS = 'tollbooth_dashboard_consumers';
     public const string CONSUMER = 'tollbooth_dashboard_consumer';
+    public const string KEY_NEW = 'tollbooth_dashboard_key_new';
+    public const string KEY_ROTATE = 'tollbooth_dashboard_key_rotate';
+    public const string KEY_PLAN = 'tollbooth_dashboard_key_plan';
+    public const string KEY_REVOKE = 'tollbooth_dashboard_key_revoke';
     public const string CHANGES = 'tollbooth_dashboard_changes';
     public const string HEALTH = 'tollbooth_dashboard_health';
     public const string ASSET = 'tollbooth_dashboard_asset';
@@ -61,6 +66,10 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
         $routes->add(self::REQUESTS_FEED, new Route($base.'/requests/{group}/feed', ['_controller' => RequestsController::class.'::feed'], $group, methods: ['GET']));
         $routes->add(self::REQUESTS, new Route($base.'/requests/{group}', ['_controller' => RequestsController::class.'::page'], $group, methods: ['GET']));
         $routes->add(self::CONSUMERS, new Route($base.'/consumers/{group}', ['_controller' => ConsumersController::class.'::list'], $group, methods: ['GET']));
+        $routes->add(self::KEY_NEW, new Route($base.'/consumers/{group}/keys/new', ['_controller' => KeysController::class.'::create'], $group, methods: ['GET', 'POST']));
+        foreach (['rotate' => self::KEY_ROTATE, 'plan' => self::KEY_PLAN, 'revoke' => self::KEY_REVOKE] as $action => $name) {
+            $routes->add($name, new Route($base.'/consumers/{group}/{consumer}/'.$action, ['_controller' => KeysController::class.'::'.$action], [...$group, 'consumer' => '[^/]+'], methods: ['POST']));
+        }
         $routes->add(self::CONSUMER, new Route($base.'/consumers/{group}/{consumer}', ['_controller' => ConsumersController::class.'::page'], [...$group, 'consumer' => '[^/]+'], methods: ['GET']));
         $routes->add(self::CHANGES, new Route($base.'/changes/{group}', ['_controller' => ChangesController::class], $group, methods: ['GET']));
         $routes->add(self::HEALTH, new Route($base.'/status/{group}', ['_controller' => HealthController::class], $group, methods: ['GET']));

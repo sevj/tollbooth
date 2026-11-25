@@ -93,7 +93,7 @@ final class DemoKernel extends Kernel
 
         $container->extension('tollbooth', [
             'path_prefix' => '/api',
-            'auth' => ['default' => ['api_key'], 'api_keys' => DemoKeys::config()],
+            'auth' => ['default' => ['api_key'], 'api_keys' => DemoKeys::config(), 'doctrine_keys' => ['enabled' => true, 'connection' => 'monitoring']],
             'groups' => [
                 'shop' => [
                     'namespace' => 'Tollbooth\\Demo\\Api\\Shop',

@@ -75,7 +75,7 @@ What Tollbooth does today, what is being built and what comes next. The dashboar
 
 ## Next
 
-### 1.0 · Dashboard (in progress)
+### 1.0 · Dashboard
 Twig, rendered on the server, assets shipped prebuilt, every string translated (`en`, `fr`).
 - [x] Map: resources, traffic overlay, model references, "needs attention", Mermaid export
 - [x] Endpoint: pipeline, declaration, body, responses, examples, latency, status codes, consumers, errors
@@ -83,7 +83,7 @@ Twig, rendered on the server, assets shipped prebuilt, every string translated (
 - [x] Requests: live tail, filters, call detail with limiter state, NDJSON export
 - [x] Consumers and a consumer page: quotas, minute limiter, endpoints used, upcoming changes, key
 - [x] Changes and Health screens
-- [ ] API key management from the UI, with a Doctrine key provider
+- [x] API key management from the UI, with a Doctrine key provider
 
 ## Later
 - [ ] HMAC request signatures and mTLS consumers

@@ -9,6 +9,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Tollbooth\Dashboard\Assets;
 use Tollbooth\Dashboard\DashboardRouteProvider;
 use Tollbooth\Dashboard\Endpoint\PhpHighlighter;
+use Tollbooth\Dashboard\Keys\FormGuard;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
@@ -21,6 +22,7 @@ final class DashboardExtension extends AbstractExtension
     public function __construct(
         private readonly Assets $assets,
         private readonly UrlGeneratorInterface $urls,
+        private readonly ?FormGuard $guard = null,
     ) {
     }
 
@@ -40,6 +42,7 @@ final class DashboardExtension extends AbstractExtension
     {
         return [
             new TwigFunction('tb_asset', $this->asset(...)),
+            new TwigFunction('tb_token', fn (string $action, string $subject = ''): string => $this->guard?->token($action, $subject) ?? ''),
             new TwigFunction('tb_sparkline', Format::sparkline(...)),
             new TwigFunction('tb_php', PhpHighlighter::highlight(...), ['is_safe' => ['html']]),
             new TwigFunction('tb_json', Format::json(...), ['is_safe' => ['html']]),

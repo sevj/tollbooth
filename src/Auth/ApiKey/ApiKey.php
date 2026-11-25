@@ -18,6 +18,8 @@ final readonly class ApiKey
         public ?string $plan = null,
         public ?\DateTimeImmutable $expiresAt = null,
         public array $allowedIps = [],
+        public ?\DateTimeImmutable $createdAt = null,
+        public bool $test = false,
     ) {
     }
 

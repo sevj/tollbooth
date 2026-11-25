@@ -9,14 +9,21 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Tollbooth\Auth\ApiKey\ApiKey;
 use Tollbooth\Auth\ApiKey\ApiKeyFormat;
+use Tollbooth\Auth\ApiKey\ManageableApiKeyProviderInterface;
 
 /**
  * @internal
  */
 #[AsCommand('tollbooth:api-key:generate', 'Generate an API key and print its configuration')]
-final class GenerateApiKeyCommand
+final readonly class GenerateApiKeyCommand
 {
+    public function __construct(
+        private ?ManageableApiKeyProviderInterface $store = null,
+    ) {
+    }
+
     /**
      * @param list<string> $scope
      */
@@ -26,8 +33,22 @@ final class GenerateApiKeyCommand
         #[Option('Scope granted to the key, repeatable')] array $scope = [],
         #[Option('Plan of the consumer')] ?string $plan = null,
         #[Option('Generate a tb_test_ key instead of a tb_live_ one')] bool $test = false,
+        #[Option('Save the key in the database instead of printing its configuration')] bool $store = false,
     ): int {
         $generated = ApiKeyFormat::generate(!$test);
+
+        if ($store) {
+            if (null === $this->store) {
+                $io->error('Keys are not stored in a database. Enable tollbooth.auth.doctrine_keys first.');
+
+                return Command::FAILURE;
+            }
+            $this->store->save(new ApiKey($generated['id'], $name, $generated['hash'], $scope, $plan, createdAt: new \DateTimeImmutable(), test: $test));
+            $io->success('The key is saved. Give it to the consumer now: it cannot be shown again.');
+            $io->writeln('  '.$generated['key']);
+
+            return Command::SUCCESS;
+        }
 
         $io->success('Give this key to the consumer now. It is not stored and cannot be shown again.');
         $io->writeln('  '.$generated['key']);

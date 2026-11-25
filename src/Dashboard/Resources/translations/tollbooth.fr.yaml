@@ -386,3 +386,44 @@ dashboard:
     hour: '{1}heure|]1,Inf[%count% heures'
     minute: '{1}min|]1,Inf[%count% min'
     second: '{1}s|]1,Inf[%count% s'
+  keys:
+    new: Nouvelle clé d'API
+    new_crumb: nouvelle clé
+    new_sub: La clé n'est affichée qu'une fois, seul son hachage est conservé.
+    name: Nom
+    name_help: Le nom du consommateur, tel qu'il apparaît dans le monitoring et le tableau de bord.
+    plan: Plan
+    no_plan: plan par défaut
+    scopes: Scopes
+    scopes_help: Séparés par des espaces ou des virgules.
+    expires: Expire le
+    expires_help: Laissez vide pour une clé qui n'expire pas.
+    ips: IP autorisées
+    ips_help: Adresses ou plages, séparées par des espaces ou des virgules. Laissez vide pour accepter toute adresse.
+    test: Clé de test (préfixe tb_test_)
+    cancel: Annuler
+    create: Créer la clé
+    error:
+      name_format: 'Lettres, chiffres, points, tirets et soulignés, 64 au plus.'
+      name_taken: Une clé porte déjà ce nom.
+      plan_unknown: Ce plan n'existe pas.
+      scope_format: Un scope contient des caractères non autorisés.
+      expires_format: Utilisez une date comme 2027-03-01.
+      expires_past: La date doit être dans le futur.
+      ip_format: Une adresse ou une plage n'est pas valide.
+    issued: clé
+    created: Clé créée pour %name%
+    rotated: Nouvelle clé pour %name%
+    once: Copiez-la maintenant. Elle n'est pas stockée et ne pourra plus être affichée.
+    copy: Copier la clé
+    created_note: Transmettez-la au consommateur par un canal sûr.
+    rotated_note: L'ancienne clé a cessé de fonctionner dès la création de celle-ci. Envoyez-la au consommateur maintenant.
+    open: Voir le consommateur
+    back: Retour aux consommateurs
+    rotate: Renouveler la clé
+    change_plan: Changer de plan
+    revoke: Révoquer
+    confirm_rotate: "Renouveler la clé de %name% ? La clé actuelle cessera aussitôt de fonctionner."
+    confirm_revoke: "Révoquer la clé de %name% ? Tous les appels avec elle seront refusés."
+    configured: déclarée dans la configuration, en lecture seule
+    revoked: 'La clé de %name% est révoquée.'

@@ -18,10 +18,15 @@ use Symfony\Component\Translation\Translator;
 use Tollbooth\Auth\AccessListener;
 use Tollbooth\Auth\ApiKey\ApiKeyAuthenticator;
 use Tollbooth\Auth\ApiKey\ApiKeyProviderInterface;
+use Tollbooth\Auth\ApiKey\ChainApiKeyProvider;
 use Tollbooth\Auth\ApiKey\InMemoryApiKeyProvider;
+use Tollbooth\Auth\ApiKey\ManageableApiKeyProviderInterface;
 use Tollbooth\Auth\Command\GenerateApiKeyCommand;
+use Tollbooth\Auth\Command\SetupApiKeysCommand;
 use Tollbooth\Auth\ConsumerValueResolver;
+use Tollbooth\Auth\Doctrine\DoctrineApiKeyStore;
 use Tollbooth\Auth\Health\ApiKeyFindings;
+use Tollbooth\Auth\Health\ApiKeyStoreCheck;
 use Tollbooth\Auth\TokenConsumerResolver;
 use Tollbooth\Changes\Command\DiffCommand;
 use Tollbooth\Changes\Command\SnapshotCommand;
@@ -61,12 +66,14 @@ use Tollbooth\Dashboard\Controller\ConsumersController;
 use Tollbooth\Dashboard\Controller\EndpointController;
 use Tollbooth\Dashboard\Controller\HealthController as DashboardHealthController;
 use Tollbooth\Dashboard\Controller\HomeController;
+use Tollbooth\Dashboard\Controller\KeysController;
 use Tollbooth\Dashboard\Controller\MapController;
 use Tollbooth\Dashboard\Controller\ModelsController;
 use Tollbooth\Dashboard\Controller\RequestsController;
 use Tollbooth\Dashboard\DashboardRouteProvider;
 use Tollbooth\Dashboard\Endpoint\EndpointPageBuilder;
 use Tollbooth\Dashboard\GroupCatalog;
+use Tollbooth\Dashboard\Keys\FormGuard;
 use Tollbooth\Dashboard\LocaleListener;
 use Tollbooth\Dashboard\Map\MapBuilder;
 use Tollbooth\Dashboard\Map\Thresholds;
@@ -109,7 +116,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
  * @phpstan-import-type GroupConfig from GroupResolver
  * @phpstan-import-type ApiKeyConfig from InMemoryApiKeyProvider
  *
- * @phpstan-type AuthConfig array{default: list<string>, api_key_header: string, api_key_provider: ?string, api_keys: array<string, ApiKeyConfig>}
+ * @phpstan-type AuthConfig array{default: list<string>, api_key_header: string, api_key_provider: ?string, api_keys: array<string, ApiKeyConfig>, doctrine_keys: array{enabled: bool, connection: string, table_prefix: string}}
  * @phpstan-type MonitoringConfig array{enabled: bool, connection: string, table_prefix: string, calls_retention_days: int, aggregates_retention_days: int, auto_maintenance: bool, cache_pool: string}
  * @phpstan-type DocsConfig array{enabled: bool, path: string, title: string, version: string, ui: bool}
  * @phpstan-type ChangesConfig array{enabled: bool, directory: string, impact_days: int, gone_after_sunset: bool}
@@ -235,6 +242,17 @@ final class TollboothBundle extends AbstractBundle
                                     ->scalarNode('expires_at')->defaultNull()->end()
                                     ->arrayNode('allowed_ips')->scalarPrototype()->end()->end()
                                 ->end()
+                            ->end()
+                        ->end()
+                        ->arrayNode('doctrine_keys')
+                            ->canBeEnabled()
+                            ->info('Also read API keys from a database table, where the dashboard and tollbooth:api-key:generate --store create, rotate and revoke them. Keys listed in "api_keys" keep working and stay read-only.')
+                            ->children()
+                                ->scalarNode('connection')
+                                    ->defaultValue('default')
+                                    ->info('Doctrine DBAL connection name or service id.')
+                                ->end()
+                                ->scalarNode('table_prefix')->defaultValue('tollbooth_')->end()
                             ->end()
                         ->end()
                     ->end()
@@ -514,7 +532,20 @@ final class TollboothBundle extends AbstractBundle
 
         $services->set(InMemoryApiKeyProvider::class)
             ->args([$auth['api_keys']]);
-        $services->alias(ApiKeyProviderInterface::class, $auth['api_key_provider'] ?? InMemoryApiKeyProvider::class);
+
+        $stored = $auth['doctrine_keys']['enabled'];
+        if ($stored) {
+            if (!class_exists(Connection::class)) {
+                throw new \LogicException('Tollbooth stores API keys with Doctrine DBAL. Run "composer require doctrine/dbal", or disable tollbooth.auth.doctrine_keys.');
+            }
+            $connection = $auth['doctrine_keys']['connection'];
+            $services->set(DoctrineApiKeyStore::class)
+                ->args([service(str_contains($connection, '.') ? $connection : 'doctrine.dbal.'.$connection.'_connection'), $auth['doctrine_keys']['table_prefix']]);
+            $services->set(ChainApiKeyProvider::class)
+                ->args([service(InMemoryApiKeyProvider::class), service(DoctrineApiKeyStore::class)]);
+            $services->alias(ManageableApiKeyProviderInterface::class, ChainApiKeyProvider::class);
+        }
+        $services->alias(ApiKeyProviderInterface::class, $auth['api_key_provider'] ?? ($stored ? ChainApiKeyProvider::class : InMemoryApiKeyProvider::class));
 
         $services->set(ApiKeyAuthenticator::class)
             ->args([service(ApiKeyProviderInterface::class), $auth['api_key_header'], service('clock')->nullOnInvalid()]);
@@ -531,7 +562,13 @@ final class TollboothBundle extends AbstractBundle
 
         if (class_exists(Application::class)) {
             $services->set(GenerateApiKeyCommand::class)
+                ->args([$stored ? service(ManageableApiKeyProviderInterface::class) : null])
                 ->tag('console.command');
+            if ($stored) {
+                $services->set(SetupApiKeysCommand::class)
+                    ->args([service(DoctrineApiKeyStore::class)])
+                    ->tag('console.command');
+            }
         }
     }
 
@@ -587,6 +624,12 @@ final class TollboothBundle extends AbstractBundle
             $services->set(CounterStorageCheck::class)
                 ->args([service($config['rate_limit']['cache_pool']), $config['rate_limit']['cache_pool']])
                 ->tag(self::INTERNAL_CHECK, ['priority' => 80]);
+        }
+
+        if ($config['auth']['doctrine_keys']['enabled']) {
+            $services->set(ApiKeyStoreCheck::class)
+                ->args([service(DoctrineApiKeyStore::class)])
+                ->tag(self::INTERNAL_CHECK, ['priority' => 55]);
         }
 
         if ($config['monitoring']['enabled']) {
@@ -768,9 +811,25 @@ final class TollboothBundle extends AbstractBundle
                     service(Shell::class),
                     service('twig'),
                     service('translator'),
+                    $config['auth']['doctrine_keys']['enabled'] ? service(ManageableApiKeyProviderInterface::class) : null,
                 ])
                 ->public()
                 ->tag('controller.service_arguments');
+            if ($config['auth']['doctrine_keys']['enabled']) {
+                $services->set(KeysController::class)
+                    ->args([
+                        service(ManageableApiKeyProviderInterface::class),
+                        service(ConsumerDirectory::class),
+                        service(FormGuard::class),
+                        service(GroupCatalog::class),
+                        service(Shell::class),
+                        service('twig'),
+                        service('router'),
+                        service('clock')->nullOnInvalid(),
+                    ])
+                    ->public()
+                    ->tag('controller.service_arguments');
+            }
             $services->set(RequestsController::class)
                 ->args([
                     service(CallReaderInterface::class),
@@ -828,8 +887,10 @@ final class TollboothBundle extends AbstractBundle
             ->public()
             ->tag('controller.service_arguments');
 
+        $services->set(FormGuard::class)
+            ->args([param('kernel.secret')]);
         $services->set(DashboardExtension::class)
-            ->args([service(Assets::class), service('router')])
+            ->args([service(Assets::class), service('router'), service(FormGuard::class)])
             ->tag('twig.extension');
         $services->set(LocaleListener::class)
             ->args([$config['dashboard']['locale']])

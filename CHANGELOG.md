@@ -8,6 +8,24 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- API keys can be stored in a database table (`tollbooth.auth.doctrine_keys`), next to the keys declared
+  in the configuration, which keep working and stay read-only. `tollbooth:api-key:setup` creates the
+  table (or prints its SQL with `--dump-sql`), and `tollbooth:api-key:generate --store` saves a new key
+  in it.
+- API key management in the dashboard: "New API key" on the consumers screen creates a key with its
+  plan, scopes, expiry, allowed addresses and live or test prefix and shows it once; a consumer's page
+  rotates its key (same id, new secret), changes its plan or revokes it. The forms carry a token signed
+  with `kernel.secret` and are refused when the browser reports another origin.
+- `ManageableApiKeyProviderInterface`, for providers that can save and remove keys, and the optional
+  `createdAt` and `test` properties of `ApiKey`.
+- A health check turns critical when the table of API keys cannot be read.
+
+### Upgrade notes
+- To manage keys from the dashboard, enable `tollbooth.auth.doctrine_keys` and run
+  `bin/console tollbooth:api-key:setup`. Until the table exists, calls with a key not declared in the
+  configuration fail.
+
 ## [0.15.1] - 2026-11-25
 
 ### Fixed
