@@ -55,6 +55,7 @@ final class DemoKeys
                 'plan' => $consumer['plan'],
                 'expires_at' => $consumer['expires_at'] ?? null,
                 'allowed_ips' => $consumer['allowed_ips'] ?? null,
+                'test' => ($consumer['test'] ?? false) ?: null,
             ], static fn (mixed $value): bool => null !== $value);
         }
 

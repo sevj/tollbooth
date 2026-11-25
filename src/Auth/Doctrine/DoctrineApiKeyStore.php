@@ -7,13 +7,14 @@ namespace Tollbooth\Auth\Doctrine;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
+use Symfony\Contracts\Service\ResetInterface;
 use Tollbooth\Auth\ApiKey\ApiKey;
 use Tollbooth\Auth\ApiKey\ManageableApiKeyProviderInterface;
 
 /**
  * @internal
  */
-final class DoctrineApiKeyStore implements ManageableApiKeyProviderInterface
+final class DoctrineApiKeyStore implements ManageableApiKeyProviderInterface, ResetInterface
 {
     private string $table;
 
@@ -82,6 +83,11 @@ final class DoctrineApiKeyStore implements ManageableApiKeyProviderInterface
     {
         $this->connection->delete($this->table, ['id' => $id]);
         $this->found[$id] = null;
+    }
+
+    public function reset(): void
+    {
+        $this->found = [];
     }
 
     public function manages(string $id): bool

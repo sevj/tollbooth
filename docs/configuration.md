@@ -51,6 +51,7 @@ tollbooth:
                 plan: null
                 expires_at: null
                 allowed_ips: []
+                test: false
         doctrine_keys:
             enabled: false
             connection: default
@@ -186,14 +187,15 @@ The Auth module is always loaded: it has no `enabled` key.
 | --- | --- | --- | --- |
 | `auth.default` | list of strings | `[api_key]` | Methods accepted by endpoints whose group and class declare none. Values: `api_key`, `jwt`, `user`, `anonymous`. |
 | `auth.api_key_header` | string | `X-Api-Key` | Request header carrying the API key. Also used in the `WWW-Authenticate` challenge, the OpenAPI security scheme and the dashboard's example calls. |
-| `auth.api_key_provider` | string or null | `null` | Service id of an implementation of `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface` that replaces the built-in lookup. `null` uses the keys of `api_keys`, plus the table when `doctrine_keys` is on. |
+| `auth.api_key_provider` | string or null | `null` | Service id of an implementation of `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface` that replaces the built-in lookup. `null` uses the keys of `api_keys`, plus the table when `doctrine_keys` is on. When the service implements `ManageableApiKeyProviderInterface`, the dashboard and `generate --store` manage keys with it. Cannot be combined with `doctrine_keys` (the build stops). |
 | `auth.api_keys` | map | `{}` | API keys declared in configuration, keyed by consumer name. Read-only. |
 | `auth.api_keys.<name>.id` | string, required | none | The 12 character key id, as printed by `tollbooth:api-key:generate`. Cannot be empty. |
 | `auth.api_keys.<name>.hash` | string, required | none | SHA-256 hex digest of the secret part of the key. Cannot be empty. |
 | `auth.api_keys.<name>.scopes` | list of strings | `[]` | Scopes granted to the key. |
 | `auth.api_keys.<name>.plan` | string or null | `null` | Rate limit plan of the consumer. `null`, or a plan that does not exist, falls back to `rate_limit.default_plan`. Not validated at build time. |
-| `auth.api_keys.<name>.expires_at` | string or null | `null` | Date or date-time parsed by `new \DateTimeImmutable()`, for instance `'2027-03-02'` (midnight at the start of that day, in PHP's default timezone). From that instant the key is refused. An unparsable value makes every API key lookup throw, so every call with an API key fails with a 500. |
+| `auth.api_keys.<name>.expires_at` | string or null | `null` | Date or date-time parsed by `new \DateTimeImmutable()`, for instance `'2027-03-02'` (midnight at the start of that day, in PHP's default timezone). From that instant the key is refused. A value that is not a date stops the build. |
 | `auth.api_keys.<name>.allowed_ips` | list of strings | `[]` | IP addresses or CIDR ranges (IPv4 or IPv6) the key may be used from. Empty allows any address. Checked against `Request::getClientIp()`, so configure `framework.trusted_proxies` behind a proxy. |
+| `auth.api_keys.<name>.test` | bool | `false` | Whether the key was generated with `--test` (`tb_test_` prefix). A key presented with the other prefix is refused. |
 | `auth.doctrine_keys.enabled` | bool | `false` | Also read API keys from a database table, where the dashboard and `tollbooth:api-key:generate --store` create, rotate, re-plan and revoke them. Keys of `api_keys` keep working and stay read-only. Requires `doctrine/dbal`. |
 | `auth.doctrine_keys.connection` | string | `default` | Doctrine DBAL connection. A value without a dot is a DoctrineBundle connection name (`doctrine.dbal.<name>_connection`); a value with a dot is used as a service id. |
 | `auth.doctrine_keys.table_prefix` | string | `tollbooth_` | Prefix of the table name; the table is `<prefix>api_key`. |
@@ -217,7 +219,7 @@ tollbooth:
             table_prefix: tollbooth_
 ```
 
-When `api_key_provider` is set together with `doctrine_keys`, your provider answers the authentication lookups, while the dashboard, `tollbooth:api-key:generate --store` and the stored-key health check keep using the configured keys plus the table. See [authentication.md](authentication.md) for the full behaviour.
+`api_key_provider` and `doctrine_keys` cannot be set together: the build stops with a message, since keys saved in the table would never authenticate. See [authentication.md](authentication.md) for the full behaviour.
 
 ## `rate_limit`
 

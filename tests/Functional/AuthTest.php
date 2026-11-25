@@ -28,6 +28,7 @@ final class AuthTest extends FunctionalTestCase
         yield 'malformed' => ['not-a-key', 'The API key is not valid.'];
         yield 'unknown id' => ['tb_test_unknown00001_RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'The API key is not valid.'];
         yield 'wrong secret' => ['tb_test_reader000001_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', 'The API key is not valid.'];
+        yield 'live prefix on a test key' => ['tb_live_reader000001_RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR', 'The API key is not valid.'];
         yield 'expired' => [TestKeys::EXPIRED, 'The API key has expired.'];
         yield 'outside allowed IPs' => [TestKeys::RESTRICTED, 'The API key is not allowed from this address.'];
     }

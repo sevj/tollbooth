@@ -212,7 +212,7 @@ bin/console tollbooth:api-key:setup                  # creates tollbooth_api_key
 bin/console tollbooth:api-key:generate acme-erp --plan=pro --store
 ```
 
-Keys declared under `api_keys` keep working next to them and stay read-only. A provider of your own can support the same management by implementing `ManageableApiKeyProviderInterface` (`save()`, `remove()`, `manages()`). The health report turns critical when the table cannot be read.
+Keys declared under `api_keys` keep working next to them and stay read-only. A provider of your own (`auth.api_key_provider`) gets the same management when it implements `ManageableApiKeyProviderInterface` (`save()`, `remove()`, `manages()`); it cannot be combined with `doctrine_keys`. A `tb_test_` key declared in configuration needs `test: true`. The health report turns critical when the table cannot be read.
 
 On the dashboard, "New API key" on the consumers screen asks for a name, plan, scopes, expiry date, allowed addresses and live or test prefix, then shows the key once. A consumer's page can rotate its key (same id, new secret; the old one stops working at once), change its plan or revoke it. These forms carry a token signed with `kernel.secret` and are refused when the browser says they come from another site.
 

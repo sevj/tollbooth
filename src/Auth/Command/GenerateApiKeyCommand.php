@@ -12,6 +12,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Tollbooth\Auth\ApiKey\ApiKey;
 use Tollbooth\Auth\ApiKey\ApiKeyFormat;
 use Tollbooth\Auth\ApiKey\ManageableApiKeyProviderInterface;
+use Tollbooth\Core\RateLimit\PlanCatalogInterface;
 
 /**
  * @internal
@@ -21,6 +22,7 @@ final readonly class GenerateApiKeyCommand
 {
     public function __construct(
         private ?ManageableApiKeyProviderInterface $store = null,
+        private ?PlanCatalogInterface $plans = null,
     ) {
     }
 
@@ -35,13 +37,26 @@ final readonly class GenerateApiKeyCommand
         #[Option('Generate a tb_test_ key instead of a tb_live_ one')] bool $test = false,
         #[Option('Save the key in the database instead of printing its configuration')] bool $store = false,
     ): int {
+        if (null !== $plan && null !== $this->plans && !\in_array($plan, $this->plans->names(), true)) {
+            $io->error(\sprintf('There is no plan "%s". Known plans: %s.', $plan, implode(', ', $this->plans->names()) ?: 'none'));
+
+            return Command::FAILURE;
+        }
+
         $generated = ApiKeyFormat::generate(!$test);
 
         if ($store) {
             if (null === $this->store) {
-                $io->error('Keys are not stored in a database. Enable tollbooth.auth.doctrine_keys first.');
+                $io->error('Keys are not stored in a database. Enable tollbooth.auth.doctrine_keys, or use a key provider implementing ManageableApiKeyProviderInterface.');
 
                 return Command::FAILURE;
+            }
+            foreach ($this->store->all() as $existing) {
+                if (0 === strcasecmp($existing->name, $name)) {
+                    $io->error(\sprintf('A key is already named "%s". Pick another name, or rotate that key from the dashboard.', $existing->name));
+
+                    return Command::FAILURE;
+                }
             }
             $this->store->save(new ApiKey($generated['id'], $name, $generated['hash'], $scope, $plan, createdAt: new \DateTimeImmutable(), test: $test));
             $io->success('The key is saved. Give it to the consumer now: it cannot be shown again.');
@@ -64,6 +79,7 @@ final readonly class GenerateApiKeyCommand
             \sprintf('                hash: %s', $generated['hash']),
             [] === $scope ? null : \sprintf('                scopes: [%s]', implode(', ', $scope)),
             null === $plan ? null : \sprintf('                plan: %s', $plan),
+            $test ? '                test: true' : null,
         ])));
 
         return Command::SUCCESS;
