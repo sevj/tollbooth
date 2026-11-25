@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-25
+
 ### Fixed
 - Lists of objects in a `#[Body]` (`@param list<OrderItemInput> $items`) were left as arrays of arrays
   unless the application happened to install `phpdocumentor/type-resolver`, because FrameworkBundle only
