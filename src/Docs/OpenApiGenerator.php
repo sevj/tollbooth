@@ -9,6 +9,7 @@ use Symfony\Component\TypeInfo\Type\CollectionType;
 use Symfony\Component\TypeInfo\Type\NullableType;
 use Symfony\Component\TypeInfo\Type\ObjectType;
 use Symfony\Component\TypeInfo\TypeIdentifier;
+use Symfony\Contracts\Cache\CacheInterface;
 use Tollbooth\Core\Attribute\Body;
 use Tollbooth\Core\Attribute\Query;
 use Tollbooth\Core\Metadata\EndpointMetadata;
@@ -22,7 +23,7 @@ use Tollbooth\Core\Security\AuthMethod;
 /**
  * @internal
  */
-final readonly class OpenApiGenerator
+final class OpenApiGenerator
 {
     private const array ERRORS = [
         400 => ['BadRequest', 'The request is malformed.', 'Problem'],
@@ -35,17 +36,23 @@ final readonly class OpenApiGenerator
     ];
 
     /**
+     * @var array<string, array<string, mixed>|null>
+     */
+    private array $documents = [];
+
+    /**
      * @param array<string, string> $groupPrefixes
      */
     public function __construct(
-        private EndpointRegistry $registry,
-        private ResourceTypeResolver $resourceTypes,
-        private string $pathPrefix = '',
-        private string $title = 'API',
-        private string $version = '1.0.0',
-        private string $apiKeyHeader = 'X-Api-Key',
-        private bool $hasPlans = false,
-        private array $groupPrefixes = [],
+        private readonly EndpointRegistry $registry,
+        private readonly ResourceTypeResolver $resourceTypes,
+        private readonly string $pathPrefix = '',
+        private readonly string $title = 'API',
+        private readonly string $version = '1.0.0',
+        private readonly string $apiKeyHeader = 'X-Api-Key',
+        private readonly bool $hasPlans = false,
+        private readonly array $groupPrefixes = [],
+        private readonly ?CacheInterface $cache = null,
     ) {
     }
 
@@ -64,6 +71,21 @@ final readonly class OpenApiGenerator
      * @return array<string, mixed>|null
      */
     public function generate(string $group): ?array
+    {
+        if (!\array_key_exists($group, $this->documents)) {
+            $cache = $this->cache;
+            $this->documents[$group] = null === $cache
+                ? $this->build($group)
+                : $cache->get('tollbooth_openapi_'.hash('xxh128', $group), fn (): ?array => $this->build($group));
+        }
+
+        return $this->documents[$group];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function build(string $group): ?array
     {
         $endpoints = array_values(array_filter($this->registry->all(), static fn (EndpointMetadata $endpoint): bool => $endpoint->group === $group));
         if ([] === $endpoints) {

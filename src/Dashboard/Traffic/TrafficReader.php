@@ -15,6 +15,8 @@ use Tollbooth\Monitoring\Stats;
  */
 final readonly class TrafficReader
 {
+    private const int SERIES_LIMIT = 7 * 86400;
+
     public function __construct(
         private CallReaderInterface $calls,
     ) {
@@ -51,7 +53,19 @@ final readonly class TrafficReader
      */
     public function buckets(Window $window, int $parts, string $group, ?string $endpoint = null): array
     {
-        return array_map(fn (Window $bucket): Stats => $this->total($bucket, $group, $endpoint), $window->split($parts));
+        $windows = $window->split($parts);
+        if ($window->to - $window->from > self::SERIES_LIMIT) {
+            return array_map(fn (Window $bucket): Stats => $this->total($bucket, $group, $endpoint), $windows);
+        }
+
+        $buckets = array_map(static fn (): Stats => self::empty(), $windows);
+        $size = intdiv($window->to - $window->from, max(1, $parts));
+        foreach ($this->calls->series($window->from, $window->to, new CallQuery(endpoint: $endpoint, group: $group)) as $minute => $stats) {
+            $index = min($parts - 1, max(0, intdiv($minute - $window->from, max(1, $size))));
+            $buckets[$index] = $buckets[$index]->merge($stats);
+        }
+
+        return array_values($buckets);
     }
 
     /**

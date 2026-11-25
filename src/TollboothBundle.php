@@ -429,7 +429,7 @@ final class TollboothBundle extends AbstractBundle
             $this->loadRateLimit($config['rate_limit'], $container);
         }
         if ($config['docs']['enabled']) {
-            $this->loadDocs($config, $container);
+            $this->loadDocs($config, $container, (bool) $builder->getParameter('kernel.debug'));
         }
         if ($config['monitoring']['enabled']) {
             $this->loadMonitoring($config['monitoring'], $container);
@@ -538,7 +538,7 @@ final class TollboothBundle extends AbstractBundle
     /**
      * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig, changes: ChangesConfig} $config
      */
-    private function loadDocs(array $config, ContainerConfigurator $container): void
+    private function loadDocs(array $config, ContainerConfigurator $container, bool $debug): void
     {
         $services = $container->services();
 
@@ -552,6 +552,7 @@ final class TollboothBundle extends AbstractBundle
                 $config['auth']['api_key_header'],
                 $config['rate_limit']['enabled'] && [] !== $config['rate_limit']['plans'],
                 array_map(static fn (array $group): string => rtrim('/'.trim($group['prefix'], '/'), '/'), $config['groups']),
+                $debug ? null : service('cache.system')->nullOnInvalid(),
             ]);
 
         $services->set(DocsController::class)
@@ -718,6 +719,8 @@ final class TollboothBundle extends AbstractBundle
                 $monitoring,
                 $config['changes']['enabled'] && $config['docs']['enabled'] ? service(ContractChanges::class) : null,
                 $config['health']['enabled'],
+                service('cache.app')->nullOnInvalid(),
+                param(EndpointPass::HASH_PARAMETER),
             ]);
         if ($config['changes']['enabled'] && $config['docs']['enabled']) {
             $services->set(ContractChanges::class)
