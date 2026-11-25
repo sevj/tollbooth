@@ -136,6 +136,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
 final class TollboothBundle extends AbstractBundle
 {
     private const string INTERNAL_CHECK = 'tollbooth.health_check.internal';
+    private const string DASHBOARD_AVAILABLE = '.tollbooth.dashboard_available';
 
     protected string $extensionAlias = 'tollbooth';
 
@@ -204,6 +205,10 @@ final class TollboothBundle extends AbstractBundle
                                     ->ifTrue(static fn (mixed $auth): bool => null !== $auth && !self::isStringList($auth))
                                     ->thenInvalid('"auth" must be a list of authentication methods.')
                                 ->end()
+                                ->validate()
+                                    ->ifTrue(static fn (mixed $auth): bool => [] === $auth)
+                                    ->thenInvalid('"auth" lists no method, so every call would be refused. Use [anonymous] for an open group.')
+                                ->end()
                             ->end()
                             ->variableNode('scopes')
                                 ->defaultNull()
@@ -234,6 +239,7 @@ final class TollboothBundle extends AbstractBundle
                         ->arrayNode('default')
                             ->info('Authentication methods of endpoints that set none: api_key, jwt, user, anonymous.')
                             ->scalarPrototype()->end()
+                            ->requiresAtLeastOneElement()
                             ->defaultValue([AuthMethod::ApiKey->value])
                         ->end()
                         ->scalarNode('api_key_header')
@@ -455,7 +461,9 @@ final class TollboothBundle extends AbstractBundle
 
         $builder->prependExtensionConfig('framework', ['serializer' => ['named_serializers' => $namedSerializers]]);
 
-        if (!$builder->hasExtension('twig') || !class_exists(Translator::class)) {
+        $dashboard = $builder->hasExtension('twig') && class_exists(Translator::class);
+        $builder->setParameter(self::DASHBOARD_AVAILABLE, $dashboard);
+        if (!$dashboard) {
             $builder->prependExtensionConfig('tollbooth', ['dashboard' => ['enabled' => false]]);
 
             return;
@@ -498,6 +506,9 @@ final class TollboothBundle extends AbstractBundle
             $this->loadChanges($config, $container);
         }
         if ($config['dashboard']['enabled']) {
+            if ($builder->hasParameter(self::DASHBOARD_AVAILABLE) && false === $builder->getParameter(self::DASHBOARD_AVAILABLE)) {
+                throw new \LogicException('The Tollbooth dashboard needs symfony/twig-bundle and symfony/translation. Install them, or set tollbooth.dashboard.enabled to false.');
+            }
             $this->loadDashboard($config, $container);
         }
 

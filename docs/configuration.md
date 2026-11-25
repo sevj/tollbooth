@@ -388,7 +388,7 @@ Required libraries:
 | `monitoring.enabled: true` | `doctrine/dbal` | The build fails: *Tollbooth monitoring stores calls with Doctrine DBAL. Run "composer require doctrine/dbal" (or doctrine/doctrine-bundle), or disable tollbooth.monitoring.* |
 | A connection name such as `default` | `doctrine/doctrine-bundle` | The service `doctrine.dbal.<name>_connection` does not exist and the container fails to compile. Without DoctrineBundle, register a `Doctrine\DBAL\Connection` service yourself and give its id (containing a dot) as `connection`. |
 | `jwt` or `user` on any endpoint | `symfony/security-bundle` | The build fails: *Endpoint "…" accepts the "jwt" authentication method, which needs symfony/security-bundle and a firewall in front of it.* |
-| `dashboard.enabled` | `symfony/twig-bundle` and `symfony/translation` | The dashboard is turned off silently. |
+| `dashboard.enabled` | `symfony/twig-bundle` and `symfony/translation` | The dashboard is turned off, unless `enabled: true` is written explicitly: the build then stops with a message naming the missing packages. |
 
 ## Build-time validation
 
@@ -419,7 +419,7 @@ Not checked at build time:
 - that a firewall actually covers the endpoints accepting `jwt` or `user`: only the presence of the security bundle is checked;
 - that the cache pools, connections and provider services behave: the [health checks](health.md) cover the pools and tables at runtime.
 
-An empty list in `auth.default` or `groups.<name>.auth` is accepted and leaves the endpoints concerned with no accepted method: every call then answers 401. Use `#[PublicEndpoint]` or `[anonymous]` for open endpoints.
+An empty list in `auth.default` or `groups.<name>.auth` stops the build, since every call would be refused. Use `#[PublicEndpoint]` or `[anonymous]` for open endpoints.
 
 ## Console commands
 

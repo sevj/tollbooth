@@ -54,6 +54,8 @@ final class EndpointMetadataFactory
             throw InvalidEndpointException::invalidStatus($class->getName(), $endpoint->status);
         }
 
+        $this->checkArguments($class, $class->getMethod('__invoke'));
+
         $path = '/'.trim($endpoint->path, '/');
         $group = $this->groups->resolve($class->getName(), $path, $endpoint->group);
         $mounted = rtrim($group->prefix.$path, '/');
@@ -123,7 +125,16 @@ final class EndpointMetadataFactory
     {
         $specs = [];
         foreach ($class->getAttributes(RateLimit::class) as $attribute) {
-            $specs = [...$specs, ...$attribute->newInstance()->limits];
+            foreach ($attribute->newInstance()->limits as $key => $spec) {
+                if (\is_int($key)) {
+                    $specs[] = $spec;
+                    continue;
+                }
+                if (isset($specs[$key])) {
+                    throw new InvalidEndpointException(\sprintf('Endpoint "%s" declares two rate limits named "%s".', $class->getName(), $key));
+                }
+                $specs[$key] = $spec;
+            }
         }
 
         try {
@@ -216,6 +227,25 @@ final class EndpointMetadataFactory
         }
 
         return $requirements;
+    }
+
+    /**
+     * @param \ReflectionClass<*> $class
+     */
+    private function checkArguments(\ReflectionClass $class, \ReflectionMethod $invoke): void
+    {
+        foreach ($invoke->getParameters() as $parameter) {
+            $type = $parameter->getType();
+            if ([] !== $parameter->getAttributes(Query::class) && null !== $type) {
+                $name = $type instanceof \ReflectionNamedType ? $type->getName() : null;
+                if (null === $name || (!\in_array($name, ['string', 'int', 'float', 'bool', 'array', 'mixed'], true) && !is_subclass_of($name, \BackedEnum::class))) {
+                    throw new InvalidEndpointException(\sprintf('Endpoint "%s": the #[Query] argument $%s has the type "%s". Use string, int, float, bool, array or a backed enum.', $class->getName(), $parameter->getName(), (string) $type));
+                }
+            }
+            if ([] !== $parameter->getAttributes(Body::class) && (!$type instanceof \ReflectionNamedType || $type->isBuiltin())) {
+                throw new InvalidEndpointException(\sprintf('Endpoint "%s": the #[Body] argument $%s must be typed with a class.', $class->getName(), $parameter->getName()));
+            }
+        }
     }
 
     private function isMapped(\ReflectionParameter $parameter): bool

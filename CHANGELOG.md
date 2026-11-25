@@ -9,6 +9,11 @@ of `README.md` for the definition of the public API.
 ## [Unreleased]
 
 ### Fixed
+- Mistakes that used to surface only at run time stop the build with a message naming the cause: an empty
+  list of authentication methods, an endpoint whose route name is one of Tollbooth's own pages (it used to
+  be replaced silently), the same named limit in two `#[RateLimit]` attributes (the last one used to win),
+  a `#[Query]` argument of an unsupported type and a `#[Body]` argument that is not a class. Enabling the
+  dashboard explicitly without Twig or the Translation component also stops the build with a message.
 - `#[IsGranted]` and `denyAccessUnlessGranted()` on an endpoint answer 403 instead of 500, a Symfony
   `AuthenticationException` thrown by a handler answers 401, and a bare `ValidationFailedException` answers
   422 with its violations.

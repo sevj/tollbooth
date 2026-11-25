@@ -24,6 +24,14 @@ final class BundleConfigurationTest extends TestCase
         $this->load(['auth' => ['api_keys' => ['acme' => ['id' => 'acme00000001', 'hash' => 'h', 'expires_at' => 'next spring']]]]);
     }
 
+    public function testAnEmptyListOfAuthenticationMethodsIsRefused(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('lists no method');
+
+        $this->load(['groups' => ['partner' => ['prefix' => '/partner', 'auth' => []]]]);
+    }
+
     public function testACustomKeyProviderCannotBeCombinedWithStoredKeys(): void
     {
         $this->expectException(\LogicException::class);

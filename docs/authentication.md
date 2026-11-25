@@ -89,7 +89,7 @@ Rules checked when the container is built:
 - An endpoint accepting `jwt` or `user` while `symfony/security-bundle` is not installed fails the build.
 - `#[PublicEndpoint]` wins over `#[Auth]` when both are present.
 
-An empty list (`auth.default: []` or `auth: []` on a group) is accepted but leaves the endpoints with no method at all: every call answers 401.
+An empty list (`auth.default: []` or `auth: []` on a group) stops the build: use `[anonymous]` for an open group.
 
 ## How a call is authenticated
 

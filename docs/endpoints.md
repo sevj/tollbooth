@@ -519,7 +519,7 @@ Errors at build time:
 - A zero interval: `Endpoint "App\Api\X": The interval of the rate limit "5/0m" must be at least one minute.`
 - Two limits with the same name, such as `#[RateLimit('10/minute', '20/minute')]`: `Endpoint "App\Api\X": Two rate limits of "endpoint:default.x" are named "x.minute". Name them explicitly, for instance {burst: "20/minute"}.`
 
-When the same name is used in two separate `#[RateLimit]` attributes, the last one silently replaces the first: give each limit a distinct name. With `tollbooth.rate_limit.enabled: false`, `#[RateLimit]` is ignored.
+The same name used in two separate `#[RateLimit]` attributes stops the build too (`Endpoint "…" declares two rate limits named "burst".`). With `tollbooth.rate_limit.enabled: false`, `#[RateLimit]` is ignored.
 
 ## `#[DeprecatedEndpoint]`
 
@@ -620,7 +620,7 @@ Endpoint names only need to be unique inside a group: `get_order` can exist in `
 $url = $this->urlGenerator->generate('tollbooth_partner_get_order', ['id' => 7]);
 ```
 
-Tollbooth's own routes are named `tollbooth_docs`, `tollbooth_docs_openapi`, `tollbooth_health`, `tollbooth_health_live`, `tollbooth_health_ready` and `tollbooth_dashboard_*`, and are added after the endpoints. Avoid endpoint and group names that would produce one of these names (an endpoint named `docs` in the default group, or `live` in a group named `health`): the later route replaces the endpoint's.
+Tollbooth's own routes are named `tollbooth_docs`, `tollbooth_docs_openapi`, `tollbooth_health`, `tollbooth_health_live`, `tollbooth_health_ready` and `tollbooth_dashboard_*`, and are added after the endpoints. An endpoint whose route name would be one of these (an endpoint named `docs` in the default group, or `live` in a group named `health`) stops the route loading with `The route name "…" of the endpoint "…" is taken by one of Tollbooth's own pages. Rename the endpoint with #[Endpoint(name: ...)].`
 
 ## Build errors
 
@@ -641,13 +641,12 @@ Endpoint declarations are checked when the container is built (`cache:clear`, `c
 | `Endpoint "X" has a sunset date before its deprecation date.` | `sunset` before `since`. |
 | `Endpoint "X": "..." is not a rate limit. ...` | Invalid `#[RateLimit]` spec. |
 | `Endpoint "X": Two rate limits of "..." are named "...". ...` | Duplicate limit name in one `#[RateLimit]`. |
+| `Endpoint "X" declares two rate limits named "burst".` | The same named limit in two `#[RateLimit]` attributes. |
+| `Endpoint "X": the #[Query] argument $from has the type "DateTimeImmutable". Use string, int, float, bool, array or a backed enum.` | A `#[Query]` argument of an unsupported type. |
+| `Endpoint "X": the #[Body] argument $raw must be typed with a class.` | A `#[Body]` argument typed with a scalar, an array or nothing. |
 | `The class of endpoint service "x" cannot be found.` | The service's class does not exist. |
 
-At request time, these mistakes throw a `LogicException` (answering 500):
-
-- a `#[Body]` argument not typed with a class;
-- a `#[Query]` argument of an unsupported type;
-- a non-nullable `Consumer` argument outside an endpoint.
+At request time, a non-nullable `Consumer` argument outside an endpoint throws a `LogicException` (answering 500).
 
 ## See also
 
