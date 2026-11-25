@@ -6,13 +6,16 @@
     "keywords": ["symfony", "bundle", "api", "rest", "openapi", "rate-limit", "monitoring"],
     "require": {
         "php": ">=8.4",
+        "phpstan/phpdoc-parser": "^2.0",
         "symfony/framework-bundle": "^7.4 || ^8.0",
         "symfony/lock": "^7.4 || ^8.0",
         "symfony/property-access": "^7.4 || ^8.0",
         "symfony/property-info": "^7.4 || ^8.0",
         "symfony/serializer": "^7.4 || ^8.0",
         "symfony/string": "^7.4 || ^8.0",
-        "symfony/validator": "^7.4 || ^8.0"
+        "symfony/type-info": "^7.4 || ^8.0",
+        "symfony/validator": "^7.4 || ^8.0",
+        "symfony/yaml": "^7.4 || ^8.0"
     },
     "suggest": {
         "symfony/security-bundle": "To accept the jwt and user authentication methods"

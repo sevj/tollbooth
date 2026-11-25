@@ -41,13 +41,14 @@ What Tollbooth does today, what is being built and what comes next. The dashboar
 - [x] 429 with `Retry-After` and a `limiters` list in the problem body
 - [x] Optional legacy `X-RateLimit-*` headers
 
-## Next
-
 ### 0.6 · Documentation
-- [ ] OpenAPI 3.1 generated from the compiled metadata, one document per group
-- [ ] `securitySchemes` from the accepted auth methods, scopes listed
-- [ ] Documentation UI and `tollbooth:openapi:export`
-- [ ] Test helper asserting that a response matches its declared schema
+- [x] OpenAPI 3.1 generated from the compiled metadata, one document per group
+- [x] Schemas from PHP types, docblocks and validation constraints, in the group's case and envelope
+- [x] Errors per operation, `securitySchemes` from the accepted auth methods, scopes listed
+- [x] Rate limit headers and endpoint limits in the document
+- [x] Documentation page (Scalar) and `tollbooth:openapi:export`
+
+## Next
 
 ### 0.7 · Monitoring
 - [ ] Call collection at `kernel.terminate`: endpoint, status, duration, consumer, size, error
@@ -87,3 +88,6 @@ Twig, rendered on the server, assets shipped prebuilt, every string translated (
 - [ ] Alerts through Symfony Notifier
 - [ ] Benchmarks with phpbench and an overhead budget
 - [ ] Token bucket and sliding window policies, `#[NoRateLimit]` to exempt an endpoint
+- [ ] Test helper asserting that a response matches its declared schema
+- [ ] Descriptions and examples on endpoints and fields, OpenAPI linting in CI
+- [ ] Documentation page assets shipped in the bundle instead of loaded from a CDN

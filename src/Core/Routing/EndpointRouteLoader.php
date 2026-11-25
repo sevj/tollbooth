@@ -29,11 +29,15 @@ final class EndpointRouteLoader extends Loader
 
     private bool $loaded = false;
 
+    /**
+     * @param iterable<RouteProviderInterface> $providers
+     */
     public function __construct(
         private readonly EndpointRegistry $registry,
         private readonly string $pathPrefix,
         private readonly string $endpointsHash,
         ?string $env = null,
+        private readonly iterable $providers = [],
     ) {
         parent::__construct($env);
     }
@@ -67,6 +71,9 @@ final class EndpointRouteLoader extends Loader
             $collection->addResource(new FileResource($endpoint->file));
         }
         $collection->addResource(new ContainerParametersResource([EndpointPass::HASH_PARAMETER => $this->endpointsHash]));
+        foreach ($this->providers as $provider) {
+            $collection->addCollection($provider->routes());
+        }
 
         return $collection;
     }

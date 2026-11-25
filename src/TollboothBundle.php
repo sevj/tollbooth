@@ -34,7 +34,12 @@ use Tollbooth\Core\Output\ResourceTypeResolver;
 use Tollbooth\Core\Output\SerializerLocator;
 use Tollbooth\Core\Problem\ProblemFactory;
 use Tollbooth\Core\Routing\EndpointRouteLoader;
+use Tollbooth\Core\Routing\RouteProviderInterface;
 use Tollbooth\Core\Security\AuthMethod;
+use Tollbooth\Docs\Command\ExportOpenApiCommand;
+use Tollbooth\Docs\DocsController;
+use Tollbooth\Docs\DocsRouteProvider;
+use Tollbooth\Docs\OpenApiGenerator;
 use Tollbooth\RateLimit\PlanRegistry;
 use Tollbooth\RateLimit\RateLimitListener;
 use Tollbooth\RateLimit\WindowCounter;
@@ -42,12 +47,14 @@ use Tollbooth\RateLimit\WindowCounter;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service_locator;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 /**
  * @phpstan-import-type GroupConfig from GroupResolver
  * @phpstan-import-type ApiKeyConfig from InMemoryApiKeyProvider
  *
  * @phpstan-type AuthConfig array{default: list<string>, api_key_header: string, api_key_provider: ?string, api_keys: array<string, ApiKeyConfig>}
+ * @phpstan-type DocsConfig array{enabled: bool, path: string, title: string, version: string, ui: bool}
  * @phpstan-type RateLimitConfig array{enabled: bool, plans: array<string, list<string>|array<string, string>>, default_plan: ?string, anonymous_plan: ?string, cache_pool: string, legacy_headers: bool}
  */
 final class TollboothBundle extends AbstractBundle
@@ -168,6 +175,21 @@ final class TollboothBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('docs')
+                    ->canBeDisabled()
+                    ->children()
+                        ->scalarNode('path')
+                            ->defaultValue('/_tollbooth')
+                            ->info('Base path of the documentation routes: <path>/docs/<group> and <path>/openapi/<group>.json.')
+                        ->end()
+                        ->scalarNode('title')->defaultValue('API')->end()
+                        ->scalarNode('version')->defaultValue('1.0.0')->end()
+                        ->booleanNode('ui')
+                            ->defaultTrue()
+                            ->info('Serve the documentation page. The OpenAPI documents stay available when false.')
+                        ->end()
+                    ->end()
+                ->end()
                 ->arrayNode('rate_limit')
                     ->canBeDisabled()
                     ->children()
@@ -243,7 +265,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig} $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -262,6 +284,9 @@ final class TollboothBundle extends AbstractBundle
         if ($config['rate_limit']['enabled']) {
             $this->loadRateLimit($config['rate_limit'], $container);
         }
+        if ($config['docs']['enabled']) {
+            $this->loadDocs($config, $container);
+        }
 
         $services = $container->services();
         $services->set(EndpointRegistry::class);
@@ -272,6 +297,7 @@ final class TollboothBundle extends AbstractBundle
                 $config['path_prefix'],
                 param(EndpointPass::HASH_PARAMETER),
                 param('kernel.environment'),
+                tagged_iterator(RouteProviderInterface::TAG),
             ])
             ->tag('routing.loader');
 
@@ -338,6 +364,41 @@ final class TollboothBundle extends AbstractBundle
 
         if (class_exists(Application::class)) {
             $services->set(GenerateApiKeyCommand::class)
+                ->tag('console.command');
+        }
+    }
+
+    /**
+     * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig} $config
+     */
+    private function loadDocs(array $config, ContainerConfigurator $container): void
+    {
+        $services = $container->services();
+
+        $services->set(OpenApiGenerator::class)
+            ->args([
+                service(EndpointRegistry::class),
+                service(ResourceTypeResolver::class),
+                $config['path_prefix'],
+                $config['docs']['title'],
+                $config['docs']['version'],
+                $config['auth']['api_key_header'],
+                $config['rate_limit']['enabled'] && [] !== $config['rate_limit']['plans'],
+                array_map(static fn (array $group): string => rtrim('/'.trim($group['prefix'], '/'), '/'), $config['groups']),
+            ]);
+
+        $services->set(DocsController::class)
+            ->args([service(OpenApiGenerator::class), service('router'), $config['docs']['ui']])
+            ->public()
+            ->tag('controller.service_arguments');
+
+        $services->set(DocsRouteProvider::class)
+            ->args([$config['docs']['path']])
+            ->tag(RouteProviderInterface::TAG);
+
+        if (class_exists(Application::class)) {
+            $services->set(ExportOpenApiCommand::class)
+                ->args([service(OpenApiGenerator::class)])
                 ->tag('console.command');
         }
     }
