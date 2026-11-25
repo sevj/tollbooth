@@ -10,14 +10,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Tollbooth\Auth\Doctrine\DoctrineApiKeyStore;
 use Tollbooth\Demo\Database\ShopSchema;
 use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
+use Tollbooth\RateLimit\Doctrine\DoctrinePlanStore;
 
-#[AsCommand('demo:setup', 'Recreate the shop tables with their fixtures and make sure the monitoring and API key tables exist')]
+#[AsCommand('demo:setup', 'Recreate the shop tables with their fixtures and make sure the monitoring, API key and plan tables exist')]
 final readonly class SetupCommand
 {
     public function __construct(
         private ShopSchema $shop,
         private DoctrineCallStorage $monitoring,
         private DoctrineApiKeyStore $keys,
+        private DoctrinePlanStore $plans,
     ) {
     }
 
@@ -26,7 +28,8 @@ final readonly class SetupCommand
         $this->shop->reset();
         $this->monitoring->setup();
         $this->keys->setup();
-        $io->success('Shop database reset with its fixtures, monitoring and API key tables ready. Next: demo:seed for a day of traffic.');
+        $this->plans->setup();
+        $io->success('Shop database reset with its fixtures, monitoring, API key and plan tables ready. Next: demo:seed for a day of traffic.');
 
         return Command::SUCCESS;
     }
