@@ -1,0 +1,116 @@
+{% extends '@TollboothDashboard/layout.html.twig' %}
+{% trans_default_domain 'tollbooth' %}
+
+{% set group = shell.group %}
+{% set stats = consumer.stats %}
+{% set quota = consumer.quota %}
+
+{% block title %}{{ consumer.name }} · {{ 'dashboard.consumers.title'|trans }}{% endblock %}
+
+{% block crumbs %}<a href="{{ path('tollbooth_dashboard_map', {group: group}) }}">{{ group }}</a> <span class="slash">/</span> <a href="{{ path('tollbooth_dashboard_consumers', {group: group}) }}">{{ 'dashboard.consumers.crumb'|trans }}</a> <span class="slash">/</span> <span class="here">{{ consumer.name }}</span>{% endblock %}
+
+{% block body %}
+<div class="head" style="align-items: flex-start">
+<div>
+<h1 class="ep-title">{{ consumer.name }}{% if consumer.plan %}<span class="pl {{ consumer.plan }} big">{{ consumer.plan|upper }}</span>{% endif %}</h1>
+<div class="ep-meta">
+{% if not consumer.key %}<span>{{ ('dashboard.auth.' ~ consumer.method)|trans }}</span>{% endif %}
+{% if consumer.key %}<span>{{ 'dashboard.consumer.key_id'|trans({'%id%': consumer.key.id}) }}</span>{% else %}<span>{{ consumer.id }}</span>{% endif %}
+{% if consumer.key and consumer.key.expiresAt %}<span>{{ 'dashboard.consumer.expires'|trans({'%date%': consumer.key.expiresAt|date('Y-m-d')}) }}</span>{% endif %}
+</div>
+</div>
+<div class="actions">
+<a class="btn" href="{{ path('tollbooth_dashboard_requests', {group: group, q: 'consumer:' ~ consumer.id}) }}">{{ 'dashboard.consumer.requests'|trans }}</a>
+</div>
+</div>
+
+<div class="stats">
+<div class="stat"><div class="th">{{ 'dashboard.consumer.kpi.calls'|trans }}</div><div class="v">{{ (stats.calls ?? 0)|tb_number }}</div></div>
+<div class="stat"><div class="th">{{ 'dashboard.consumer.kpi.quota'|trans }}</div><div class="v">{% if quota is not null %}{{ (quota * 100)|round }}<small>{{ 'dashboard.consumer.of'|trans({'%count%': consumer.dayLimit|tb_compact}) }}</small>{% else %}—{% endif %}</div></div>
+<div class="stat"><div class="th">{{ 'dashboard.consumer.kpi.peak'|trans }}</div><div class="v{% if consumer.peak and consumer.minuteLimit and consumer.peak > consumer.minuteLimit %} bad{% endif %}">{{ consumer.peak is null ? '—' : consumer.peak|tb_number }}{% if consumer.minuteLimit %}<small> / {{ consumer.minuteLimit|tb_number }}</small>{% endif %}</div></div>
+<div class="stat"><div class="th">{{ 'dashboard.consumer.kpi.throttled'|trans }}</div><div class="v">{{ (stats.throttled ?? 0)|tb_number }}</div></div>
+<div class="stat"><div class="th">{{ 'dashboard.consumer.kpi.errors'|trans }}</div><div class="v{% if stats and stats.errorRate > 0.01 %} bad{% endif %}">{{ stats ? stats.errorRate|tb_percent(2) : '—' }}</div></div>
+</div>
+
+<div class="cols" style="margin-bottom: 24px">
+{% set q = page.quotaChart %}
+<section class="panel" style="flex: 1.2 1 460px; min-width: 0" aria-labelledby="quota-title">
+<div class="ph"><h2 id="quota-title">{{ 'dashboard.consumer.quota'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ consumer.dayLimit ? 'dashboard.consumer.quota_sub'|trans : 'dashboard.consumer.quota_none'|trans }}</span></div>
+<div class="chart">
+<div class="axis"><span{% if consumer.dayLimit %} class="bad"{% endif %}>{{ q.max|tb_compact }}</span><span>{{ (q.max / 2)|tb_compact }}</span><span>0</span></div>
+<div style="flex: 1; min-width: 0">
+<svg width="100%" height="150" viewBox="0 0 300 150" preserveAspectRatio="none" role="img" aria-label="{{ 'dashboard.consumer.quota_label'|trans({'%count%': consumer.today|tb_number}) }}">
+<path d="M0 75H300M0 149.5H300" stroke="#1F2226" stroke-width="1" vector-effect="non-scaling-stroke"></path>
+{% if q.cap is not null %}<path d="M0 {{ q.cap }}H300" stroke="#FF8A7A" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></path>{% endif %}
+<polyline points="{{ q.line }}" fill="none" stroke="#F0B429" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline>
+{% if q.projection %}<path d="{{ q.projection }}" fill="none" stroke="#F0B429" stroke-width="1.5" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></path><path d="M{{ q.exhaustedX }} {{ q.cap }}V150" stroke="#FF8A7A" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"></path>{% endif %}
+</svg>
+<div class="xs"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+</div>
+</div>
+<div class="note"><span class="dot warning"></span><span>{% if page.exhaustedAt and page.exhaustedAt <= page.now %}{{ 'dashboard.consumer.exhausted'|trans({'%time%': page.exhaustedAt|date('H:i', 'UTC')}) }}{% elseif page.exhaustedAt %}{{ 'dashboard.consumer.runs_out'|trans({'%time%': page.exhaustedAt|date('H:i', 'UTC')}) }}{% elseif consumer.dayLimit %}{{ 'dashboard.consumer.within'|trans({'%count%': consumer.today|tb_number}) }}{% else %}{{ 'dashboard.consumer.today'|trans({'%count%': consumer.today|tb_number}) }}{% endif %}</span></div>
+</section>
+
+{% set m = page.minuteChart %}
+<section class="panel" style="flex: 1 1 380px; min-width: 0" aria-labelledby="minute-title">
+<div class="ph"><h2 id="minute-title">{{ 'dashboard.consumer.minute'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.consumer.minute_sub'|trans }}{% if consumer.minuteLimit %} · {{ consumer.minuteLimit|tb_number }}/min{% endif %}</span></div>
+<div style="padding: 18px 20px 12px">
+<svg width="100%" height="150" viewBox="0 0 300 120" preserveAspectRatio="none" role="img" aria-label="{{ 'dashboard.consumer.minute_label'|trans }}">
+{% for bar in m.bars %}<rect x="{{ bar.x }}" y="{{ bar.y }}" width="{{ m.width }}" height="{{ bar.height }}" fill="{{ bar.over ? '#F0B429' : '#6B7078' }}"></rect>{% endfor %}
+{% if m.limit is not null %}<path d="M0 {{ m.limit }}H300" stroke="#FF8A7A" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></path>{% endif %}
+</svg>
+<div class="xs"><span>−60 min</span><span>−30 min</span><span>{{ 'dashboard.endpoint.now'|trans }}</span></div>
+</div>
+<div class="note"><span class="dot {{ page.throttledMinutes > 0 ? 'warning' : 'ok' }}"></span><span>{{ page.throttledMinutes > 0 ? 'dashboard.consumer.over'|trans({'%count%': page.throttledMinutes}) : 'dashboard.consumer.under'|trans }}</span></div>
+</section>
+</div>
+
+<div class="cols">
+<section class="panel" style="flex: 1.3 1 480px; min-width: 0" aria-labelledby="used-title">
+<div class="ph"><h2 id="used-title">{{ 'dashboard.consumer.endpoints'|trans }}</h2><a class="m" style="font-size: 12px" href="{{ path('tollbooth_dashboard_requests', {group: group, q: 'consumer:' ~ consumer.id}) }}">{{ 'dashboard.consumer.requests'|trans }}</a></div>
+{% if page.endpoints is empty %}
+<div class="empty">{{ 'dashboard.consumer.no_calls'|trans }}</div>
+{% else %}
+<div class="ut th"><span>{{ 'dashboard.requests.col.method'|trans }}</span><span>{{ 'dashboard.requests.col.path'|trans }}</span><span class="r">{{ 'dashboard.consumers.col.calls'|trans }}</span><span class="r">429</span><span class="r">{{ 'dashboard.consumers.col.errors'|trans }}</span></div>
+{% for used in page.endpoints|slice(0, 12) %}
+{% set ep = used.endpoint %}
+<div class="ut"><span class="me {{ ep.method ?? '' }}">{{ ep.method ?? '?' }}</span>{% if ep %}<a href="{{ path('tollbooth_dashboard_endpoint', {group: ep.group, name: ep.name}) }}">{{ ep.path }}</a>{% else %}<span>{{ used.stats.key }}</span>{% endif %}<span class="r">{{ used.stats.calls|tb_number }}</span><span class="r{{ used.stats.throttled > 0 ? ' warn' : ' mu' }}">{{ used.stats.throttled|tb_number }}</span><span class="r{{ used.stats.errorRate > 0.02 ? ' bad' : '' }}">{{ used.stats.errorRate|tb_percent(1) }}</span></div>
+{% endfor %}
+{% endif %}
+</section>
+
+<div class="col" style="flex: 1 1 380px">
+<section class="panel" aria-labelledby="upcoming-title">
+<div class="ph"><h2 id="upcoming-title">{{ 'dashboard.consumer.upcoming'|trans }}</h2></div>
+{% for item in page.upcoming %}
+<div class="up"><span class="tagk {{ item.kind }}">{{ ('dashboard.changes.kind.' ~ item.kind)|trans|upper }}</span><span><span class="m">{{ item.element }}</span> · {% if item.message %}{{ item.message }}{% elseif item.sunset %}{{ 'dashboard.consumer.deprecated_sunset'|trans({'%date%': item.sunset}) }}{% else %}{{ 'dashboard.consumer.deprecated'|trans }}{% endif %} {{ 'dashboard.consumer.called'|trans({'%count%': item.calls|tb_number}) }}</span></div>
+{% else %}
+<div class="up"><span class="dot ok"></span><span class="mu">{{ 'dashboard.consumer.nothing_upcoming'|trans }}</span></div>
+{% endfor %}
+</section>
+
+{% if consumer.key %}
+{% set key = consumer.key %}
+<section class="panel" aria-labelledby="key-title">
+<div class="ph"><h2 id="key-title">{{ 'dashboard.consumer.key'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.consumer.hashed'|trans }}</span></div>
+<div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 16px">
+<div class="kv">
+<span>{{ 'dashboard.consumer.kv.id'|trans }}</span><span>{{ key.id }}</span>
+<span>{{ 'dashboard.consumer.kv.expires'|trans }}</span><span>{% if key.expiresAt %}{{ key.expiresAt|date('Y-m-d') }}{% else %}{{ 'dashboard.consumer.never_expires'|trans }}{% endif %}</span>
+<span>{{ 'dashboard.consumer.kv.ips'|trans }}</span><span>{{ key.allowedIps is empty ? 'dashboard.consumer.any_ip'|trans : key.allowedIps|join(', ') }}</span>
+<span>{{ 'dashboard.consumer.kv.seen'|trans }}</span><span>{% if consumer.last %}{% set ago = tb_ago(consumer.last.occurredAt) %}{{ ('dashboard.ago.' ~ ago.unit)|trans({'%count%': ago.count}) }}{% if consumer.last.ip %} · {{ consumer.last.ip }}{% endif %}{% else %}{{ 'dashboard.consumers.never'|trans }}{% endif %}</span>
+</div>
+{% if key.scopes is not empty %}<div class="chips">{% for scope in key.scopes %}<span class="chip-tag">{{ scope }}</span>{% endfor %}</div>{% endif %}
+</div>
+</section>
+{% endif %}
+
+{% if limits is not empty %}
+<section class="panel" aria-labelledby="limits-title">
+<div class="ph"><h2 id="limits-title">{{ 'dashboard.consumer.limits'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ consumer.plan }}</span></div>
+<div style="padding: 16px 20px" class="kv">{% for limit in limits %}<span>{{ limit.name|split('.')|last }}</span><span>{% include '@TollboothDashboard/_limit.html.twig' %}</span>{% endfor %}</div>
+</section>
+{% endif %}
+</div>
+</div>
+{% endblock %}

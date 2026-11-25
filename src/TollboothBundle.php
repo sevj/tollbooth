@@ -52,7 +52,11 @@ use Tollbooth\Core\Routing\EndpointRouteLoader;
 use Tollbooth\Core\Routing\RouteProviderInterface;
 use Tollbooth\Core\Security\AuthMethod;
 use Tollbooth\Dashboard\Assets;
+use Tollbooth\Dashboard\Changes\ContractChanges;
+use Tollbooth\Dashboard\Consumers\ConsumerDirectory;
+use Tollbooth\Dashboard\Consumers\ConsumerInsights;
 use Tollbooth\Dashboard\Controller\AssetController;
+use Tollbooth\Dashboard\Controller\ConsumersController;
 use Tollbooth\Dashboard\Controller\EndpointController;
 use Tollbooth\Dashboard\Controller\HomeController;
 use Tollbooth\Dashboard\Controller\MapController;
@@ -711,7 +715,45 @@ final class TollboothBundle extends AbstractBundle
                 $config['docs']['enabled'] ? service(ModelCatalogFactory::class) : null,
                 $monitoring,
             ]);
+        if ($config['changes']['enabled'] && $config['docs']['enabled']) {
+            $services->set(ContractChanges::class)
+                ->args([service(CurrentContract::class), service(SnapshotStore::class)]);
+        }
         if ($monitoring) {
+            $plans = [];
+            if ($config['rate_limit']['enabled']) {
+                foreach ($config['rate_limit']['plans'] as $name => $limits) {
+                    $plans[$name] = array_map(static fn (Limit $limit): array => $limit->toArray(), Limit::parseAll($limits, 'plan'));
+                }
+            }
+            $services->set(ConsumerDirectory::class)
+                ->args([
+                    service(CallReaderInterface::class),
+                    service(ApiKeyProviderInterface::class),
+                    $plans,
+                    $config['rate_limit']['default_plan'],
+                    $config['rate_limit']['anonymous_plan'],
+                    service('clock')->nullOnInvalid(),
+                ]);
+            $services->set(ConsumerInsights::class)
+                ->args([
+                    service(ConsumerDirectory::class),
+                    service(CallReaderInterface::class),
+                    service(GroupCatalog::class),
+                    $config['changes']['enabled'] && $config['docs']['enabled'] ? service(ContractChanges::class) : null,
+                    service('clock')->nullOnInvalid(),
+                ]);
+            $services->set(ConsumersController::class)
+                ->args([
+                    service(ConsumerDirectory::class),
+                    service(ConsumerInsights::class),
+                    service(GroupCatalog::class),
+                    service(Shell::class),
+                    service('twig'),
+                    service('translator'),
+                ])
+                ->public()
+                ->tag('controller.service_arguments');
             $services->set(RequestsController::class)
                 ->args([
                     service(CallReaderInterface::class),

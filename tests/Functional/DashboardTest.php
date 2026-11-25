@@ -160,6 +160,37 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('"consumer":"Acme ERP"', (string) reset($lines));
     }
 
+    public function testTheConsumersScreensShowWhoCallsWhat(): void
+    {
+        $client = $this->monitoredClient();
+        $storage = $this->storage();
+        for ($i = 0; $i < 3; ++$i) {
+            $this->record($storage, self::NOW - 300 + $i, 'tollbooth_get_thing', 200, 10.0, consumer: 'acme');
+        }
+        $this->record($storage, self::NOW - 100, 'tollbooth_list_things', 429, 1.0, 'Rate limit "minute" reached.', 'acme');
+        $this->record($storage, self::NOW - 50, 'tollbooth_get_thing', 200, 10.0);
+
+        $client->request('GET', '/_tollbooth/consumers/default', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<a href="/_tollbooth/consumers/default/acme">Acme ERP</a>', $html);
+        self::assertStringContainsString('anonymous · 1 IP', $html);
+        self::assertStringContainsString('Acme ERP <tspan class="pct">80%</tspan>', $html);
+
+        $client->request('GET', '/_tollbooth/consumers/default?show=throttled');
+        self::assertStringNotContainsString('anonymous · 1 IP', (string) $client->getResponse()->getContent());
+
+        $client->request('GET', '/_tollbooth/consumers/default/acme', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<h1 class="ep-title">Acme ERP</h1>', $html);
+        self::assertStringContainsString('<div class="stat"><div class="th">Calls 24h</div><div class="v">4</div></div>', $html);
+        self::assertStringContainsString('/things/{id}</a><span class="r">3</span>', $html);
+
+        $client->request('GET', '/_tollbooth/consumers/default/nobody');
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testTheDashboardSpeaksTheLanguageOfTheBrowser(): void
     {
         $client = self::createClient();

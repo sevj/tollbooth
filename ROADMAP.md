@@ -81,7 +81,7 @@ Twig, rendered on the server, assets shipped prebuilt, every string translated (
 - [x] Endpoint: pipeline, declaration, body, responses, examples, latency, status codes, consumers, errors
 - [x] Models: diagram, usage, serialized preview per convention, SVG export
 - [x] Requests: live tail, filters, call detail with limiter state, NDJSON export
-- [ ] Consumers and a consumer page: quotas, minute limiter, endpoints used, upcoming changes, key
+- [x] Consumers and a consumer page: quotas, minute limiter, endpoints used, upcoming changes, key
 - [ ] Changes and Health screens
 - [ ] API key management from the UI, with a Doctrine key provider
 

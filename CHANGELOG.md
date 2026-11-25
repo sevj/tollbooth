@@ -8,6 +8,17 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Consumers screen in the dashboard (`/_tollbooth/consumers/{group}`): the rate limit plans with their
+  limits and how many keys use them, a flow from consumers to the resources they call over 24 hours, and
+  a table of consumers (every API key, plus users and JWT clients seen in the traffic, and anonymous
+  callers grouped together) with plan, calls, daily quota used, peak per minute against the minute
+  limit, 429s, error rate and last call. It filters on consumers near their limit, throttled or idle.
+- Consumer page (`/_tollbooth/consumers/{group}/{consumer}`): calls since midnight against the daily
+  quota with the time it runs out at the current pace, calls per minute over the last hour against the
+  minute limit, endpoints used, the breaking and risky changes since the last contract snapshot and the
+  deprecated endpoints it still calls, and its key: id, expiry, allowed IPs, scopes and last call.
+
 ## [0.13.0] - 2026-11-25
 
 ### Added

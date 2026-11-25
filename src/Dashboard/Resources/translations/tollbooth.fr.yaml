@@ -7,6 +7,7 @@ dashboard:
     endpoints: Endpoints
     models: Modèles
     requests: Requêtes
+    consumers: Consommateurs
     openapi: Spécification OpenAPI
     collector:
       ok: collecteur opérationnel
@@ -252,3 +253,89 @@ dashboard:
     headers_note: reconstruits à partir de l'enregistrement
     body: Corps de réponse
     body_not_stored: Les corps de réponse ne sont pas stockés.
+  changes:
+    kind:
+      breaking: cassant
+      risky: risqué
+      added: ajouté
+      changed: modifié
+      deprecated: déprécié
+  consumers:
+    title: Consommateurs et quotas
+    crumb: consommateurs
+    summary: '%active% actifs sur %count%'
+    plans: '{0}aucun plan|{1}1 plan|]1,Inf[%count% plans'
+    default_plan: par défaut
+    keys: '{0}aucune clé|{1}1 clé|]1,Inf[%count% clés'
+    no_cap: sans plafond
+    fixed_window: fenêtres alignées sur l'horloge
+    flow: Qui appelle quoi
+    flow_sub: 'part de %count% appels en 24 h · consommateur → ressource'
+    no_traffic: Aucun appel ces dernières 24 heures.
+    others: autres
+    table: Consommateurs
+    filter: Filtrer les consommateurs
+    show:
+      all: tous
+      near: proches de la limite
+      throttled: limités
+      idle: inactifs
+    col:
+      consumer: consommateur
+      key: clé
+      plan: plan
+      calls: appels 24h
+      quota: quota journalier
+      peak: pic / min
+      errors: erreurs
+      seen: vu
+    anonymous: '{1}anonyme · 1 IP|]1,Inf[anonyme · %count% IP'
+    never: jamais
+    none: Aucun consommateur ne correspond à ce filtre.
+    shown: '%shown% sur %count% consommateurs'
+  consumer:
+    key_id: clé %id%
+    expires: expire le %date%
+    requests: Voir les requêtes
+    kpi:
+      calls: Appels 24h
+      quota: Quota journalier
+      peak: Pic / min
+      throttled: Limitées
+      errors: Erreurs
+    of: '% de %count%'
+    quota: Quota journalier
+    quota_sub: remise à zéro à 00:00 UTC · fenêtre alignée sur l'horloge
+    quota_none: pas de limite journalière sur ce plan
+    quota_label: Appels depuis minuit, %count% pour l'instant
+    exhausted: Le quota s'est épuisé à %time%. Chaque appel reçoit ensuite un 429 jusqu'à minuit.
+    runs_out: À ce rythme, le quota s'épuise vers %time%. Chaque appel recevra ensuite un 429 jusqu'à minuit.
+    within: "%count% appels aujourd'hui, dans le quota à ce rythme."
+    today: "%count% appels aujourd'hui."
+    minute: Limiteur à la minute
+    minute_sub: dernière heure
+    minute_label: Appels par minute sur la dernière heure
+    over: '{1}La limite à la minute a refusé des appels pendant 1 minute de la dernière heure.|]1,Inf[La limite à la minute a refusé des appels pendant %count% minutes de la dernière heure.'
+    under: Aucun appel refusé par la limite à la minute sur la dernière heure.
+    endpoints: Endpoints utilisés
+    no_calls: Aucun appel ces dernières 24 heures.
+    upcoming: Changements à venir
+    deprecated: déprécié
+    deprecated_sunset: déprécié, fin le %date%
+    called: '— appelé %count% fois en 30 jours.'
+    nothing_upcoming: Rien de ce qu'il utilise ne va changer.
+    key: Clé
+    hashed: stockée hachée
+    kv:
+      id: id
+      expires: expire
+      ips: IP autorisées
+      seen: vu
+    never_expires: jamais
+    any_ip: toutes
+    limits: Limites du plan
+  unit:
+    day: '{1}jour|]1,Inf[%count% jours'
+    hour: '{1}heure|]1,Inf[%count% heures'
+    minute: '{1}min|]1,Inf[%count% min'
+    second: '{1}s|]1,Inf[%count% s'
