@@ -1,0 +1,74 @@
+dashboard:
+  environment: Environnement du kernel
+  nav:
+    label: Tableau de bord
+    switch_group: Changer d'API
+    map: Carte
+    openapi: Spécification OpenAPI
+    collector:
+      ok: collecteur opérationnel
+      warning: collecteur en retard
+      critical: collecteur hors service
+  search:
+    label: Rechercher
+    placeholder: Rechercher endpoints, modèles, consommateurs
+  range:
+    label: Période
+  envelope:
+    plain: brut
+    data: enveloppe data
+    json_api: JSON:API
+  case:
+    preserve: noms tels que déclarés
+    snake_case: snake_case
+    camel_case: camelCase
+  auth:
+    api_key: clé
+    jwt: jwt
+    user: user
+    anonymous: libre
+  map:
+    title: Carte de l'API
+    crumb: carte
+    count:
+      endpoints: '{1}1 endpoint|]1,Inf[%count% endpoints|{0}aucun endpoint'
+      resources: '{1}1 ressource|]1,Inf[%count% ressources|{0}aucune ressource'
+      models: '{1}1 modèle|]1,Inf[%count% modèles|{0}aucun modèle'
+    mode:
+      label: Mode de la carte
+      structure: Structure
+      live: Trafic en direct
+    export: Exporter · Mermaid
+    kpi:
+      requests: Requêtes
+      error_rate: Taux d'erreur
+      p95: Latence p95
+      throttled: Limitées · 429
+      consumers: Consommateurs actifs
+      of_keys: '{1}sur 1 clé|]1,Inf[sur %count% clés|{0}aucune clé'
+    resources: Ressources
+    legend:
+      share: part du trafic
+      reference: référence de modèle
+      live: appels · p95
+      structure: statut · auth
+    reference_title: '%from% → %to% par %label%'
+    tag:
+      sunset: SUNSET
+      deprecated: DÉPRÉCIÉ
+    throttled_title: '%count% appels refusés en 429'
+    no_monitoring: Activez tollbooth.monitoring pour voir le trafic, les erreurs et la latence sur la carte.
+    attention:
+      title: À surveiller
+      none: Rien à signaler sur les dernières %range%.
+      kind:
+        deprecated: DÉPRÉCIÉ
+        errors: ERREURS
+        throttling: LIMITATION
+        slow: LENTEUR
+      deprecated: Encore appelé %calls% fois par %consumers%
+      deprecated_sunset: Encore appelé %calls% fois par %consumers%, fin le %sunset%
+      errors: Taux d'erreur %rate%
+      errors_cause: Taux d'erreur %rate%, surtout %cause%
+      throttling: '%count% × 429, de %consumers% qui atteignent leur quota'
+      slow: p95 %p95%, en hausse de %increase% sur les 7 derniers jours

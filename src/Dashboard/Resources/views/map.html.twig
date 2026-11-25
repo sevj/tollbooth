@@ -1,0 +1,146 @@
+{% extends '@TollboothDashboard/layout.html.twig' %}
+{% trans_default_domain 'tollbooth' %}
+
+{% block title %}{{ 'dashboard.map.title'|trans }} · {{ map.group }}{% endblock %}
+
+{% block crumbs %}{{ map.group }} <span class="slash">/</span> <span class="here">{{ 'dashboard.map.crumb'|trans }}</span>{% endblock %}
+
+{% block toolbar %}
+{% if live %}
+<div class="segs" role="group" aria-label="{{ 'dashboard.range.label'|trans }}">
+{% for option in ranges %}
+<a class="seg{% if option == range %} sel{% endif %}" href="{{ path('tollbooth_dashboard_map', {group: map.group, range: option.value}) }}"{% if option == range %} aria-current="true"{% endif %}>{{ option.value }}</a>
+{% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block body %}
+{% set overview = map.overview %}
+<div class="head">
+<div>
+<h1>{{ 'dashboard.map.title'|trans }}</h1>
+<div class="sub">{{ 'dashboard.map.count.endpoints'|trans({'%count%': map.endpointCount}) }} · {{ 'dashboard.map.count.resources'|trans({'%count%': map.resources|length}) }} · {{ 'dashboard.map.count.models'|trans({'%count%': map.models}) }} · {{ ('dashboard.envelope.' ~ map.envelope)|trans }}, {{ ('dashboard.case.' ~ map.case)|trans }}</div>
+</div>
+<div class="actions">
+{% if traffic %}
+<div class="segs" role="group" aria-label="{{ 'dashboard.map.mode.label'|trans }}">
+<a class="seg{% if not live %} sel{% endif %}" href="{{ path('tollbooth_dashboard_map', {group: map.group, mode: 'structure'}) }}"{% if not live %} aria-current="true"{% endif %}>{{ 'dashboard.map.mode.structure'|trans }}</a>
+<a class="seg{% if live %} sel{% endif %}" href="{{ path('tollbooth_dashboard_map', {group: map.group, range: range.value}) }}"{% if live %} aria-current="true"{% endif %}>{{ 'dashboard.map.mode.live'|trans }}</a>
+</div>
+{% endif %}
+<a class="btn" href="{{ path('tollbooth_dashboard_map_mermaid', {group: map.group}) }}" download><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M7 1.5v8M3.5 6 7 9.5 10.5 6M2 12.5h10"></path></svg>{{ 'dashboard.map.export'|trans }}</a>
+</div>
+</div>
+
+{% if overview %}
+{% set calls_change = overview.callsChange %}
+{% set error_change = overview.errorRateChange %}
+{% set p95 = overview.current.percentile(0.95) %}
+{% set p95_change = overview.p95Change %}
+<div class="kpis">
+<div class="kpi">
+<div class="th">{{ 'dashboard.map.kpi.requests'|trans }}</div>
+<div class="value"><strong>{{ overview.current.calls|tb_compact }}</strong>{% if calls_change is not null %}<span class="delta {{ calls_change >= 0 ? 'good' : 'bad' }}">{{ calls_change|tb_change }}</span>{% endif %}</div>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('calls')) }}" fill="none" stroke="#F0B429" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+</div>
+<div class="kpi">
+<div class="th">{{ 'dashboard.map.kpi.error_rate'|trans }}</div>
+<div class="value"><strong>{{ overview.current.errorRate|tb_percent }}</strong>{% if error_change is not null %}<span class="delta {{ error_change > 0 ? 'bad' : 'good' }}">{{ (error_change * 100)|tb_signed(2) }}</span>{% endif %}</div>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('errors')) }}" fill="none" stroke="#FF8A7A" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+</div>
+<div class="kpi">
+<div class="th">{{ 'dashboard.map.kpi.p95'|trans }}</div>
+<div class="value"><strong>{% if p95 is not null %}{{ p95|round }}<small>ms</small>{% else %}—{% endif %}</strong>{% if p95_change is not null %}<span class="delta {{ p95_change > 0 ? 'bad' : 'good' }}">{{ p95_change|tb_signed }}</span>{% endif %}</div>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('p95')) }}" fill="none" stroke="#C9C5BC" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+</div>
+<div class="kpi">
+<div class="th">{{ 'dashboard.map.kpi.throttled'|trans }}</div>
+<div class="value"><strong>{{ overview.current.throttled|tb_number }}</strong><span class="delta">{{ overview.throttledShare|tb_percent }}</span></div>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('throttled')) }}" fill="none" stroke="#C9C5BC" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+</div>
+<div class="kpi">
+<div class="th">{{ 'dashboard.map.kpi.consumers'|trans }}</div>
+<div class="value"><strong>{{ overview.consumers|tb_number }}</strong><span class="delta">{% if overview.keys is not null %}{{ 'dashboard.map.kpi.of_keys'|trans({'%count%': overview.keys}) }}{% else %}{{ (overview.consumers - overview.previousConsumers)|tb_signed }}{% endif %}</span></div>
+<svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ tb_sparkline(overview.series('consumers')) }}" fill="none" stroke="#C9C5BC" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+</div>
+</div>
+{% endif %}
+
+<section class="panel" aria-labelledby="resources-title">
+<div class="ph">
+<h2 id="resources-title">{{ 'dashboard.map.resources'|trans }}</h2>
+<div class="legend">
+<span class="GET">GET</span><span class="POST">POST</span><span class="PATCH">PUT · PATCH</span><span class="DELETE">DELETE</span>
+{% if live %}<span class="mu"><span class="swatch-share"></span>{{ 'dashboard.map.legend.share'|trans }}</span>{% endif %}
+<span class="mu"><span class="swatch-ref"></span>{{ 'dashboard.map.legend.reference'|trans }}</span>
+<span class="mu">{{ live ? 'dashboard.map.legend.live'|trans : 'dashboard.map.legend.structure'|trans }}</span>
+</div>
+</div>
+<div class="canvas-wrap">
+<div class="canvas" style="width: {{ map.diagram.width }}px; height: {{ map.diagram.height }}px">
+<svg class="links" width="{{ map.diagram.width }}" height="{{ map.diagram.height }}" aria-hidden="true">
+{% for edge in map.diagram.edges %}<path d="{{ edge.path }}"></path>{% endfor %}
+</svg>
+{% for edge in map.diagram.edges %}
+<div class="lb{% if edge.labelAlign == 'left' %} left{% endif %}" style="left: {{ edge.labelX }}px; top: {{ edge.labelY }}px; width: {{ edge.labelWidth }}px" title="{{ 'dashboard.map.reference_title'|trans({'%from%': edge.from, '%to%': edge.to, '%label%': edge.label}) }}">{{ edge.label }}</div>
+{% endfor %}
+{% for resource in map.resources %}
+{% set box = map.diagram.boxes[resource.name] %}
+<div class="blk" style="left: {{ box.x }}px; top: {{ box.y }}px; width: {{ box.width }}px; height: {{ box.height }}px">
+<div class="bh"><strong>{{ resource.title }}</strong><span>{{ resource.endpoints|length }}{% if live %} · {{ resource.calls|tb_compact }}{% endif %}</span></div>
+{% for endpoint in resource.endpoints %}
+{% set meta = endpoint.metadata %}
+{% set p95 = endpoint.p95 %}
+<div class="row{% if live and endpoint.failing %} failing{% endif %}"{% if live %} style="--share: {{ (endpoint.share * 100)|round(1) }}%"{% endif %} data-search-text="{{ (meta.method ~ " " ~ endpoint.path ~ ' ' ~ meta.name ~ ' ' ~ resource.name)|lower }}" title="{{ meta.name }}">
+<span class="me {{ meta.method }}">{{ meta.method }}</span>
+<span class="pa{% if endpoint.deprecated %} gone{% endif %}">{{ endpoint.path }}</span>
+{% if not live %}
+<span class="n">{{ meta.status }}</span><span class="p mu">{{ meta.auth|map(a => ('dashboard.auth.' ~ a)|trans)|join('·') }}</span>
+{% else %}
+{% if endpoint.deprecated %}
+<span class="tag sunset">{{ endpoint.sunset ? 'dashboard.map.tag.sunset'|trans : 'dashboard.map.tag.deprecated'|trans }}</span>
+{% elseif endpoint.throttling %}
+<span class="tag throttle" title="{{ 'dashboard.map.throttled_title'|trans({'%count%': endpoint.stats.throttled}) }}"><span>429</span></span>
+{% elseif endpoint.failing %}
+<span class="n bad">{{ endpoint.stats.errorRate|tb_percent(1) }}</span>
+{% else %}
+<span class="n">{{ endpoint.calls|tb_compact }}</span>
+{% endif %}
+<span class="p{% if endpoint.slow %} slow{% endif %}">{% if p95 is not null %}{{ p95|round }}ms{% else %}<span class="mu">—</span>{% endif %}</span>
+{% endif %}
+</div>
+{% endfor %}
+</div>
+{% endfor %}
+</div>
+</div>
+</section>
+
+{% if live %}
+<section class="panel" aria-labelledby="attention-title">
+<div class="ph"><h2 id="attention-title">{{ 'dashboard.map.attention.title'|trans }}<span class="m">{{ map.attention|length }}</span></h2></div>
+{% if map.attention is empty %}
+<div class="empty"><span class="dot ok"></span> {{ 'dashboard.map.attention.none'|trans({'%range%': range.value}) }}</div>
+{% else %}
+<div class="attention"><div class="attention-list">
+{% for item in map.attention %}
+{% set params = {} %}
+{% for key, value in item.parameters %}
+{% set shown = value is same as('') ? '' : (key in ['calls', 'count'] ? value|tb_number : (key == 'rate' ? value ~ '%' : (key == 'p95' ? value ~ 'ms' : (key == 'increase' ? value ~ '%' : value)))) %}
+{% set params = params|merge({('%' ~ key ~ '%'): '<span class="v">' ~ (shown|e) ~ '</span>'}) %}
+{% endfor %}
+<div class="att">
+<span class="kind {{ item.kind }}"><span class="dot"></span>{{ ('dashboard.map.attention.kind.' ~ item.kind)|trans }}</span>
+<span class="what"><b class="{{ item.endpoint.method }}">{{ item.endpoint.method }}</b> {{ item.path }}</span>
+<span>{{ ('dashboard.map.attention.' ~ item.message)|trans(params)|raw }}</span>
+<span class="go"></span>
+</div>
+{% endfor %}
+</div></div>
+{% endif %}
+</section>
+{% elseif not traffic %}
+<section class="panel"><div class="empty">{{ 'dashboard.map.no_monitoring'|trans }}</div></section>
+{% endif %}
+{% endblock %}

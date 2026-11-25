@@ -8,6 +8,22 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Operator dashboard under `/_tollbooth`, with its first screen: the API map of each group
+  (`/_tollbooth/map/{group}`). It draws the group's endpoints by resource, links resources whose models
+  embed or reference each other, and, with monitoring enabled, overlays the traffic of the last hour, day,
+  week or month: requests, error rate, p95 latency, throttled calls and active consumers with their trend,
+  each endpoint's share of calls and latency, and a "Needs attention" list of deprecated endpoints still
+  called, failing, throttled and slower endpoints. The map exports to Mermaid. The pages are rendered with
+  Twig, in English or French, and ship their own stylesheet, script and fonts.
+- `tollbooth.dashboard.enabled`, `tollbooth.dashboard.path` and `tollbooth.dashboard.locale`.
+- The health report warns when the dashboard is reachable outside any firewall.
+
+### Upgrade notes
+- The dashboard turns itself on when the application has `symfony/twig-bundle` and `symfony/translation`.
+  Put `/_tollbooth` behind your firewall (an `access_control` rule such as
+  `{ path: ^/_tollbooth, roles: ROLE_ADMIN }`), or set `tollbooth.dashboard.enabled: false`.
+
 ## [0.9.3] - 2026-11-25
 
 ### Fixed

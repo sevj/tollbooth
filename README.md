@@ -382,6 +382,34 @@ The snapshot of a release is the set of OpenAPI documents of its groups, so what
 
 `--fail-on` takes `breaking` (default), `risky` or `none`. `--format=markdown` prints a changelog for API consumers, `--format=json` the raw changes. `--target=<version>` compares two snapshots instead of the code. The suggested next version follows semver from the base snapshot (a breaking change bumps the minor version before 1.0).
 
+## Dashboard
+
+An operator dashboard, rendered on the server, in English or French. It needs Twig and the Translation component, and stays off without them:
+
+```
+composer require symfony/twig-bundle symfony/translation
+```
+
+| Route | Content |
+| --- | --- |
+| `/_tollbooth` | Opens the map of the first group |
+| `/_tollbooth/map/{group}` | API map: the group's endpoints by resource, linked where their models refer to each other |
+| `/_tollbooth/map/{group}.mmd` | The same map as a Mermaid flowchart |
+
+With monitoring enabled, the map shows the traffic over the last hour, day, week or month (`?range=1h|24h|7d|30d`): requests, error rate, p95 latency, throttled calls and active consumers with their trend; each endpoint's share of its resource's calls, its p95, deprecated endpoints, endpoints throttled or answering errors above `tollbooth.health.error_rate`. A "Needs attention" list names the deprecated endpoints still called and by whom, the endpoints that fail (with their most frequent error), those hitting quotas and those whose p95 rose by half against the previous 7 days. `?mode=structure` shows the declared status and authentication instead.
+
+Resources are the first segment of each path once the group prefix is removed. Two resources are linked when a model one of them returns embeds a model the other returns, or carries its id (`customer_id` links to `customers`).
+
+```yaml
+tollbooth:
+    dashboard:
+        enabled: true
+        path: /_tollbooth
+        locale: ~          # en or fr; defaults to the language the browser prefers
+```
+
+The pages ship with their stylesheet, script and fonts (Inter and JetBrains Mono, SIL Open Font License): no build step, no CDN. They are not protected by Tollbooth: put `/_tollbooth` behind the application firewall. The health report warns when the dashboard is reachable without one.
+
 ## Versioning
 
 Tollbooth follows [Semantic Versioning 2.0.0](https://semver.org/). Notable changes for each release are recorded in [`CHANGELOG.md`](CHANGELOG.md), and each version is a git tag.
@@ -403,6 +431,7 @@ The public API is the contract host applications and API clients rely on:
 - the health routes and the shape of their JSON, and the `tollbooth:health` command;
 - the monitoring tables: a change to their schema is announced with the SQL to run;
 - the documentation routes (`<docs.path>/docs/{group}`, `<docs.path>/openapi/{group}.json`); the content of the OpenAPI documents follows the endpoints and is not itself versioned;
+- the dashboard routes (`<dashboard.path>` and `<dashboard.path>/map/{group}`); what the pages show and how they look is not versioned;
 - the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, rate limit headers and the `limiters` list, and the problem details shape.
 
 Anything else is internal and may change in any release.

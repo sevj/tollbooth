@@ -1,0 +1,63 @@
+{% trans_default_domain 'tollbooth' %}
+<!doctype html>
+<html lang="{{ app.request.locale|default('en') }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{% block title %}{% endblock %} · Tollbooth</title>
+<link rel="icon" href="{{ tb_asset('favicon.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ tb_asset('dashboard.css') }}">
+<script type="module" src="{{ tb_asset('dashboard.js') }}"></script>
+</head>
+<body>
+<div class="app">
+
+<nav class="side" aria-label="{{ 'dashboard.nav.label'|trans }}">
+<a class="brand" href="{{ path('tollbooth_dashboard') }}">
+<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="3" height="16" fill="#EDEAE3"></rect><rect x="5" y="6" width="18" height="5" fill="#F0B429"></rect><path d="M8 6h3l-2.5 5h-3zM15 6h3l-2.5 5h-3z" fill="#0D0E10"></path></svg>
+<span>tollbooth</span>
+</a>
+
+<details class="groups">
+<summary class="btn"><span class="m" style="font-size: 12px">{{ shell.group }} <span class="mu">{{ shell.mount }}</span></span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#9C988F" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"></path></svg><span class="sr">{{ 'dashboard.nav.switch_group'|trans }}</span></summary>
+<ul>
+{% for group in shell.groups %}
+<li><a href="{{ group.url }}"{% if group.name == shell.group %} aria-current="page"{% endif %}><span>{{ group.name }}</span><span class="mu">{{ group.mount }}</span></a></li>
+{% endfor %}
+</ul>
+</details>
+
+<a class="nav{% if shell.screen == 'map' %} on{% endif %}" href="{{ path('tollbooth_dashboard_map', {group: shell.group}) }}"{% if shell.screen == 'map' %} aria-current="page"{% endif %}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="1.5" width="5" height="5"></rect><rect x="9.5" y="1.5" width="5" height="5"></rect><rect x="1.5" y="9.5" width="5" height="5"></rect><path d="M6.5 4h3M4 6.5v3"></path></svg>{{ 'dashboard.nav.map'|trans }}<span class="count">{{ shell.endpoints }}</span></a>
+{% block nav %}{% endblock %}
+{% if shell.docs %}
+<div class="sep"></div>
+<a class="nav" href="{{ shell.docs }}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M5 4 1.5 8 5 12M11 4l3.5 4-3.5 4M9.5 2.5l-3 11"></path></svg>{{ 'dashboard.nav.openapi'|trans }}</a>
+{% endif %}
+
+<div class="side-foot">
+{% if shell.collector %}
+<div class="state" title="{{ shell.collector.summary }}"><span class="dot {{ shell.collector.status }}"></span>{{ ('dashboard.nav.collector.' ~ shell.collector.status)|trans }}</div>
+{% endif %}
+<div>tollbooth {{ shell.version }} · symfony {{ shell.symfony }}</div>
+</div>
+</nav>
+
+<main class="main">
+<div class="top">
+<div class="crumbs">{% block crumbs %}{% endblock %}</div>
+<label class="search">
+<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#8A867D" stroke-width="1.4" aria-hidden="true"><circle cx="6" cy="6" r="4.5"></circle><path d="m9.5 9.5 3 3"></path></svg>
+<span class="sr">{{ 'dashboard.search.label'|trans }}</span>
+<input type="search" data-search placeholder="{{ 'dashboard.search.placeholder'|trans }}" autocomplete="off">
+<kbd>⌘K</kbd>
+</label>
+{% block toolbar %}{% endblock %}
+<span class="btn" title="{{ 'dashboard.environment'|trans }}"><span class="dot {{ shell.environment == 'prod' ? 'ok' : 'warning' }}"></span><span class="m" style="font-size: 12px">{{ shell.environment }}</span></span>
+</div>
+{% block body %}{% endblock %}
+</main>
+
+</div>
+</body>
+</html>

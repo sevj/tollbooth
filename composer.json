@@ -20,7 +20,9 @@
     },
     "suggest": {
         "symfony/security-bundle": "To accept the jwt and user authentication methods",
-        "doctrine/doctrine-bundle": "To store monitored calls in a database configured by the application"
+        "doctrine/doctrine-bundle": "To store monitored calls in a database configured by the application",
+        "symfony/translation": "With symfony/twig-bundle, to serve the operator dashboard",
+        "symfony/twig-bundle": "To serve the operator dashboard"
     },
     "autoload": {
         "psr-4": {
@@ -57,6 +59,8 @@
         "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^13.4",
         "symfony/browser-kit": "^7.4 || ^8.0",
-        "symfony/security-bundle": "^7.4 || ^8.0"
+        "symfony/security-bundle": "^7.4 || ^8.0",
+        "symfony/translation": "^7.4 || ^8.0",
+        "symfony/twig-bundle": "^7.4 || ^8.0"
     }
 }
