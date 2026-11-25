@@ -32,15 +32,18 @@ final readonly class AccessListener
             return;
         }
 
-        $allowed = EndpointRequest::auth($request);
-        $consumer = $this->authenticate($request, $allowed);
+        $start = microtime(true);
+        try {
+            $consumer = $this->authenticate($request, EndpointRequest::auth($request));
+            $request->attributes->set(self::CONSUMER_ATTRIBUTE, $consumer);
 
-        $missing = $consumer->missingScopes(EndpointRequest::scopes($request));
-        if ([] !== $missing) {
-            throw new AccessDeniedHttpException(\sprintf('This endpoint requires the scope%s "%s".', \count($missing) > 1 ? 's' : '', implode('", "', $missing)));
+            $missing = $consumer->missingScopes(EndpointRequest::scopes($request));
+            if ([] !== $missing) {
+                throw new AccessDeniedHttpException(\sprintf('This endpoint requires the scope%s "%s".', \count($missing) > 1 ? 's' : '', implode('", "', $missing)));
+            }
+        } finally {
+            EndpointRequest::addTiming($request, 'auth', $start);
         }
-
-        $request->attributes->set(self::CONSUMER_ATTRIBUTE, $consumer);
     }
 
     /**

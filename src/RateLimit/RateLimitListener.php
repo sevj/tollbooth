@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tollbooth\RateLimit;
 
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -39,6 +40,19 @@ final readonly class RateLimitListener
             return;
         }
 
+        $start = microtime(true);
+        try {
+            $this->consume($request, $consumer, $limits);
+        } finally {
+            EndpointRequest::addTiming($request, 'rate_limit', $start);
+        }
+    }
+
+    /**
+     * @param list<Limit> $limits
+     */
+    private function consume(Request $request, Consumer $consumer, array $limits): void
+    {
         $states = [];
         $rejected = false;
         foreach ($limits as $limit) {

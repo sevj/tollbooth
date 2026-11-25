@@ -8,6 +8,27 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- `tollbooth.monitoring` records every call to an endpoint after the response is sent: endpoint, group,
+  method, path, status, duration, consumer, IP, size, a short error description and the time spent in
+  each step (`auth`, `rate_limit`, `hydrate`, `handler`, `serialize`). Bodies, headers and query strings
+  are never stored, and server errors keep their exception class only.
+- Calls are stored through Doctrine DBAL in the application's connection by default, or in a dedicated
+  one. Each call is a single append-only insert. Finished minutes are aggregated in batch with a latency
+  histogram; percentiles are estimated from it.
+- `auto_maintenance` aggregates and purges at the end of requests, at most once a minute and once an hour,
+  under a lock. `tollbooth:monitoring:maintain` does the same from a scheduler.
+- `tollbooth:monitoring:setup` creates or updates the tables, or prints the SQL with `--dump-sql`.
+- `CallReaderInterface` lists the latest calls with filters and a cursor, and gives per-minute series and
+  totals per endpoint or per consumer.
+
+### Changed
+- A call refused for a missing scope (403) is now attributed to its consumer.
+
+### Upgrade notes
+- Monitoring is off until `tollbooth.monitoring.enabled: true`. It needs `doctrine/dbal`, usually through
+  `doctrine/doctrine-bundle`, and `tollbooth:monitoring:setup` once.
+
 ## [0.6.0] - 2026-11-25
 
 ### Added

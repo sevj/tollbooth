@@ -238,6 +238,33 @@ RateLimit: "burst";r=97;t=4, "minute";r=581;t=34, "day";r=46020;t=35869
 
 `legacy_headers: true` also sends `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` for the tightest limit. Calls rejected before authentication are not counted.
 
+## Monitoring
+
+Every call to an endpoint is recorded once the response has been sent: endpoint, group, method, path (without its query string), status, duration, consumer, IP, response size, a short error description, and the time spent in each step (`auth`, `rate_limit`, `hydrate`, `handler`, `serialize`). Bodies and headers are never stored. A 500 is recorded with its exception class only, not its message.
+
+```yaml
+tollbooth:
+    monitoring:
+        enabled: true
+        connection: default              # Doctrine DBAL connection, or "monitoring" for a dedicated database
+        table_prefix: tollbooth_
+        calls_retention_days: 7
+        aggregates_retention_days: 30
+        auto_maintenance: true
+```
+
+Create the tables once (PostgreSQL, MySQL and SQLite are supported through DBAL):
+
+```
+bin/console tollbooth:monitoring:setup             # or --dump-sql to put it in a migration
+```
+
+Each call costs one append-only `INSERT`: no row is updated on every call, so calls do not wait on each other's locks. Finished minutes are aggregated in batch into per-minute counters with a latency histogram, from which percentiles are estimated; the current minutes are read from the raw calls. With `auto_maintenance`, the end of a request runs that aggregation at most once a minute and the purge at most once an hour, after the response is sent and under a lock. Set it to `false` and schedule `tollbooth:monitoring:maintain` instead to keep that work off the web servers.
+
+Under heavy traffic, point `connection` at a dedicated database so that monitoring never competes with the application's queries.
+
+`Tollbooth\Monitoring\CallReaderInterface` gives the latest calls (filtered by endpoint, group, consumer or status class, with a cursor), a series per minute and totals per endpoint or per consumer. The dashboard reads it; so can the application.
+
 ## Documentation
 
 Tollbooth writes one OpenAPI 3.1 document per group from the same metadata that routes the calls, so the documentation cannot drift from the code.
@@ -285,7 +312,9 @@ The public API is the contract host applications and API clients rely on:
 - the format of API keys (`tb_live_` or `tb_test_`, a 12 character id, a 32 character secret);
 - the `tollbooth` route loader type;
 - the `tollbooth.*` configuration keys;
-- the console commands `tollbooth:api-key:generate` and `tollbooth:openapi:export` and their options;
+- the console commands `tollbooth:api-key:generate`, `tollbooth:openapi:export`, `tollbooth:monitoring:setup` and `tollbooth:monitoring:maintain` and their options;
+- the monitoring interfaces `CallRecorderInterface`, `CallReaderInterface` and `RollupInterface`, and the value objects `CallRecord`, `CallQuery` and `Stats`;
+- the monitoring tables: a change to their schema is announced with the SQL to run;
 - the documentation routes (`<docs.path>/docs/{group}`, `<docs.path>/openapi/{group}.json`); the content of the OpenAPI documents follows the endpoints and is not itself versioned;
 - the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, rate limit headers and the `limiters` list, and the problem details shape.
 
