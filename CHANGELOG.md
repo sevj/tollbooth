@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-11-25
+
 ### Fixed
 - On the dashboard map, a link that goes around blocks no longer enters a block at the same height as
   the link to its neighbour, and link labels are drawn over the lines they cross.
