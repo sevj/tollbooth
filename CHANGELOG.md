@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-11-25
+
 ### Added
 - The consumers screens and API key management work without monitoring: the keys are listed without their
   traffic.
