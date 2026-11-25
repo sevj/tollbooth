@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-25
+
 ### Added
 - Rate limit plans can be stored in a database table (`tollbooth.rate_limit.doctrine_plans`), next to the
   plans declared in the configuration, which keep working and stay read-only. `tollbooth:plan:setup`
