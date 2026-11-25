@@ -35,7 +35,7 @@ final class DocsTest extends FunctionalTestCase
 
         $view = $this->at($document, 'components', 'schemas', 'ThingView');
         self::assertSame(['id', 'name', 'color', 'unitCount'], $view['required']);
-        self::assertSame(['type' => 'string', 'enum' => ['red', 'amber']], $this->at($view, 'properties', 'color'));
+        self::assertSame(['title' => 'Color', 'type' => 'string', 'enum' => ['red', 'amber']], $this->at($view, 'properties', 'color'));
         self::assertSame(['type' => ['string', 'null']], $this->at($view, 'properties', 'note'));
 
         $input = $this->at($document, 'components', 'schemas', 'CreateThingInput');

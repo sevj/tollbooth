@@ -1,0 +1,40 @@
+{% if standalone|default(false) %}<?xml version="1.0" encoding="UTF-8"?>
+{% endif %}
+<svg xmlns="http://www.w3.org/2000/svg" class="md" width="{{ diagram.width + 2 }}" height="{{ diagram.height + 2 }}" viewBox="-1 -1 {{ diagram.width + 2 }} {{ diagram.height + 2 }}" role="img" aria-label="{{ diagram.cards|keys|join(', ') }}">
+<style>
+.md text{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+.md-bg{fill:#15171A;stroke:#2A2E34}
+.md-sel .md-bg{stroke:#F0B429}
+.md-hd{fill:#15171A}
+.md-sel .md-hd{fill:#F0B429}
+.md-line{stroke:#24282D}
+.md-title{fill:#EDEAE3;font-weight:600;font-size:13px}
+.md-sel .md-title{fill:#0D0E10}
+.md-kind{fill:#9C988F;font-size:10px}
+.md-sel .md-kind{fill:#0D0E10}
+.md-name{fill:#D9D6CF}
+.md-type{fill:#9C988F}
+.md-ref{fill:#F0B429}
+.md-nl{fill:#C3A8FF}
+.md-more{fill:#8A867D}
+.md-link{fill:none;stroke:#4C525A;stroke-dasharray:4 3}
+.md-link.direct{stroke:#F0B429;stroke-dasharray:none}
+.md-label{fill:#9C988F;text-anchor:middle}
+</style>
+{% for link in diagram.links %}<path class="md-link{% if link.direct %} direct{% endif %}" d="{{ link.path }}"/>{% endfor %}
+{% for link in diagram.links %}<text class="md-label" x="{{ link.labelX }}" y="{{ link.labelY }}">{{ link.label|tb_truncate(12) }}</text>{% endfor %}
+{% for name, card in diagram.cards %}
+<g class="{{ card.selected ? 'md-sel' : '' }}" transform="translate({{ card.x }} {{ card.y }})">
+<rect class="md-bg" x="0.5" y="0.5" width="{{ card.width - 1 }}" height="{{ card.height - 1 }}"/>
+<rect class="md-hd" x="1" y="1" width="{{ card.width - 2 }}" height="39"/>
+<line class="md-line" x1="0" y1="40.5" x2="{{ card.width }}" y2="40.5"/>
+<text class="md-title" x="12" y="25">{{ name|tb_truncate(card.selected ? 20 : 18) }}</text>
+<text class="md-kind" x="{{ card.width - 12 }}" y="24" text-anchor="end">{{ {output: 'out', input: 'in', enum: 'enum'}[card.model.kind] }}{% if card.model.uses > 1 %} · {{ card.model.uses }}×{% endif %}</text>
+{% for row in card.rows %}
+<text class="md-name" x="12" y="{{ 40 + 26 * loop.index0 + 18 }}">{{ row.name|tb_truncate(14) }}</text>
+<text x="{{ card.width - 12 }}" y="{{ 40 + 26 * loop.index0 + 18 }}" text-anchor="end">{% if row.nullable %}<tspan class="md-nl">?</tspan>{% endif %}<tspan class="{{ row.ref ? 'md-ref' : 'md-type' }}">{{ row.type|tb_truncate(card.selected ? 16 : 14) }}</tspan></text>
+{% endfor %}
+{% if card.more > 0 %}<text class="md-more" x="12" y="{{ 40 + 26 * card.rows|length + 18 }}">+ {{ card.more }}</text>{% endif %}
+</g>
+{% endfor %}
+</svg>

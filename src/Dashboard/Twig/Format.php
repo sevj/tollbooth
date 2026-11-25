@@ -82,6 +82,11 @@ final class Format
         );
     }
 
+    public static function truncate(string $text, int $length): string
+    {
+        return mb_strlen($text) <= $length ? $text : mb_substr($text, 0, max(1, $length - 1)).'…';
+    }
+
     public static function change(float $ratio): string
     {
         if ($ratio >= 9.5) {

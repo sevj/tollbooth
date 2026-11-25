@@ -8,6 +8,17 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Models screen in the dashboard (`/_tollbooth/models/{group}/{model}`). It lists the group's output
+  models, input models and enums, draws the selected model with the models it refers to (one level, two
+  levels or all), shows its fields with their rules as a table, the endpoints that return or accept it,
+  and a preview of how it is serialized in each envelope and field name case. The diagram downloads as
+  SVG. The endpoint page links its body and response models to this screen.
+
+### Changed
+- Enum schemas in the OpenAPI documents carry the name of their PHP enum as `title`. Contract diffs
+  ignore it.
+
 ## [0.11.0] - 2026-11-25
 
 ### Added

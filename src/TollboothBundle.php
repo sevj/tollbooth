@@ -56,12 +56,14 @@ use Tollbooth\Dashboard\Controller\AssetController;
 use Tollbooth\Dashboard\Controller\EndpointController;
 use Tollbooth\Dashboard\Controller\HomeController;
 use Tollbooth\Dashboard\Controller\MapController;
+use Tollbooth\Dashboard\Controller\ModelsController;
 use Tollbooth\Dashboard\DashboardRouteProvider;
 use Tollbooth\Dashboard\Endpoint\EndpointPageBuilder;
 use Tollbooth\Dashboard\GroupCatalog;
 use Tollbooth\Dashboard\LocaleListener;
 use Tollbooth\Dashboard\Map\MapBuilder;
 use Tollbooth\Dashboard\Map\Thresholds;
+use Tollbooth\Dashboard\Models\ModelCatalogFactory;
 use Tollbooth\Dashboard\Shell;
 use Tollbooth\Dashboard\Traffic\TrafficReader;
 use Tollbooth\Dashboard\Twig\DashboardExtension;
@@ -705,7 +707,16 @@ final class TollboothBundle extends AbstractBundle
                 self::version(),
                 $monitoring && $config['health']['enabled'] ? service(MonitoringCheck::class) : null,
                 $config['docs']['enabled'] && $config['docs']['ui'] ? DocsRouteProvider::PAGE_ROUTE : null,
+                $config['docs']['enabled'] ? service(ModelCatalogFactory::class) : null,
             ]);
+        if ($config['docs']['enabled']) {
+            $services->set(ModelCatalogFactory::class)
+                ->args([service(OpenApiGenerator::class), service(GroupCatalog::class)]);
+            $services->set(ModelsController::class)
+                ->args([service(ModelCatalogFactory::class), service(Shell::class), service('twig'), service('router')])
+                ->public()
+                ->tag('controller.service_arguments');
+        }
 
         $services->set(HomeController::class)
             ->args([service(GroupCatalog::class), service('router')])

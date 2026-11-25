@@ -33,7 +33,7 @@ final readonly class ExampleGenerator
         if (\is_array($schema['enum'] ?? null) && [] !== $schema['enum']) {
             return $schema['enum'][0];
         }
-        if (\array_key_exists('default', $schema) && null !== $schema['default'] && '' !== $schema['default']) {
+        if (\array_key_exists('default', $schema) && !\in_array($schema['default'], [null, '', []], true)) {
             return $schema['default'];
         }
         foreach (['allOf', 'anyOf', 'oneOf'] as $combinator) {
