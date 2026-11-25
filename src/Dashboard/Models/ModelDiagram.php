@@ -20,6 +20,10 @@ final readonly class ModelDiagram
     public const int ROW = 26;
     public const int MAX_ROWS = 12;
     private const int PADDING = 8;
+    private const int MAX_WIDTH = 480;
+    private const int KIND_LABEL = 96;
+    private const float CHARACTER = 7.2;
+    private const float TITLE_CHARACTER = 8.0;
 
     /**
      * @param array<string, Card> $cards
@@ -57,11 +61,19 @@ final readonly class ModelDiagram
 
         $min = min($columns);
         $max = max($columns);
+        $columnWidths = [];
+        foreach ($order as $name) {
+            $model = $catalog->get($name);
+            if (null !== $model) {
+                $column = $columns[$name];
+                $columnWidths[$column] = max($columnWidths[$column] ?? (0 === $column ? self::SELECTED_WIDTH : self::CARD_WIDTH), self::widthOf($model));
+            }
+        }
         $lefts = [];
         $x = 0;
         for ($column = $min; $column <= $max; ++$column) {
             $lefts[$column] = $x;
-            $x += (0 === $column ? self::SELECTED_WIDTH : self::CARD_WIDTH) + self::GAP_X;
+            $x += ($columnWidths[$column] ?? self::CARD_WIDTH) + self::GAP_X;
         }
         $width = $x - self::GAP_X;
 
@@ -81,7 +93,7 @@ final readonly class ModelDiagram
                 'model' => $model,
                 'x' => $lefts[$column] ?? 0,
                 'y' => $y,
-                'width' => 0 === $column ? self::SELECTED_WIDTH : self::CARD_WIDTH,
+                'width' => $columnWidths[$column] ?? self::CARD_WIDTH,
                 'height' => $height,
                 'rows' => $rows,
                 'more' => $more,
@@ -111,6 +123,17 @@ final readonly class ModelDiagram
         }
 
         return new self($width, $height, $cards, $links);
+    }
+
+    private static function widthOf(Model $model): int
+    {
+        $width = 24 + (int) ceil(mb_strlen($model->name) * self::TITLE_CHARACTER) + self::KIND_LABEL;
+        foreach (self::rows($model)[0] as $row) {
+            $characters = mb_strlen($row['name']) + mb_strlen($row['type']) + ($row['nullable'] ? 1 : 0);
+            $width = max($width, 40 + (int) ceil($characters * self::CHARACTER));
+        }
+
+        return min(self::MAX_WIDTH, $width);
     }
 
     /**

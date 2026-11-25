@@ -35,7 +35,7 @@
 <div class="group">
 <div class="th"><span>{{ ('dashboard.models.kind.' ~ kind)|trans }} · {{ models|length }}</span><span>{{ 'dashboard.models.list_uses'|trans }}</span></div>
 {% for item in models %}
-<a class="li{% if item.name == model.name %} sel{% endif %}" href="{{ path('tollbooth_dashboard_model', {group: group, model: item.name}|merge(query)) }}" data-search-text="{{ item.name|lower }}"{% if item.name == model.name %} aria-current="page"{% endif %}><span>{{ item.name }}</span>{% if item.usages|length > 0 %}<span class="uses" title="{{ 'dashboard.models.used_by_endpoints'|trans({'%count%': item.usages|length}) }}">{{ item.usages|length }}</span>{% endif %}</a>
+<a class="li{% if item.name == model.name %} sel{% endif %}" href="{{ path('tollbooth_dashboard_model', {group: group, model: item.name}|merge(query)) }}" data-search-text="{{ item.name|lower }}"{% if item.name == model.name %} aria-current="page"{% endif %}><span title="{{ item.name }}">{{ item.name }}</span>{% if item.usages|length > 0 %}<span class="uses" title="{{ 'dashboard.models.used_by_endpoints'|trans({'%count%': item.usages|length}) }}">{{ item.usages|length }}</span>{% endif %}</a>
 {% endfor %}
 </div>
 {% endif %}

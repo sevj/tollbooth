@@ -244,7 +244,7 @@ pre.code{margin:0;padding:18px 20px;font:12.5px/1.7 var(--mono);color:var(--text
 .err .sub{font:11px var(--mono);color:var(--muted);margin-top:4px}
 
 .models{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;margin-bottom:24px}
-.mlist{flex:0 1 200px;min-width:180px;padding:12px 8px;margin-bottom:0}
+.mlist{flex:0 0 auto;width:max-content;min-width:200px;max-width:300px;padding:12px 8px;margin-bottom:0}
 .mlist .th{padding:6px 10px 8px;display:flex;justify-content:space-between;gap:8px}
 .mlist .th+.li,.mlist .li+.th{margin-top:0}
 .mlist .group+.group{margin-top:10px}
@@ -252,6 +252,8 @@ pre.code{margin:0;padding:18px 20px;font:12.5px/1.7 var(--mono);color:var(--text
 .li:hover{background:var(--row-hover);color:var(--text)}
 .li.sel{background:var(--row-sel);color:var(--text-strong)}
 .li .uses{font-size:10px;color:var(--faint)}
+.li>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .uses{flex:none}
 .li.sel .uses{color:var(--accent)}
 .mpanel{flex:999 1 600px;min-width:0;margin-bottom:0}
 .mpanel .canvas-wrap svg{display:block}
