@@ -18,7 +18,8 @@
         "symfony/yaml": "^7.4 || ^8.0"
     },
     "suggest": {
-        "symfony/security-bundle": "To accept the jwt and user authentication methods"
+        "symfony/security-bundle": "To accept the jwt and user authentication methods",
+        "doctrine/doctrine-bundle": "To store monitored calls in a database configured by the application"
     },
     "autoload": {
         "psr-4": {
@@ -48,6 +49,7 @@
     },
     "require-dev": {
         "deptrac/deptrac": "^4.7",
+        "doctrine/dbal": "^4.0",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^13.4",

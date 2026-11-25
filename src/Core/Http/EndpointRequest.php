@@ -17,9 +17,72 @@ use Tollbooth\Core\Security\AuthMethod;
  */
 final class EndpointRequest
 {
+    private const string TIMINGS_ATTRIBUTE = '_tollbooth_timings';
+    private const string MARKS_ATTRIBUTE = '_tollbooth_marks';
+    private const string ERROR_ATTRIBUTE = '_tollbooth_error';
+
     public static function isEndpoint(Request $request): bool
     {
         return $request->attributes->has(EndpointRouteLoader::ENDPOINT_ATTRIBUTE);
+    }
+
+    public static function routeName(Request $request): string
+    {
+        return $request->attributes->getString('_route');
+    }
+
+    public static function group(Request $request): string
+    {
+        return $request->attributes->getString(EndpointRouteLoader::GROUP_ATTRIBUTE);
+    }
+
+    public static function addTiming(Request $request, string $step, float $since): void
+    {
+        $timings = self::timings($request);
+        $timings[$step] = ($timings[$step] ?? 0.0) + round((microtime(true) - $since) * 1000, 3);
+        $request->attributes->set(self::TIMINGS_ATTRIBUTE, $timings);
+    }
+
+    /**
+     * @return array<string, float>
+     */
+    public static function timings(Request $request): array
+    {
+        $timings = $request->attributes->get(self::TIMINGS_ATTRIBUTE, []);
+        $valid = [];
+        foreach (\is_array($timings) ? $timings : [] as $step => $duration) {
+            if (\is_string($step) && \is_float($duration)) {
+                $valid[$step] = $duration;
+            }
+        }
+
+        return $valid;
+    }
+
+    public static function mark(Request $request, string $mark): void
+    {
+        $marks = $request->attributes->get(self::MARKS_ATTRIBUTE, []);
+        $request->attributes->set(self::MARKS_ATTRIBUTE, [...(\is_array($marks) ? $marks : []), $mark => microtime(true)]);
+    }
+
+    public static function markedAt(Request $request, string $mark): ?float
+    {
+        $marks = $request->attributes->get(self::MARKS_ATTRIBUTE, []);
+        $value = \is_array($marks) ? ($marks[$mark] ?? null) : null;
+
+        return \is_float($value) ? $value : null;
+    }
+
+    public static function setError(Request $request, string $error): void
+    {
+        $request->attributes->set(self::ERROR_ATTRIBUTE, mb_substr($error, 0, 255));
+    }
+
+    public static function error(Request $request): ?string
+    {
+        $error = $request->attributes->get(self::ERROR_ATTRIBUTE);
+
+        return \is_string($error) ? $error : null;
     }
 
     public static function status(Request $request): int

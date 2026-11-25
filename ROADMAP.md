@@ -48,14 +48,16 @@ What Tollbooth does today, what is being built and what comes next. The dashboar
 - [x] Rate limit headers and endpoint limits in the document
 - [x] Documentation page (Scalar) and `tollbooth:openapi:export`
 
-## Next
-
 ### 0.7 · Monitoring
-- [ ] Call collection at `kernel.terminate`: endpoint, status, duration, consumer, size, error
-- [ ] Time spent in each pipeline step
-- [ ] Storage adapters: Doctrine first, then Redis, null and OpenTelemetry export
-- [ ] Retention and purge
-- [ ] Request bodies never stored by default, secrets redacted
+- [x] Call collection at `kernel.terminate`: endpoint, status, duration, consumer, IP, size, error
+- [x] Time spent in each pipeline step
+- [x] Doctrine DBAL storage, the application's connection by default or a dedicated one
+- [x] Append-only writes, per-minute rollup with a latency histogram, raw reads for the current minutes
+- [x] Retention and purge, automatic or through `tollbooth:monitoring:maintain`
+- [x] No bodies, headers or query strings stored; server errors keep their class only
+- [x] `CallReaderInterface` for the dashboard
+
+## Next
 
 ### 0.8 · Health
 - [ ] Tollbooth checks: metadata cache, OpenAPI validity, limiter storage, collector lag, purge, dashboard access
@@ -91,3 +93,5 @@ Twig, rendered on the server, assets shipped prebuilt, every string translated (
 - [ ] Test helper asserting that a response matches its declared schema
 - [ ] Descriptions and examples on endpoints and fields, OpenAPI linting in CI
 - [ ] Documentation page assets shipped in the bundle instead of loaded from a CDN
+- [ ] Monitoring adapters: ClickHouse or TimescaleDB, OpenTelemetry export; sampling of raw calls
+- [ ] Opt-in storage of request headers (secrets redacted) and bodies per endpoint

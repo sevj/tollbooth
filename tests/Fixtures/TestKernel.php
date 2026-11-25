@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tollbooth\Tests\Fixtures;
 
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
@@ -99,6 +101,11 @@ final class TestKernel extends Kernel
                     'legacy_headers' => true,
                 ],
             ],
+            'monitoring' => [
+                'path_prefix' => '/api',
+                'auth' => $open,
+                'monitoring' => ['enabled' => true, 'connection' => 'tollbooth.test_connection', 'cache_pool' => 'tollbooth.test_limits'],
+            ],
             default => ['path_prefix' => '/api', 'auth' => $open],
         });
 
@@ -124,6 +131,18 @@ final class TestKernel extends Kernel
             $services->load('Tollbooth\\Tests\\Fixtures\\Limited\\', __DIR__.'/Limited/');
             $services->set('clock', MockClock::class)->args([self::NOW, 'UTC'])->public();
         }
+        if ('monitoring' === $this->environment) {
+            $services->set('clock', MockClock::class)->args([self::NOW, 'UTC'])->public();
+            $services->set('tollbooth.test_connection', Connection::class)
+                ->factory([DriverManager::class, 'getConnection'])
+                ->args([['driver' => 'pdo_sqlite', 'path' => self::monitoringDatabase()]])
+                ->public();
+        }
+    }
+
+    public static function monitoringDatabase(): string
+    {
+        return sys_get_temp_dir().'/tollbooth-tests/monitoring.sqlite';
     }
 
     protected function configureRoutes(RoutingConfigurator $routes): void

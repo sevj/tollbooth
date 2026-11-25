@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tollbooth;
 
+use Doctrine\DBAL\Connection;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\Console\Application;
 use Symfony\Component\DependencyInjection\ChildDefinition;
@@ -23,6 +24,7 @@ use Tollbooth\Core\DependencyInjection\EndpointPass;
 use Tollbooth\Core\Http\BodyValueResolver;
 use Tollbooth\Core\Http\EndpointListener;
 use Tollbooth\Core\Http\QueryValueResolver;
+use Tollbooth\Core\Http\TimingListener;
 use Tollbooth\Core\Metadata\EndpointRegistry;
 use Tollbooth\Core\Metadata\Group;
 use Tollbooth\Core\Metadata\GroupResolver;
@@ -40,6 +42,14 @@ use Tollbooth\Docs\Command\ExportOpenApiCommand;
 use Tollbooth\Docs\DocsController;
 use Tollbooth\Docs\DocsRouteProvider;
 use Tollbooth\Docs\OpenApiGenerator;
+use Tollbooth\Monitoring\AutoRollup;
+use Tollbooth\Monitoring\CallReaderInterface;
+use Tollbooth\Monitoring\CallRecorderInterface;
+use Tollbooth\Monitoring\CollectorListener;
+use Tollbooth\Monitoring\Command\MaintenanceCommand;
+use Tollbooth\Monitoring\Command\SetupCommand;
+use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
+use Tollbooth\Monitoring\RollupInterface;
 use Tollbooth\RateLimit\PlanRegistry;
 use Tollbooth\RateLimit\RateLimitListener;
 use Tollbooth\RateLimit\WindowCounter;
@@ -54,6 +64,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
  * @phpstan-import-type ApiKeyConfig from InMemoryApiKeyProvider
  *
  * @phpstan-type AuthConfig array{default: list<string>, api_key_header: string, api_key_provider: ?string, api_keys: array<string, ApiKeyConfig>}
+ * @phpstan-type MonitoringConfig array{enabled: bool, connection: string, table_prefix: string, calls_retention_days: int, aggregates_retention_days: int, auto_maintenance: bool, cache_pool: string}
  * @phpstan-type DocsConfig array{enabled: bool, path: string, title: string, version: string, ui: bool}
  * @phpstan-type RateLimitConfig array{enabled: bool, plans: array<string, list<string>|array<string, string>>, default_plan: ?string, anonymous_plan: ?string, cache_pool: string, legacy_headers: bool}
  */
@@ -175,6 +186,26 @@ final class TollboothBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('monitoring')
+                    ->canBeEnabled()
+                    ->children()
+                        ->scalarNode('connection')
+                            ->defaultValue('default')
+                            ->info('Doctrine DBAL connection name ("default", "monitoring"…) or service id. A dedicated database keeps the load off the application one.')
+                        ->end()
+                        ->scalarNode('table_prefix')->defaultValue('tollbooth_')->end()
+                        ->integerNode('calls_retention_days')->defaultValue(7)->min(1)->end()
+                        ->integerNode('aggregates_retention_days')->defaultValue(30)->min(1)->end()
+                        ->booleanNode('auto_maintenance')
+                            ->defaultTrue()
+                            ->info('Aggregate finished minutes and purge old data at the end of requests, after the response is sent. Turn off to run tollbooth:monitoring:maintain from a scheduler instead.')
+                        ->end()
+                        ->scalarNode('cache_pool')
+                            ->defaultValue('cache.app')
+                            ->info('Cache pool remembering when maintenance last ran.')
+                        ->end()
+                    ->end()
+                ->end()
                 ->arrayNode('docs')
                     ->canBeDisabled()
                     ->children()
@@ -265,7 +296,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig} $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -286,6 +317,9 @@ final class TollboothBundle extends AbstractBundle
         }
         if ($config['docs']['enabled']) {
             $this->loadDocs($config, $container);
+        }
+        if ($config['monitoring']['enabled']) {
+            $this->loadMonitoring($config['monitoring'], $container);
         }
 
         $services = $container->services();
@@ -318,6 +352,12 @@ final class TollboothBundle extends AbstractBundle
 
         $services->set(ProblemFactory::class)
             ->args([param('kernel.debug')]);
+
+        $services->set(TimingListener::class)
+            ->tag('kernel.event_listener', ['event' => KernelEvents::CONTROLLER, 'method' => 'onController', 'priority' => -1024])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::CONTROLLER_ARGUMENTS, 'method' => 'onArgumentsResolved', 'priority' => 1024])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::CONTROLLER_ARGUMENTS, 'method' => 'onHandlerStart', 'priority' => -1024])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::RESPONSE, 'method' => 'onResponse', 'priority' => -1024]);
 
         $services->set(EndpointListener::class)
             ->args([service(OutputRenderer::class), service(ProblemFactory::class), self::apiPrefixes($config)])
@@ -369,7 +409,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig} $config
+     * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig} $config
      */
     private function loadDocs(array $config, ContainerConfigurator $container): void
     {
@@ -399,6 +439,52 @@ final class TollboothBundle extends AbstractBundle
         if (class_exists(Application::class)) {
             $services->set(ExportOpenApiCommand::class)
                 ->args([service(OpenApiGenerator::class)])
+                ->tag('console.command');
+        }
+    }
+
+    /**
+     * @param MonitoringConfig $monitoring
+     */
+    private function loadMonitoring(array $monitoring, ContainerConfigurator $container): void
+    {
+        if (!class_exists(Connection::class)) {
+            throw new \LogicException('Tollbooth monitoring stores calls with Doctrine DBAL. Run "composer require doctrine/dbal" (or doctrine/doctrine-bundle), or disable tollbooth.monitoring.');
+        }
+
+        $connection = str_contains($monitoring['connection'], '.') ? $monitoring['connection'] : 'doctrine.dbal.'.$monitoring['connection'].'_connection';
+        $services = $container->services();
+
+        $services->set(DoctrineCallStorage::class)
+            ->args([service($connection), $monitoring['table_prefix']]);
+        $services->alias(CallRecorderInterface::class, DoctrineCallStorage::class);
+        $services->alias(CallReaderInterface::class, DoctrineCallStorage::class);
+        $services->alias(RollupInterface::class, DoctrineCallStorage::class);
+
+        $services->set(AutoRollup::class)
+            ->args([
+                service(RollupInterface::class),
+                service($monitoring['cache_pool']),
+                $monitoring['calls_retention_days'],
+                $monitoring['aggregates_retention_days'],
+                service('lock.factory')->nullOnInvalid(),
+            ]);
+
+        $services->set(CollectorListener::class)
+            ->args([
+                service(CallRecorderInterface::class),
+                $monitoring['auto_maintenance'] ? service(AutoRollup::class) : null,
+                service('clock')->nullOnInvalid(),
+                service('logger')->nullOnInvalid(),
+            ])
+            ->tag('kernel.event_listener', ['event' => KernelEvents::TERMINATE]);
+
+        if (class_exists(Application::class)) {
+            $services->set(SetupCommand::class)
+                ->args([service(DoctrineCallStorage::class)])
+                ->tag('console.command');
+            $services->set(MaintenanceCommand::class)
+                ->args([service(RollupInterface::class), $monitoring['calls_retention_days'], $monitoring['aggregates_retention_days'], service('clock')->nullOnInvalid()])
                 ->tag('console.command');
         }
     }

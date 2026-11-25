@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Event\ViewEvent;
 use Tollbooth\Core\Output\OutputRenderer;
+use Tollbooth\Core\Problem\Problem;
 use Tollbooth\Core\Problem\ProblemFactory;
 
 /**
@@ -39,12 +40,15 @@ final readonly class EndpointListener
             return;
         }
 
+        $this->timeHandler($request);
+        $start = microtime(true);
         $event->setResponse($this->renderer->render(
             $event->getControllerResult(),
             EndpointRequest::status($request),
             EndpointRequest::envelope($request),
             EndpointRequest::case($request),
         ));
+        EndpointRequest::addTiming($request, 'serialize', $start);
     }
 
     public function onException(ExceptionEvent $event): void
@@ -58,6 +62,9 @@ final readonly class EndpointListener
         $problem = $this->problems->fromThrowable($event->getThrowable(), EndpointRequest::case($request));
         if (!$isEndpoint) {
             $problem = $problem->withoutDetail();
+        } else {
+            $this->timeHandler($request);
+            EndpointRequest::setError($request, $this->describe($problem, $event->getThrowable()));
         }
 
         $event->allowCustomResponseCode();
@@ -66,6 +73,28 @@ final readonly class EndpointListener
             $problem->status,
             ['Content-Type' => 'application/problem+json'] + $problem->headers,
         ));
+    }
+
+    private function timeHandler(Request $request): void
+    {
+        $start = EndpointRequest::markedAt($request, TimingListener::HANDLER);
+        if (null !== $start && !isset(EndpointRequest::timings($request)['handler'])) {
+            EndpointRequest::addTiming($request, 'handler', $start);
+        }
+    }
+
+    private function describe(Problem $problem, \Throwable $throwable): string
+    {
+        if ($problem->status >= 500) {
+            return $throwable::class;
+        }
+
+        $violation = $problem->violations[0] ?? null;
+        if (null !== $violation) {
+            return $violation['field'].': '.$violation['message'];
+        }
+
+        return $problem->detail ?? $problem->title;
     }
 
     private function isUnderApiPrefix(Request $request): bool
