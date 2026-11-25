@@ -53,6 +53,10 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
 
     public function __construct(
         private string $path = '/_tollbooth',
+        private bool $monitoring = true,
+        private bool $models = true,
+        private bool $changes = true,
+        private bool $health = true,
     ) {
     }
 
@@ -86,6 +90,13 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
         $routes->add(self::PLAN_DELETE, new Route($base.'/configuration/{group}/plans/{plan}/delete', ['_controller' => ConfigurationController::class.'::delete'], [...$group, 'plan' => '[a-z0-9][a-z0-9_-]*'], methods: ['POST']));
         $routes->add(self::PLAN_EDIT, new Route($base.'/configuration/{group}/plans/{plan}', ['_controller' => ConfigurationController::class.'::edit'], [...$group, 'plan' => '[a-z0-9][a-z0-9_-]*'], methods: ['GET', 'POST']));
         $routes->add(self::ASSET, new Route($base.'/assets/{file}', ['_controller' => AssetController::class], ['file' => '[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)?\.(css|js|woff2|svg)'], methods: ['GET']));
+
+        $routes->remove(array_merge(
+            $this->monitoring ? [] : [self::REQUESTS, self::REQUESTS_FEED, self::REQUESTS_EXPORT, self::CONSUMERS, self::CONSUMER, self::KEY_NEW, self::KEY_ROTATE, self::KEY_PLAN, self::KEY_REVOKE],
+            $this->models ? [] : [self::MODELS, self::MODEL, self::MODEL_SVG],
+            $this->changes ? [] : [self::CHANGES],
+            $this->health ? [] : [self::HEALTH],
+        ));
 
         return $routes;
     }

@@ -61,7 +61,7 @@ The dashboard reads the rest of the configuration: `tollbooth.health.error_rate`
 | Configuration | Settings, plans (read-only) | Plan editing: `rate_limit.doctrine_plans` |
 | "OpenAPI spec" link | | `docs` with `docs.ui: true` |
 
-`monitoring` means `tollbooth.monitoring.enabled: true` with its tables created; see [monitoring.md](monitoring.md). A screen whose module is off is removed from the menu. Its route still exists, so do not link to it.
+`monitoring` means `tollbooth.monitoring.enabled: true` with its tables created; see [monitoring.md](monitoring.md). A screen whose module is off is removed from the menu and has no route.
 
 ## Layout
 
@@ -459,10 +459,10 @@ Every form that changes something (create, rotate, re-plan or revoke a key; crea
 
 - the token is missing or does not match;
 - the browser sends `Sec-Fetch-Site` with a value other than `same-origin` or `none`;
-- the browser sends an `Origin` header (other than `null`) that differs from the request's scheme and host.
+- the browser sends an `Origin` header (other than `null`) whose host differs from the request's host. Only the host is compared, so a proxy that terminates TLS (the browser on `https`, PHP seeing `http`) does not break the forms.
 
 Consequences:
 
 - The token does not depend on the session: it protects against forms posted from other sites, while the firewall decides who may use the dashboard at all.
 - All servers must share the same `kernel.secret` (`APP_SECRET`), or a form rendered by one server is refused by another. Changing the secret only invalidates forms already open in a browser; reload them. See [guides/multiple-servers.md](guides/multiple-servers.md).
-- Behind a reverse proxy or a load balancer that terminates TLS, configure Symfony's trusted proxies (`framework.trusted_proxies` and `framework.trusted_headers`) so that the scheme and host Symfony sees match the browser's `Origin`; otherwise every form is refused.
+- Behind a reverse proxy that rewrites the host, configure Symfony's trusted proxies (`framework.trusted_proxies` and `framework.trusted_headers`) so that the host Symfony sees matches the browser's `Origin`; otherwise every form is refused.

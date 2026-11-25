@@ -35,7 +35,7 @@ final readonly class FormGuard
         }
 
         $origin = $request->headers->get('Origin');
-        if (null !== $origin && 'null' !== $origin && rtrim($origin, '/') !== $request->getSchemeAndHttpHost()) {
+        if (null !== $origin && 'null' !== $origin && strtolower((string) parse_url($origin, \PHP_URL_HOST)) !== strtolower($request->getHost())) {
             throw new AccessDeniedHttpException('The form was not sent from the dashboard.');
         }
     }
