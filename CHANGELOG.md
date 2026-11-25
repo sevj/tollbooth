@@ -8,6 +8,14 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- `scopes: auto` on a group matched by `path` derived every scope from that path: `/backoffice/tickets`
+  required `backoffice:write`. The group's path is now skipped, so it requires `tickets:write`.
+
+### Upgrade notes
+- Keys and tokens of a path-matched group with `scopes: auto` need the resource scopes instead of the
+  group one.
+
 ## [0.9.0] - 2026-11-25
 
 ### Added

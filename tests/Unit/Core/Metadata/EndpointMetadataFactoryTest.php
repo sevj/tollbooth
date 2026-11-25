@@ -89,6 +89,16 @@ final class EndpointMetadataFactoryTest extends TestCase
         self::assertSame(['things:write'], $factory->create('b', new \ReflectionClass(NamedEndpoint::class))->scopes);
     }
 
+    public function testAutoScopesSkipThePathThatMatchesTheGroup(): void
+    {
+        $factory = new EndpointMetadataFactory(new GroupResolver(
+            new Group(Group::DEFAULT, Envelope::Plain, NameCase::Preserve),
+            ['backoffice' => ['namespace' => null, 'path' => '/backoffice', 'prefix' => '', 'output' => ['envelope' => null, 'case' => null], 'scopes' => 'auto']],
+        ));
+
+        self::assertSame(['tickets:write'], $factory->create('a', new \ReflectionClass(ReplyToTicket::class))->scopes);
+    }
+
     public function testDeclaredScopesReplaceTheGroupOnes(): void
     {
         $metadata = $this->factoryWithGroup(['scopes' => 'auto'])->create('a', new \ReflectionClass(KeyOrJwt::class));
@@ -123,6 +133,14 @@ final class EndpointMetadataFactoryTest extends TestCase
 final class KeyOrJwt
 {
     public function __invoke(): void
+    {
+    }
+}
+
+#[Endpoint('POST', '/backoffice/tickets/{id}/replies')]
+final class ReplyToTicket
+{
+    public function __invoke(string $id): void
     {
     }
 }
