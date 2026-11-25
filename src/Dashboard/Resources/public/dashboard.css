@@ -100,12 +100,16 @@ button{font:inherit}
 a.row:hover{color:var(--text-strong);background-color:#1C1E22}
 .row.failing{background:linear-gradient(90deg,rgba(255,138,122,.14) var(--share,0%),#1C1A1A var(--share,0%));color:var(--text)}
 .row.dim{opacity:.3}
-.row .me{width:50px;flex:none;font-weight:600;font-size:11px}
-.row .pa{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .pa.gone{color:var(--faint);text-decoration:line-through}
+.row .me{width:46px;flex:none;font-weight:600;font-size:11px}
+.row .pa{flex:1;min-width:0;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.row .pa .gone{color:var(--faint);text-decoration:line-through}
 .row .n{width:40px;flex:none;text-align:right;color:var(--muted)}
-.row .n.bad{color:var(--bad)}
-.row .p{width:46px;flex:none;text-align:right}
+.row .e{width:48px;flex:none;text-align:right;color:var(--muted)}
+.row .e.bad{color:var(--bad)}
+.row .p{width:48px;flex:none;text-align:right}
+.row .au{width:auto;min-width:40px;flex:none;text-align:right}
+.row-h{height:25px;display:flex;align-items:center;gap:8px;padding:0 14px;font:10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-soft)}
+.row-h .me{width:46px;flex:none}.row-h .pa{flex:1}.row-h .n{width:40px;flex:none;text-align:right}.row-h .e,.row-h .p{width:48px;flex:none;text-align:right}.row-h .au{min-width:40px;flex:none;text-align:right}
 .row .p.slow{color:var(--warn)}
 .tag{font:600 10px var(--mono);padding:2px 5px;letter-spacing:.02em;flex:none}
 .tag.sunset{background:#3A2E12;color:var(--accent)}

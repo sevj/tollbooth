@@ -33,6 +33,11 @@ final readonly class MapEndpoint
         return $this->stats?->percentile(0.95);
     }
 
+    public function characters(): int
+    {
+        return mb_strlen($this->path) + ($this->deprecated() ? 10 : 0) + ($this->throttling ? 5 : 0);
+    }
+
     public function deprecated(): bool
     {
         return null !== $this->metadata->deprecation;

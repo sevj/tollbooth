@@ -54,10 +54,15 @@ dashboard:
       of_keys: '{1}of 1 key|]1,Inf[of %count% keys|{0}no key'
     resources: Resources
     legend:
-      share: traffic share
+      share: share of the resource's calls
       reference: model reference
-      live: calls · p95
-      structure: status · auth
+    block:
+      calls: '{0}no call|{1}1 call|]1,Inf[%calls% calls'
+    column:
+      calls: calls
+      errors: errors
+      status: success
+      auth: auth
     reference_title: '%from% → %to% through %label%'
     tag:
       sunset: SUNSET

@@ -15,17 +15,40 @@ final class MapLayout
     public const int BLOCK_WIDTH = 296;
     public const int GAP_X = 88;
     public const int GAP_Y = 100;
-    public const int HEADER = 56;
+    public const int HEADER = 76;
     public const int ROW = 30;
-    private const int LINK_Y = 80;
+    private const int LINK_Y = 100;
     private const int LANE = 48;
     private const int SPREAD = 8;
+    private const int ROW_CHROME = 252;
+    private const float CHARACTER = 7.2;
+
+    public static function blockWidth(int $characters): int
+    {
+        return max(self::BLOCK_WIDTH, self::ROW_CHROME + (int) ceil($characters * self::CHARACTER));
+    }
+
+    /**
+     * @param array<string, int> $rows       endpoint rows of each resource, most important first
+     * @param list<Reference>    $references
+     *
+     * @return list<Diagram> the widest layout first, then narrower ones down to two columns
+     */
+    public static function layouts(array $rows, array $references, int $blockWidth = self::BLOCK_WIDTH): array
+    {
+        $layouts = [];
+        for ($columns = min(3, \count($rows)); $columns >= min(2, \count($rows)); --$columns) {
+            $layouts[] = self::arrange($rows, $references, $columns, $blockWidth);
+        }
+
+        return $layouts;
+    }
 
     /**
      * @param array<string, int> $rows       endpoint rows of each resource, most important first
      * @param list<Reference>    $references
      */
-    public static function arrange(array $rows, array $references, int $columns = 3): Diagram
+    public static function arrange(array $rows, array $references, int $columns = 3, int $blockWidth = self::BLOCK_WIDTH): Diagram
     {
         $names = array_keys($rows);
         if ([] === $names) {
@@ -57,10 +80,10 @@ final class MapLayout
 
         $boxes = [];
         foreach ($cells as $name => [$row, $column]) {
-            $boxes[$name] = ['x' => $column * (self::BLOCK_WIDTH + self::GAP_X), 'y' => $rowTops[$row], 'width' => self::BLOCK_WIDTH, 'height' => self::height($rows[$name])];
+            $boxes[$name] = ['x' => $column * ($blockWidth + self::GAP_X), 'y' => $rowTops[$row], 'width' => $blockWidth, 'height' => self::height($rows[$name])];
         }
 
-        $width = $columns * self::BLOCK_WIDTH + ($columns - 1) * self::GAP_X;
+        $width = $columns * $blockWidth + ($columns - 1) * self::GAP_X;
         $height = $top - self::GAP_Y;
         $edges = [];
         $routed = 0;
