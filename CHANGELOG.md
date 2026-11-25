@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-11-25
+
 ### Fixed
 - Long model names are shown whole on the models screen: diagram cards widen to their longest name or
   field (up to 480 pixels) instead of cutting them, and the list widens up to 300 pixels, then ends the
