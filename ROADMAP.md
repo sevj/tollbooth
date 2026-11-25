@@ -84,6 +84,7 @@ Twig, rendered on the server, assets shipped prebuilt, every string translated (
 - [x] Requests: live tail, filters, call detail with limiter state, NDJSON export
 - [x] Consumers and a consumer page: quotas, minute limiter, endpoints used, upcoming changes, key
 - [x] Changes and Health screens
+- [x] Light theme, chosen from the menu or following the system
 - [x] API key management from the UI, with a Doctrine key provider
 - [x] Configuration screen: every rate limit plan edited from the UI and stored with Doctrine, current settings
 

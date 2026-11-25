@@ -24,7 +24,7 @@ final class ConsumersTest extends TestCase
         self::assertSame(['Products', 'Orders'], array_column($flow->targets, 'label'));
         self::assertSame([0.8, 0.2], array_column($flow->sources, 'share'));
         self::assertSame([0.0, 258.0], array_column($flow->sources, 'y'));
-        self::assertSame(['#F0B429', '#C3A8FF'], array_column($flow->sources, 'color'));
+        self::assertSame(['var(--accent)', 'var(--violet)'], array_column($flow->sources, 'color'));
         self::assertCount(3, $flow->flows);
         self::assertSame('M12,0 C320,0 320,0 628,0 L628,186 C320,186 320,186 12,186Z', $flow->flows[0]['path']);
         self::assertSame('M12,186 C320,186 320,196 628,196 L628,258 C320,258 320,248 12,248Z', $flow->flows[1]['path']);

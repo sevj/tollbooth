@@ -3,23 +3,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" class="md" width="{{ diagram.width + 2 }}" height="{{ diagram.height + 2 }}" viewBox="-1 -1 {{ diagram.width + 2 }} {{ diagram.height + 2 }}" role="img" aria-label="{{ diagram.cards|keys|join(', ') }}">
 <style>
 .md text{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px}
-.md-bg{fill:#15171A;stroke:#2A2E34}
-.md-sel .md-bg{stroke:#F0B429}
-.md-hd{fill:#15171A}
-.md-sel .md-hd{fill:#F0B429}
-.md-line{stroke:#24282D}
-.md-title{fill:#EDEAE3;font-weight:600;font-size:13px}
-.md-sel .md-title{fill:#0D0E10}
-.md-kind{fill:#9C988F;font-size:10px}
-.md-sel .md-kind{fill:#0D0E10}
-.md-name{fill:#D9D6CF}
-.md-type{fill:#9C988F}
-.md-ref{fill:#F0B429}
-.md-nl{fill:#C3A8FF}
-.md-more{fill:#8A867D}
-.md-link{fill:none;stroke:#4C525A;stroke-dasharray:4 3}
-.md-link.direct{stroke:#F0B429;stroke-dasharray:none}
-.md-label{fill:#9C988F;text-anchor:middle}
+.md-bg{fill:var(--block,#15171A);stroke:var(--sel,#2A2E34)}
+.md-sel .md-bg{stroke:var(--accent,#F0B429)}
+.md-hd{fill:var(--block,#15171A)}
+.md-sel .md-hd{fill:var(--accent,#F0B429)}
+.md-line{stroke:var(--line,#24282D)}
+.md-title{fill:var(--text,#EDEAE3);font-weight:600;font-size:13px}
+.md-sel .md-title{fill:var(--on-accent,#0D0E10)}
+.md-kind{fill:var(--muted,#9C988F);font-size:10px}
+.md-sel .md-kind{fill:var(--on-accent,#0D0E10)}
+.md-name{fill:var(--text-soft,#D9D6CF)}
+.md-type{fill:var(--muted,#9C988F)}
+.md-ref{fill:var(--accent,#F0B429)}
+.md-nl{fill:var(--violet,#C3A8FF)}
+.md-more{fill:var(--faint,#8A867D)}
+.md-link{fill:none;stroke:var(--edge,#4C525A);stroke-dasharray:4 3}
+.md-link.direct{stroke:var(--accent,#F0B429);stroke-dasharray:none}
+.md-label{fill:var(--muted,#9C988F);text-anchor:middle}
 </style>
 {% for link in diagram.links %}<path class="md-link{% if link.direct %} direct{% endif %}" d="{{ link.path }}"/>{% endfor %}
 {% for link in diagram.links %}<text class="md-label" x="{{ link.labelX }}" y="{{ link.labelY }}">{{ link.label|tb_truncate(12) }}</text>{% endfor %}

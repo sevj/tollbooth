@@ -43,6 +43,7 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('Turn on tollbooth.monitoring', $html);
         self::assertStringNotContainsString('id="tab-stats"', $html);
         self::assertStringNotContainsString('Needs attention', $html);
+        self::assertStringContainsString('<button type="button" data-theme-choice="light" aria-pressed="false">light</button>', $html);
 
         $client->request('GET', '/_tollbooth/endpoints/default?filter=failing&sort=calls', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
         self::assertResponseIsSuccessful();
@@ -266,7 +267,7 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('<div class="stat"><div class="th">breaking</div><div class="v kc-breaking">1</div></div>', $html);
         self::assertStringContainsString('<span class="el">GET /gone</span>', $html);
         self::assertStringContainsString('## 2.0.0 (unreleased)', $html);
-        self::assertStringContainsString('<span class="count" style="color: #FF8A7A">1</span>', $html);
+        self::assertStringContainsString('<span class="count" style="color: var(--bad)">1</span>', $html);
         (new Filesystem())->remove(TestKernel::contractDirectory());
     }
 
