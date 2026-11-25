@@ -105,6 +105,7 @@ final class TestKernel extends Kernel
                 'path_prefix' => '/api',
                 'auth' => $open,
                 'monitoring' => ['enabled' => true, 'connection' => 'tollbooth.test_connection', 'cache_pool' => 'tollbooth.test_limits'],
+                'health' => ['token' => 'probe-secret'],
             ],
             default => ['path_prefix' => '/api', 'auth' => $open],
         });
@@ -132,6 +133,7 @@ final class TestKernel extends Kernel
             $services->set('clock', MockClock::class)->args([self::NOW, 'UTC'])->public();
         }
         if ('monitoring' === $this->environment) {
+            $services->load('Tollbooth\\Tests\\Fixtures\\Health\\', __DIR__.'/Health/');
             $services->set('clock', MockClock::class)->args([self::NOW, 'UTC'])->public();
             $services->set('tollbooth.test_connection', Connection::class)
                 ->factory([DriverManager::class, 'getConnection'])

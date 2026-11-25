@@ -57,19 +57,20 @@ What Tollbooth does today, what is being built and what comes next. The dashboar
 - [x] No bodies, headers or query strings stored; server errors keep their class only
 - [x] `CallReaderInterface` for the dashboard
 
-## Next
-
 ### 0.8 · Health
-- [ ] Tollbooth checks: metadata cache, OpenAPI validity, limiter storage, collector lag, purge, dashboard access
-- [ ] `HealthCheckInterface` for the host application's own checks
-- [ ] Findings: deprecated endpoints still called, unused endpoints, keys about to expire
-- [ ] `/_tollbooth/health/live` and `/ready` probes
+- [x] Tollbooth checks: compiled metadata, limiter storage, monitoring tables, aggregation and purge lag
+- [x] `HealthCheckInterface` and `FindingProviderInterface` for the application, autoconfigured
+- [x] Findings: error rates, unused endpoints, keys expired or expiring, pages outside any firewall
+- [x] `/live` and `/ready` probes, details behind a token, full report and `tollbooth:health`
+
+## Next
 
 ### 0.9 · Changes
 - [ ] Contract snapshot per release
 - [ ] Diff between two snapshots: breaking, risky, added, changed, deprecated, with impact from real traffic
 - [ ] `tollbooth:diff --fail-on=breaking` for CI and a consumer-facing changelog
 - [ ] `Deprecation` and `Sunset` headers
+- [ ] Health finding: deprecated endpoints still called, and by whom
 
 ### 1.0 · Dashboard
 Twig, rendered on the server, assets shipped prebuilt, every string translated (`en`, `fr`).
