@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-25
+
 ### Added
 - Models screen in the dashboard (`/_tollbooth/models/{group}/{model}`). It lists the group's output
   models, input models and enums, draws the selected model with the models it refers to (one level, two
