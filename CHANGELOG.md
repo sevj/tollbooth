@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-25
+
 ### Added
 - Endpoint page in the dashboard (`/_tollbooth/endpoints/{group}/{name}`), opened from any row of the map.
   It shows the request pipeline with the endpoint's own settings (authentication and scopes, limits, body
