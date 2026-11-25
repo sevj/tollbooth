@@ -185,7 +185,13 @@ dashboard:
   models:
     title: Modèles
     crumb: modèles
-    summary: '{1}1 modèle, lu depuis vos types PHP|]1,Inf[%count% modèles, lus depuis vos types PHP'
+    intro: Les classes de données que l'API reçoit et renvoie, lues depuis vos types PHP
+    summary: '{1}1 modèle|]1,Inf[%count% modèles'
+    list_uses: endpoints
+    used_by_endpoints: '{1}utilisé par 1 endpoint|]1,Inf[utilisé par %count% endpoints'
+    configured: votre configuration
+    preview_note: "Aperçu : chaque bouton montre le JSON que produirait ce format. Votre configuration : %envelope%, %case%."
+    back_to_config: Revenir à votre configuration
     list: Modèles
     view:
       label: Vue
@@ -210,6 +216,7 @@ dashboard:
       direct: direct
       nested: imbriqué
       nullable: nullable
+      uses: = réutilisé dans N modèles
     value: valeur
     used_by: Utilisé par
     endpoints: '{0}aucun endpoint|{1}1 endpoint|]1,Inf[%count% endpoints'

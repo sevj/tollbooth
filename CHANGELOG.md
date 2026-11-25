@@ -8,6 +8,13 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Changed
+- The models screen explains itself: a sentence says what a model is, the list of models labels its
+  count as the number of endpoints using each one, the diagram legend explains the `N×` badge (reused
+  in N models) and the cards say "output" or "input" in the dashboard's language.
+- The JSON preview of a model says it is only a preview, marks the envelope and field case of your
+  configuration with a dot, and links back to them after you try another format.
+
 ## [0.17.1] - 2026-11-25
 
 ### Fixed

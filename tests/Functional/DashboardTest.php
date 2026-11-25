@@ -126,6 +126,8 @@ final class DashboardTest extends FunctionalTestCase
         self::assertStringContainsString('<text class="md-title" x="12" y="25">Color</text>', $html);
         self::assertStringContainsString('<span class="at">"unitCount"</span>', $html);
         self::assertStringContainsString('<span class="at">"type"</span>: <span class="s">"things"</span>', $html);
+        self::assertStringContainsString('Your configuration: plain, names as declared. <a href="/_tollbooth/models/default/ThingView?view=diagram&amp;depth=all&amp;envelope=plain&amp;case=preserve#preview-title">Back to your configuration</a>', $html);
+        self::assertStringContainsString('class="seg cfg" title="your configuration"', $html);
 
         $client->request('GET', '/_tollbooth/models/default/Color?view=table');
         self::assertResponseIsSuccessful();
