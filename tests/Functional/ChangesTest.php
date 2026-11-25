@@ -84,6 +84,17 @@ final class ChangesTest extends FunctionalTestCase
         self::assertStringContainsString('next version 2.0.0', $output);
     }
 
+    public function testMisspelledOptionsStopTheCommand(): void
+    {
+        $this->command('tollbooth:contract:snapshot', ['version' => '1.5.0']);
+
+        $diff = $this->command('tollbooth:diff', ['--fail-on' => 'breakng']);
+        self::assertSame(2, $diff->getStatusCode());
+        self::assertStringContainsString('--fail-on must be one of none, breaking, risky, added, changed, deprecated, not "breakng".', (string) preg_replace('/\s+/', ' ', $diff->getDisplay()));
+
+        self::assertSame(2, $this->command('tollbooth:diff', ['--format' => 'yaml'])->getStatusCode());
+    }
+
     public function testMarkdownChangelogForConsumers(): void
     {
         $this->command('tollbooth:contract:snapshot', ['version' => '0.3.1']);

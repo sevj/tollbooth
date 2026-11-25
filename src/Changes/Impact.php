@@ -46,7 +46,12 @@ final readonly class Impact
                 continue;
             }
 
-            foreach ($this->calls->totals($now - $this->days * 86400, $now + 60, 'consumer', new CallQuery(endpoint: $endpoint)) as $stats) {
+            try {
+                $totals = $this->calls->totals($now - $this->days * 86400, $now + 60, 'consumer', new CallQuery(endpoint: $endpoint));
+            } catch (\Throwable) {
+                return null;
+            }
+            foreach ($totals as $stats) {
                 $calls += $stats->calls;
                 $consumers[$stats->key] = $stats->label;
             }

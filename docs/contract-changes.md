@@ -79,8 +79,8 @@ bin/console tollbooth:diff [<base>] [--target=<version>] [--fail-on=breaking|ris
 | --- | --- | --- |
 | `base` | the latest snapshot | Snapshot version, or path to a snapshot file, to compare against. |
 | `--target` | the current code | Snapshot version or file to compare instead of the code, to see what changed between two releases. |
-| `--fail-on` | `breaking` | Exit with `1` when a change of this kind or a more severe one is found. `breaking` fails on breaking changes, `risky` on breaking or risky ones, `none` never fails. The other kind names are accepted too and follow the same order: `added` fails on breaking, risky or added changes, `changed` on everything but deprecations, `deprecated` on any change. Any other value never fails. |
-| `--format` | `text` | `text` for people, `markdown` for a changelog meant for API consumers, `json` for tools. An unknown value prints `text`. |
+| `--fail-on` | `breaking` | Exit with `1` when a change of this kind or a more severe one is found. `breaking` fails on breaking changes, `risky` on breaking or risky ones, `none` never fails. The other kind names are accepted too and follow the same order: `added` fails on breaking, risky or added changes, `changed` on everything but deprecations, `deprecated` on any change. Any other value stops the command with exit code `2`. |
+| `--format` | `text` | `text` for people, `markdown` for a changelog meant for API consumers, `json` for tools. An unknown value stops the command with exit code `2`. |
 
 ### Exit codes
 
@@ -88,8 +88,9 @@ bin/console tollbooth:diff [<base>] [--target=<version>] [--fail-on=breaking|ris
 | --- | --- |
 | `0` | The comparison ran and no change reaches the `--fail-on` threshold. |
 | `1` | A change reaches the threshold, or there is no snapshot to compare with, or the base or target snapshot cannot be found or read. |
+| `2` | `--fail-on` or `--format` has a value that is not one of those listed. |
 
-The command does not catch database errors: with monitoring enabled, see [Running the diff in CI](#running-the-diff-in-ci).
+When the monitoring database cannot be read, the changes are listed without their impact.
 
 ### Text output
 
@@ -343,16 +344,7 @@ jobs:
 
 Keep in mind:
 
-- With monitoring enabled in the environment the command runs in, the impact of breaking, risky and deprecated changes is read from the monitoring database. If that database is not reachable, the command stops with the database exception. Either run the diff where the database is reachable, or disable monitoring in the CI environment:
-
-  ```yaml
-  # config/packages/tollbooth.yaml
-  when@test:
-      tollbooth:
-          monitoring:
-              enabled: false
-  ```
-
+- With monitoring enabled in the environment the command runs in, the impact of breaking, risky and deprecated changes is read from the monitoring database. If that database cannot be read (no database in CI, for instance), the changes are listed without their impact and the exit code is unchanged.
 - At release time, save the snapshot of the released contract and commit it:
 
   ```
