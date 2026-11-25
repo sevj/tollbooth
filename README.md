@@ -265,6 +265,50 @@ Under heavy traffic, point `connection` at a dedicated database so that monitori
 
 `Tollbooth\Monitoring\CallReaderInterface` gives the latest calls (filtered by endpoint, group, consumer or status class, with a cursor), a series per minute and totals per endpoint or per consumer. The dashboard reads it; so can the application.
 
+## Health
+
+| Route | Answers |
+| --- | --- |
+| `/_tollbooth/health/live` | `200 {"status": "ok"}` as long as PHP answers. Runs no check. |
+| `/_tollbooth/health/ready` | The overall status, `503` only when a check is critical. The checks are listed only with `Authorization: Bearer <tollbooth.health.token>`. |
+| `/_tollbooth/health.json` | The full report: checks, findings and facts. Meant for operators, behind the firewall. |
+
+`bin/console tollbooth:health` prints the same report and fails on a critical status.
+
+Tollbooth checks its own parts: compiled metadata, the rate limit counter storage, the monitoring tables and how far behind their aggregation and purge are. The application adds its own checks by implementing `Tollbooth\Core\Health\HealthCheckInterface`; autoconfigured services are picked up:
+
+```php
+final readonly class PaymentGatewayCheck implements HealthCheckInterface
+{
+    public function name(): string
+    {
+        return 'payment_gateway';
+    }
+
+    public function check(): CheckResult
+    {
+        return $this->gateway->ping()
+            ? CheckResult::ok('Answered 200.')
+            : CheckResult::critical('Unreachable.');
+    }
+}
+```
+
+A check that throws is reported as critical with its exception class, never its message. A warning makes the status `degraded` without failing readiness.
+
+Findings point at things worth a look without changing the status: endpoints above an error rate in the last hour, endpoints without a call in 30 days, API keys expired or about to, and Tollbooth pages left outside any firewall. The application adds its own with `FindingProviderInterface`.
+
+```yaml
+tollbooth:
+    health:
+        probe_path: /_tollbooth/health
+        token: '%env(TOLLBOOTH_HEALTH_TOKEN)%'
+        error_rate: 0.05
+        unused_days: 30
+        key_expiry_days: 14
+        max_lag_minutes: 10
+```
+
 ## Documentation
 
 Tollbooth writes one OpenAPI 3.1 document per group from the same metadata that routes the calls, so the documentation cannot drift from the code.
@@ -314,6 +358,8 @@ The public API is the contract host applications and API clients rely on:
 - the `tollbooth.*` configuration keys;
 - the console commands `tollbooth:api-key:generate`, `tollbooth:openapi:export`, `tollbooth:monitoring:setup` and `tollbooth:monitoring:maintain` and their options;
 - the monitoring interfaces `CallRecorderInterface`, `CallReaderInterface` and `RollupInterface`, and the value objects `CallRecord`, `CallQuery` and `Stats`;
+- the health contract in `Tollbooth\Core\Health`: `HealthCheckInterface`, `FindingProviderInterface`, `CheckResult`, `HealthStatus` and `Finding`; the API key interface `ListableApiKeyProviderInterface`;
+- the health routes and the shape of their JSON, and the `tollbooth:health` command;
 - the monitoring tables: a change to their schema is announced with the SQL to run;
 - the documentation routes (`<docs.path>/docs/{group}`, `<docs.path>/openapi/{group}.json`); the content of the OpenAPI documents follows the endpoints and is not itself versioned;
 - the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, rate limit headers and the `limiters` list, and the problem details shape.

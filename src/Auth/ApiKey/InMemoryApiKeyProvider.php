@@ -7,7 +7,7 @@ namespace Tollbooth\Auth\ApiKey;
 /**
  * @phpstan-type ApiKeyConfig array{id: string, hash: string, scopes: list<string>, plan: ?string, expires_at: ?string, allowed_ips: list<string>}
  */
-final class InMemoryApiKeyProvider implements ApiKeyProviderInterface
+final class InMemoryApiKeyProvider implements ListableApiKeyProviderInterface
 {
     /**
      * @var array<string, ApiKey>|null
@@ -25,6 +25,11 @@ final class InMemoryApiKeyProvider implements ApiKeyProviderInterface
     public function find(string $id): ?ApiKey
     {
         return ($this->keys ??= $this->load())[$id] ?? null;
+    }
+
+    public function all(): iterable
+    {
+        return array_values($this->keys ??= $this->load());
     }
 
     /**

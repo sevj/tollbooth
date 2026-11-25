@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tollbooth;
 
+use Composer\InstalledVersions;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\Console\Application;
@@ -11,6 +12,7 @@ use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Tollbooth\Auth\AccessListener;
 use Tollbooth\Auth\ApiKey\ApiKeyAuthenticator;
@@ -18,9 +20,13 @@ use Tollbooth\Auth\ApiKey\ApiKeyProviderInterface;
 use Tollbooth\Auth\ApiKey\InMemoryApiKeyProvider;
 use Tollbooth\Auth\Command\GenerateApiKeyCommand;
 use Tollbooth\Auth\ConsumerValueResolver;
+use Tollbooth\Auth\Health\ApiKeyFindings;
 use Tollbooth\Auth\TokenConsumerResolver;
 use Tollbooth\Core\Attribute\Endpoint;
 use Tollbooth\Core\DependencyInjection\EndpointPass;
+use Tollbooth\Core\Health\FindingProviderInterface;
+use Tollbooth\Core\Health\HealthCheckInterface;
+use Tollbooth\Core\Health\MetadataCheck;
 use Tollbooth\Core\Http\BodyValueResolver;
 use Tollbooth\Core\Http\EndpointListener;
 use Tollbooth\Core\Http\QueryValueResolver;
@@ -42,6 +48,11 @@ use Tollbooth\Docs\Command\ExportOpenApiCommand;
 use Tollbooth\Docs\DocsController;
 use Tollbooth\Docs\DocsRouteProvider;
 use Tollbooth\Docs\OpenApiGenerator;
+use Tollbooth\Health\Command\HealthCommand;
+use Tollbooth\Health\ExposureFindings;
+use Tollbooth\Health\HealthController;
+use Tollbooth\Health\HealthRouteProvider;
+use Tollbooth\Health\HealthRunner;
 use Tollbooth\Monitoring\AutoRollup;
 use Tollbooth\Monitoring\CallReaderInterface;
 use Tollbooth\Monitoring\CallRecorderInterface;
@@ -49,7 +60,10 @@ use Tollbooth\Monitoring\CollectorListener;
 use Tollbooth\Monitoring\Command\MaintenanceCommand;
 use Tollbooth\Monitoring\Command\SetupCommand;
 use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
+use Tollbooth\Monitoring\Health\MonitoringCheck;
+use Tollbooth\Monitoring\Health\TrafficFindings;
 use Tollbooth\Monitoring\RollupInterface;
+use Tollbooth\RateLimit\Health\CounterStorageCheck;
 use Tollbooth\RateLimit\PlanRegistry;
 use Tollbooth\RateLimit\RateLimitListener;
 use Tollbooth\RateLimit\WindowCounter;
@@ -66,10 +80,13 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
  * @phpstan-type AuthConfig array{default: list<string>, api_key_header: string, api_key_provider: ?string, api_keys: array<string, ApiKeyConfig>}
  * @phpstan-type MonitoringConfig array{enabled: bool, connection: string, table_prefix: string, calls_retention_days: int, aggregates_retention_days: int, auto_maintenance: bool, cache_pool: string}
  * @phpstan-type DocsConfig array{enabled: bool, path: string, title: string, version: string, ui: bool}
+ * @phpstan-type HealthConfig array{enabled: bool, probe_path: string, token: ?string, error_rate: float, unused_days: int, key_expiry_days: int, max_lag_minutes: int}
  * @phpstan-type RateLimitConfig array{enabled: bool, plans: array<string, list<string>|array<string, string>>, default_plan: ?string, anonymous_plan: ?string, cache_pool: string, legacy_headers: bool}
  */
 final class TollboothBundle extends AbstractBundle
 {
+    private const string INTERNAL_CHECK = 'tollbooth.health_check.internal';
+
     protected string $extensionAlias = 'tollbooth';
 
     public function configure(DefinitionConfigurator $definition): void
@@ -206,6 +223,23 @@ final class TollboothBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('health')
+                    ->canBeDisabled()
+                    ->children()
+                        ->scalarNode('probe_path')
+                            ->defaultValue('/_tollbooth/health')
+                            ->info('Base path of the /live and /ready probes, meant for uptime tools and orchestrators.')
+                        ->end()
+                        ->scalarNode('token')
+                            ->defaultNull()
+                            ->info('Token unlocking the details of /ready, sent as "Authorization: Bearer <token>". Without it, /ready only gives the status.')
+                        ->end()
+                        ->floatNode('error_rate')->defaultValue(0.05)->min(0)->max(1)->end()
+                        ->integerNode('unused_days')->defaultValue(30)->min(1)->end()
+                        ->integerNode('key_expiry_days')->defaultValue(14)->min(1)->end()
+                        ->integerNode('max_lag_minutes')->defaultValue(10)->min(1)->end()
+                    ->end()
+                ->end()
                 ->arrayNode('docs')
                     ->canBeDisabled()
                     ->children()
@@ -296,7 +330,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig} $config
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig} $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -320,6 +354,9 @@ final class TollboothBundle extends AbstractBundle
         }
         if ($config['monitoring']['enabled']) {
             $this->loadMonitoring($config['monitoring'], $container);
+        }
+        if ($config['health']['enabled']) {
+            $this->loadHealth($config, $container, $builder);
         }
 
         $services = $container->services();
@@ -409,7 +446,7 @@ final class TollboothBundle extends AbstractBundle
     }
 
     /**
-     * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig} $config
+     * @param array{path_prefix: string, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig} $config
      */
     private function loadDocs(array $config, ContainerConfigurator $container): void
     {
@@ -441,6 +478,91 @@ final class TollboothBundle extends AbstractBundle
                 ->args([service(OpenApiGenerator::class)])
                 ->tag('console.command');
         }
+    }
+
+    /**
+     * @param array{path_prefix: string, output: array{envelope: string, case: string}, groups: array<string, GroupConfig>, auth: AuthConfig, rate_limit: RateLimitConfig, docs: DocsConfig, monitoring: MonitoringConfig, health: HealthConfig} $config
+     */
+    private function loadHealth(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
+    {
+        $health = $config['health'];
+        $services = $container->services();
+
+        $services->set(MetadataCheck::class)
+            ->args([service(EndpointRegistry::class)])
+            ->tag(self::INTERNAL_CHECK, ['priority' => 100]);
+
+        if ($config['rate_limit']['enabled'] && [] !== $config['rate_limit']['plans']) {
+            $services->set(CounterStorageCheck::class)
+                ->args([service($config['rate_limit']['cache_pool']), $config['rate_limit']['cache_pool']])
+                ->tag(self::INTERNAL_CHECK, ['priority' => 80]);
+        }
+
+        if ($config['monitoring']['enabled']) {
+            $services->set(MonitoringCheck::class)
+                ->args([service(DoctrineCallStorage::class), $config['monitoring']['calls_retention_days'], $health['max_lag_minutes'], service('clock')->nullOnInvalid()])
+                ->tag(self::INTERNAL_CHECK, ['priority' => 60]);
+            $services->set(TrafficFindings::class)
+                ->args([service(CallReaderInterface::class), service(EndpointRegistry::class), $health['unused_days'], $health['error_rate'], 20, service('clock')->nullOnInvalid()])
+                ->tag(FindingProviderInterface::TAG);
+        }
+
+        $services->set(ApiKeyFindings::class)
+            ->args([service(ApiKeyProviderInterface::class), $health['key_expiry_days'], service('clock')->nullOnInvalid()])
+            ->tag(FindingProviderInterface::TAG);
+
+        $exposed = ['health report' => rtrim($config['docs']['path'], '/').'/health.json'];
+        if ($config['docs']['enabled']) {
+            $exposed['documentation'] = rtrim($config['docs']['path'], '/').'/docs';
+        }
+        $services->set(ExposureFindings::class)
+            ->args([$exposed, service('security.firewall.map')->nullOnInvalid()])
+            ->tag(FindingProviderInterface::TAG);
+
+        $services->set(HealthRunner::class)
+            ->args([
+                tagged_iterator(self::INTERNAL_CHECK),
+                tagged_iterator(HealthCheckInterface::TAG),
+                tagged_iterator(FindingProviderInterface::TAG),
+                self::facts($config),
+                service('clock')->nullOnInvalid(),
+            ]);
+
+        $services->set(HealthController::class)
+            ->args([service(HealthRunner::class), $health['token']])
+            ->public()
+            ->tag('controller.service_arguments');
+
+        $services->set(HealthRouteProvider::class)
+            ->args([$config['docs']['path'], $health['probe_path']])
+            ->tag(RouteProviderInterface::TAG);
+
+        if (class_exists(Application::class)) {
+            $services->set(HealthCommand::class)
+                ->args([service(HealthRunner::class)])
+                ->tag('console.command');
+        }
+
+        $builder->registerForAutoconfiguration(HealthCheckInterface::class)->addTag(HealthCheckInterface::TAG);
+        $builder->registerForAutoconfiguration(FindingProviderInterface::class)->addTag(FindingProviderInterface::TAG);
+    }
+
+    /**
+     * @param array{output: array{envelope: string, case: string}, rate_limit: RateLimitConfig, monitoring: MonitoringConfig} $config
+     *
+     * @return array<string, string>
+     */
+    private static function facts(array $config): array
+    {
+        return array_filter([
+            'tollbooth' => InstalledVersions::isInstalled('tollbooth/tollbooth-bundle') ? (string) InstalledVersions::getPrettyVersion('tollbooth/tollbooth-bundle') : 'dev',
+            'symfony' => Kernel::VERSION,
+            'php' => \PHP_VERSION.(\function_exists('opcache_get_status') && false !== @opcache_get_status(false) ? ' · opcache on' : ''),
+            'environment' => '%kernel.environment%',
+            'conventions' => $config['output']['envelope'].' · '.$config['output']['case'].' · problem+json',
+            'rate_limit' => $config['rate_limit']['enabled'] && [] !== $config['rate_limit']['plans'] ? 'cache pool '.$config['rate_limit']['cache_pool'] : 'off',
+            'monitoring' => $config['monitoring']['enabled'] ? 'doctrine · '.$config['monitoring']['connection'] : 'off',
+        ]);
     }
 
     /**

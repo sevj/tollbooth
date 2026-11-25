@@ -39,7 +39,7 @@ Modules live side by side under `src/`, one namespace each:
 | `Docs` | OpenAPI generation and the documentation UI |
 | `RateLimit` | Plans, clock-aligned window counters, rate limit headers, 429 |
 | `Monitoring` | Call collection, storage adapters, aggregation |
-| `Health` | Health checks, probes, findings |
+| `Health` | Runs the checks and findings, probes, report. The contract lives in `Core\Health`, and each module ships the checks of its own parts |
 | `Changes` | Contract snapshots per release and their diff |
 | `Dashboard` | Server-rendered operator UI |
 

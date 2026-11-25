@@ -20,6 +20,7 @@ use Tollbooth\Monitoring\Stats;
 final readonly class DoctrineCallStorage implements CallRecorderInterface, CallReaderInterface, RollupInterface
 {
     private const string ROLLED_UNTIL = 'rolled_until';
+    private const string PURGED_AT = 'purged_before';
     private const int GRACE = 60;
 
     private string $calls;
@@ -91,9 +92,26 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
      */
     public function purge(int $callsBefore, int $minutesBefore): array
     {
-        return [
+        $purged = [
             'calls' => (int) $this->connection->executeStatement(\sprintf('DELETE FROM %s WHERE occurred_at < ?', $this->calls), [$callsBefore * 1000]),
             'minutes' => (int) $this->connection->executeStatement(\sprintf('DELETE FROM %s WHERE minute < ?', $this->minutes), [$minutesBefore]),
+        ];
+        $this->saveState(self::PURGED_AT, $callsBefore);
+
+        return $purged;
+    }
+
+    /**
+     * @return array{rolled_until: ?int, purged_before: ?int, oldest_call: ?int}
+     */
+    public function maintenanceState(): array
+    {
+        $oldest = $this->connection->fetchOne(\sprintf('SELECT MIN(occurred_at) FROM %s', $this->calls));
+
+        return [
+            'rolled_until' => $this->rolledUntil(),
+            'purged_before' => $this->stateValue(self::PURGED_AT),
+            'oldest_call' => false === $oldest || null === $oldest ? null : intdiv((int) self::scalar($oldest), 1000),
         ];
     }
 
@@ -372,7 +390,12 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
 
     private function rolledUntil(): ?int
     {
-        $value = $this->connection->fetchOne(\sprintf('SELECT value FROM %s WHERE name = ?', $this->state), [self::ROLLED_UNTIL]);
+        return $this->stateValue(self::ROLLED_UNTIL);
+    }
+
+    private function stateValue(string $name): ?int
+    {
+        $value = $this->connection->fetchOne(\sprintf('SELECT value FROM %s WHERE name = ?', $this->state), [$name]);
 
         return false === $value || null === $value ? null : (int) self::scalar($value);
     }
@@ -386,9 +409,14 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
 
     private function saveRolledUntil(int $until): void
     {
-        $updated = $this->connection->update($this->state, ['value' => $until], ['name' => self::ROLLED_UNTIL]);
+        $this->saveState(self::ROLLED_UNTIL, $until);
+    }
+
+    private function saveState(string $name, int $value): void
+    {
+        $updated = $this->connection->update($this->state, ['value' => $value], ['name' => $name]);
         if (0 === $updated) {
-            $this->connection->insert($this->state, ['name' => self::ROLLED_UNTIL, 'value' => $until]);
+            $this->connection->insert($this->state, ['name' => $name, 'value' => $value]);
         }
     }
 

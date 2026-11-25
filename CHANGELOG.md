@@ -8,6 +8,25 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Health probes: `/_tollbooth/health/live` answers as long as PHP does, `/_tollbooth/health/ready` gives
+  the overall status and fails with 503 on a critical check. Its details need the `tollbooth.health.token`.
+- A full report at `/_tollbooth/health.json` and from `tollbooth:health`: checks, findings and facts
+  (versions, environment, conventions, storages).
+- Tollbooth checks the compiled metadata, the rate limit counter storage, and the monitoring tables with
+  how far behind aggregation and purge are.
+- Applications add checks by implementing `HealthCheckInterface` and findings with
+  `FindingProviderInterface`; autoconfigured services are picked up. A failing check is critical and
+  reported with its exception class only.
+- Findings: endpoints above `error_rate` in the last hour, endpoints without a call in `unused_days`, API
+  keys expired or expiring within `key_expiry_days`, and Tollbooth pages left outside any firewall.
+- `ListableApiKeyProviderInterface` lets a key provider list its keys; the in-memory one does.
+
+### Upgrade notes
+- The probes are public routes. Leave `/live` and `/ready` reachable by the orchestrator, keep
+  `/_tollbooth/health.json` behind the firewall, and set `tollbooth.health.token` from an environment
+  variable.
+
 ## [0.7.0] - 2026-11-25
 
 ### Added
