@@ -25,7 +25,9 @@ final class DocsTest extends FunctionalTestCase
             ['name' => 'note', 'in' => 'query', 'required' => false, 'schema' => ['type' => 'string']],
         ], $get['parameters']);
         self::assertSame(['$ref' => '#/components/schemas/ThingView'], $this->at($get, 'responses', '200', 'content', 'application/json', 'schema'));
-        self::assertSame(['200', '400', '404'], array_map(strval(...), array_keys($this->at($get, 'responses'))));
+        self::assertSame(['200', '304', '400', '404'], array_map(strval(...), array_keys($this->at($get, 'responses'))));
+        self::assertSame(['ETag'], array_keys($this->at($get, 'responses', '200', 'headers')));
+        self::assertSame(['type' => 'string', 'format' => 'binary'], $this->at($document, 'paths', '/things/{id}/file', 'get', 'responses', '200', 'content', 'application/octet-stream', 'schema'));
         self::assertArrayNotHasKey('security', $get);
     }
 
@@ -83,7 +85,7 @@ final class DocsTest extends FunctionalTestCase
 
         $read = $this->at($document, 'paths', '/secure/things/{id}', 'get');
         self::assertSame([['ApiKey' => ['things:read']]], $read['security']);
-        self::assertSame(['200', '401', '403', '404'], array_map(strval(...), array_keys($this->at($read, 'responses'))));
+        self::assertSame(['200', '304', '401', '403', '404'], array_map(strval(...), array_keys($this->at($read, 'responses'))));
 
         $status = $this->at($document, 'paths', '/secure/status', 'get');
         self::assertArrayNotHasKey('security', $status);
@@ -95,7 +97,7 @@ final class DocsTest extends FunctionalTestCase
 
         $search = $this->at($document, 'paths', '/search', 'get');
         self::assertSame(['$ref' => '#/components/responses/TooManyRequests'], $this->at($search, 'responses', '429'));
-        self::assertSame(['RateLimit-Policy', 'RateLimit'], array_keys($this->at($search, 'responses', '200', 'headers')));
+        self::assertSame(['RateLimit-Policy', 'RateLimit', 'ETag'], array_keys($this->at($search, 'responses', '200', 'headers')));
         self::assertSame([['name' => 'search.minute', 'limit' => 2, 'window' => 60]], $search['x-rate-limits']);
         self::assertSame(['$ref' => '#/components/schemas/RateLimitProblem'], $this->at($document, 'components', 'responses', 'TooManyRequests', 'content', 'application/problem+json', 'schema'));
     }

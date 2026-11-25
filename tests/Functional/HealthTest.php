@@ -109,7 +109,7 @@ final class HealthTest extends FunctionalTestCase
         $messages = array_column($report['findings'], 'message');
         self::assertContains('The health report at /_tollbooth/health.json is outside any firewall: anyone can read it.', $messages);
         self::assertContains('The documentation at /_tollbooth/docs is outside any firewall: anyone can read it.', $messages);
-        self::assertNotEmpty(preg_grep('/^7 endpoints received no call in 30 days: /', $messages));
+        self::assertNotEmpty(preg_grep('/^8 endpoints received no call in 30 days: /', $messages));
         self::assertIsArray($report['facts']);
         self::assertSame(['tollbooth', 'symfony', 'php', 'environment', 'conventions', 'rate_limit', 'monitoring'], array_keys($report['facts']));
         self::assertSame('monitoring', $report['facts']['environment']);
