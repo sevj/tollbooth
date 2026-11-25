@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-25
+
 ### Added
 - An endpoints screen in the dashboard (`/_tollbooth/endpoints/{group}`), opened from the "Endpoints"
   menu entry that used to lead to the map: every endpoint of the group with its resource and
