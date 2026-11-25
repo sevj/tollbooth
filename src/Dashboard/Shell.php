@@ -7,6 +7,7 @@ namespace Tollbooth\Dashboard;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Tollbooth\Core\Health\HealthCheckInterface;
+use Tollbooth\Dashboard\Changes\ContractChanges;
 use Tollbooth\Dashboard\Models\ModelCatalogFactory;
 
 /**
@@ -23,7 +24,14 @@ final readonly class Shell
         private ?string $docsRoute = null,
         private ?ModelCatalogFactory $models = null,
         private bool $requests = false,
+        private ?ContractChanges $changes = null,
+        private bool $health = false,
     ) {
+    }
+
+    private function breaking(string $group): ?int
+    {
+        return $this->changes?->breaking($group);
     }
 
     /**
@@ -47,6 +55,8 @@ final readonly class Shell
                 'endpoints' => \count($this->groups->endpoints($group)),
                 'models' => $this->models?->catalog($group)?->count(),
                 'requests' => $this->requests,
+                'changes' => $this->breaking($group),
+                'health' => $this->health,
                 'environment' => $this->environment,
                 'version' => $this->version,
                 'symfony' => Kernel::VERSION,

@@ -8,6 +8,8 @@ dashboard:
     models: Models
     requests: Requests
     consumers: Consumers
+    changes: Changes
+    health: Health
     openapi: OpenAPI spec
     collector:
       ok: collector healthy
@@ -260,6 +262,51 @@ dashboard:
       added: added
       changed: changed
       deprecated: deprecated
+    title: Changes
+    crumb: changes
+    subtitle: the API contract compared between two releases, read from the compiled metadata
+    current: current code
+    no_snapshot: No contract snapshot yet. Save one at each release, then this screen compares the code with it.
+    next: Next version
+    impact_from: "impact from the last %count% days of traffic"
+    none: Nothing changed for this API.
+    impact: "%calls% calls from %consumers%"
+    no_impact: no call in the period
+    operations: "{0}no operation|{1}1 operation|]1,Inf[%count% operations"
+    ci: In CI
+    ci_sub: fails the build on a break
+    changelog: Changelog for consumers
+    copy: Copy Markdown
+    releases: Releases
+    releases_sub: one snapshot per release
+    first: first snapshot
+    unchanged: no change
+    breaking_count: "{0}0 breaking|{1}1 breaking|]1,Inf[%count% breaking"
+  health:
+    title: Health
+    crumb: health
+    status:
+      ok: Healthy
+      warning: Degraded
+      critical: Down
+    summary: "%warnings% warning · %criticals% critical · %checks% checks"
+    checked: "checked at %time% UTC"
+    copy_probe: Copy probe URL
+    run: Run checks
+    checks: Checks
+    checks_sub: thresholds under tollbooth.health
+    source:
+      tollbooth: tollbooth
+      application: application · HealthCheckInterface
+    findings: Findings
+    findings_sub: worth a look, they do not change the status
+    no_findings: Nothing to report.
+    facts: Facts
+    probes: Probes
+    probes_sub: for uptime tools and orchestrators
+    live: 200 while PHP answers
+    ready: 503 only on critical
+    token: details are only shown to a probe that sends the token
   consumers:
     title: Consumers & quotas
     crumb: consumers

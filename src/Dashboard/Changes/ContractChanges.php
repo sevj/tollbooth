@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tollbooth\Dashboard\Changes;
 
+use Symfony\Contracts\Cache\CacheInterface;
+use Tollbooth\Changes\Change;
+use Tollbooth\Changes\ChangeKind;
 use Tollbooth\Changes\ChangeReport;
 use Tollbooth\Changes\ContractDiffer;
 use Tollbooth\Changes\CurrentContract;
@@ -22,7 +25,25 @@ final class ContractChanges
     public function __construct(
         private readonly CurrentContract $contract,
         private readonly SnapshotStore $store,
+        private readonly ?CacheInterface $cache = null,
+        private readonly string $contractHash = '',
     ) {
+    }
+
+    public function breaking(string $group): int
+    {
+        $count = function () use ($group): int {
+            $changes = $this->compare()['report']->changes ?? [];
+
+            return \count(array_filter($changes, static fn (Change $change): bool => $change->group === $group && ChangeKind::Breaking === $change->kind));
+        };
+        if (null === $this->cache) {
+            return $count();
+        }
+
+        $value = $this->cache->get('tollbooth_dashboard_breaking_'.hash('xxh128', $group.'|'.$this->contractHash.'|'.implode(',', $this->store->versions())), $count);
+
+        return (int) $value;
     }
 
     /**
@@ -31,6 +52,33 @@ final class ContractChanges
     public function versions(): array
     {
         return $this->store->versions();
+    }
+
+    /**
+     * @return list<array{version: string, createdAt: string, breaking: ?int, changes: ?int}>
+     */
+    public function releases(?string $group = null, int $limit = 8): array
+    {
+        $versions = \array_slice($this->store->versions(), 0, $limit + 1);
+        $releases = [];
+        foreach (\array_slice($versions, 0, $limit) as $index => $version) {
+            try {
+                $snapshot = $this->store->load($version);
+            } catch (\RuntimeException) {
+                continue;
+            }
+            $previous = $versions[$index + 1] ?? null;
+            $comparison = null === $previous ? null : $this->compare($previous, $version);
+            $changes = null === $comparison ? null : array_values(array_filter($comparison['report']->changes, static fn (Change $change): bool => null === $group || $change->group === $group));
+            $releases[] = [
+                'version' => $version,
+                'createdAt' => $snapshot['created_at'],
+                'breaking' => null === $changes ? null : \count(array_filter($changes, static fn (Change $change): bool => ChangeKind::Breaking === $change->kind)),
+                'changes' => null === $changes ? null : \count($changes),
+            ];
+        }
+
+        return $releases;
     }
 
     /**

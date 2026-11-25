@@ -6,6 +6,8 @@ namespace Tollbooth\Tests\Functional;
 
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Filesystem\Filesystem;
+use Tollbooth\Changes\CurrentContract;
+use Tollbooth\Changes\SnapshotStore;
 use Tollbooth\Monitoring\CallRecord;
 use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
 use Tollbooth\Tests\Fixtures\TestKernel;
@@ -189,6 +191,46 @@ final class DashboardTest extends FunctionalTestCase
 
         $client->request('GET', '/_tollbooth/consumers/default/nobody');
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testTheChangesScreenComparesTheCodeWithTheLastSnapshot(): void
+    {
+        (new Filesystem())->remove(TestKernel::contractDirectory());
+        $client = self::createClient();
+        $client->request('GET', '/_tollbooth/changes/default', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('No contract snapshot yet', (string) $client->getResponse()->getContent());
+
+        $store = self::getContainer()->get(SnapshotStore::class);
+        self::assertInstanceOf(SnapshotStore::class, $store);
+        $contract = self::getContainer()->get(CurrentContract::class);
+        self::assertInstanceOf(CurrentContract::class, $contract);
+        $documents = $contract->documents();
+        $document = $documents['default'];
+        self::assertIsArray($document['paths'] ?? null);
+        $document['paths']['/gone'] = ['get' => ['operationId' => 'tollbooth_gone', 'responses' => ['200' => ['description' => 'Success.']]]];
+        $store->save('1.2.0', ['default' => $document], new \DateTimeImmutable('2026-11-01'));
+
+        $client->request('GET', '/_tollbooth/changes/default', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<div class="stat"><div class="th">breaking</div><div class="v kc-breaking">1</div></div>', $html);
+        self::assertStringContainsString('<span class="el">GET /gone</span>', $html);
+        self::assertStringContainsString('## 2.0.0 (unreleased)', $html);
+        self::assertStringContainsString('<span class="count" style="color: #FF8A7A">1</span>', $html);
+        (new Filesystem())->remove(TestKernel::contractDirectory());
+    }
+
+    public function testTheHealthScreenRunsTheChecks(): void
+    {
+        $client = $this->monitoredClient();
+        $client->request('GET', '/_tollbooth/status/default', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+
+        self::assertResponseIsSuccessful();
+        $html = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('<span class="n">metadata</span>', $html);
+        self::assertStringContainsString('application · HealthCheckInterface', $html);
+        self::assertStringContainsString('/_tollbooth/health/ready', $html);
     }
 
     public function testTheDashboardSpeaksTheLanguageOfTheBrowser(): void

@@ -8,8 +8,10 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Tollbooth\Core\Routing\RouteProviderInterface;
 use Tollbooth\Dashboard\Controller\AssetController;
+use Tollbooth\Dashboard\Controller\ChangesController;
 use Tollbooth\Dashboard\Controller\ConsumersController;
 use Tollbooth\Dashboard\Controller\EndpointController;
+use Tollbooth\Dashboard\Controller\HealthController;
 use Tollbooth\Dashboard\Controller\HomeController;
 use Tollbooth\Dashboard\Controller\MapController;
 use Tollbooth\Dashboard\Controller\ModelsController;
@@ -33,6 +35,8 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
     public const string REQUESTS_EXPORT = 'tollbooth_dashboard_requests_export';
     public const string CONSUMERS = 'tollbooth_dashboard_consumers';
     public const string CONSUMER = 'tollbooth_dashboard_consumer';
+    public const string CHANGES = 'tollbooth_dashboard_changes';
+    public const string HEALTH = 'tollbooth_dashboard_health';
     public const string ASSET = 'tollbooth_dashboard_asset';
 
     public function __construct(
@@ -58,6 +62,8 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
         $routes->add(self::REQUESTS, new Route($base.'/requests/{group}', ['_controller' => RequestsController::class.'::page'], $group, methods: ['GET']));
         $routes->add(self::CONSUMERS, new Route($base.'/consumers/{group}', ['_controller' => ConsumersController::class.'::list'], $group, methods: ['GET']));
         $routes->add(self::CONSUMER, new Route($base.'/consumers/{group}/{consumer}', ['_controller' => ConsumersController::class.'::page'], [...$group, 'consumer' => '[^/]+'], methods: ['GET']));
+        $routes->add(self::CHANGES, new Route($base.'/changes/{group}', ['_controller' => ChangesController::class], $group, methods: ['GET']));
+        $routes->add(self::HEALTH, new Route($base.'/status/{group}', ['_controller' => HealthController::class], $group, methods: ['GET']));
         $routes->add(self::ASSET, new Route($base.'/assets/{file}', ['_controller' => AssetController::class], ['file' => '[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)?\.(css|js|woff2|svg)'], methods: ['GET']));
 
         return $routes;

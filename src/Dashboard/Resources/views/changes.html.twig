@@ -1,0 +1,94 @@
+{% extends '@TollboothDashboard/layout.html.twig' %}
+{% trans_default_domain 'tollbooth' %}
+
+{% set group = shell.group %}
+
+{% block title %}{{ 'dashboard.changes.title'|trans }} · {{ group }}{% endblock %}
+
+{% block crumbs %}<a href="{{ path('tollbooth_dashboard_map', {group: group}) }}">{{ group }}</a> <span class="slash">/</span> <span class="here">{{ 'dashboard.changes.crumb'|trans }}</span>{% endblock %}
+
+{% macro version_menu(name, current, versions, other, group, allow_current) %}
+<details class="chip">
+<summary class="btn"><span class="m" style="font-size: 12px">{{ current == 'current' ? 'dashboard.changes.current'|trans({}, 'tollbooth') : current }}</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#9C988F" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"></path></svg></summary>
+<ul>
+{% if allow_current %}<li><a href="{{ path('tollbooth_dashboard_changes', {group: group}|merge(other)) }}"{% if current == 'current' %} aria-current="true"{% endif %}>{{ 'dashboard.changes.current'|trans({}, 'tollbooth') }}</a></li>{% endif %}
+{% for version in versions %}<li><a href="{{ path('tollbooth_dashboard_changes', {group: group}|merge(other)|merge({(name): version})) }}"{% if current == version %} aria-current="true"{% endif %}>{{ version }}</a></li>{% endfor %}
+</ul>
+</details>
+{% endmacro %}
+
+{% block body %}
+<div class="head">
+<div>
+<h1>{{ 'dashboard.changes.title'|trans }}</h1>
+<div class="sub">{{ 'dashboard.changes.subtitle'|trans }}</div>
+</div>
+{% if comparison %}
+<div class="actions" style="align-items: center">
+{{ _self.version_menu('base', comparison.base, versions, comparison.target == 'current' ? {} : {target: comparison.target}, group, false) }}
+<span class="m mu">→</span>
+{{ _self.version_menu('target', comparison.target, versions, {base: comparison.base}, group, true) }}
+</div>
+{% endif %}
+</div>
+
+{% if not comparison %}
+<section class="panel"><div class="empty">{{ 'dashboard.changes.no_snapshot'|trans }}</div>
+<pre class="code"><span class="mu">$</span> bin/console tollbooth:contract:snapshot 1.0.0</pre></section>
+{% else %}
+<div class="stats">
+{% for kind in kinds %}
+<div class="stat"><div class="th">{{ ('dashboard.changes.kind.' ~ kind.value)|trans }}</div><div class="v kc-{{ kind.value }}">{{ report.count(kind) }}</div></div>
+{% endfor %}
+<div class="stat"><div class="th">{{ 'dashboard.changes.next'|trans }}</div><div class="v">{{ comparison.target == 'current' ? (next ?? '—') : comparison.target }}</div></div>
+</div>
+
+<div class="cols">
+<section class="panel" style="flex: 1.5 1 560px; min-width: 0" aria-labelledby="diff-title">
+<div class="ph"><h2 id="diff-title">{{ comparison.base }} → {{ comparison.target == 'current' ? 'dashboard.changes.current'|trans : comparison.target }}</h2>{% if impact_days %}<span class="m mu" style="font-size: 12px">{{ 'dashboard.changes.impact_from'|trans({'%count%': impact_days}) }}</span>{% endif %}</div>
+{% if changes is empty %}
+<div class="empty"><span class="dot ok"></span> {{ 'dashboard.changes.none'|trans }}</div>
+{% else %}
+<div style="overflow-x: auto"><div style="min-width: 640px">
+{% for kind, items in changes %}
+<div class="gh kc-{{ kind }}"><span class="sq"></span>{{ ('dashboard.changes.kind.' ~ kind)|trans|upper }}<span class="mu" style="margin-left: auto; font-weight: 400">{{ items|length }}</span></div>
+{% for item in items %}
+{% set change = item.change %}
+<div class="ch">
+<span class="el">{{ change.element|replace({"Attributes.": "."}) }}</span>
+<span>{{ change.message }}</span>
+<span class="mu">{% if item.impact is not null %}{% if item.impact.calls > 0 %}{{ 'dashboard.changes.impact'|trans({'%calls%': item.impact.calls|tb_number, '%consumers%': item.impact.consumers|slice(0, 3)|join(', ') ~ (item.impact.consumers|length > 3 ? ' +' ~ (item.impact.consumers|length - 3) : '')}) }}{% else %}{{ 'dashboard.changes.no_impact'|trans }}{% endif %}{% else %}{{ 'dashboard.changes.operations'|trans({'%count%': change.operations|length}) }}{% endif %}</span>
+</div>
+{% endfor %}
+{% endfor %}
+</div></div>
+{% endif %}
+</section>
+
+<div class="col" style="flex: 1 1 400px">
+<section class="panel" aria-labelledby="ci-title">
+<div class="ph"><h2 id="ci-title">{{ 'dashboard.changes.ci'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.changes.ci_sub'|trans }}</span></div>
+<pre class="code"><span class="mu">$</span> bin/console tollbooth:diff {{ comparison.base }}{% if comparison.target != 'current' %} --target={{ comparison.target }}{% endif %} --fail-on=breaking
+
+ {{ report.count(constant('Tollbooth\\Changes\\ChangeKind::Breaking')) }} breaking · {{ report.count(constant('Tollbooth\\Changes\\ChangeKind::Risky')) }} risky · {{ report.count(constant('Tollbooth\\Changes\\ChangeKind::Added')) }} added · {{ report.count(constant('Tollbooth\\Changes\\ChangeKind::Changed')) }} changed · {{ report.count(constant('Tollbooth\\Changes\\ChangeKind::Deprecated')) }} deprecated
+
+<span class="mu">$</span> echo $?
+{{ report.count(constant('Tollbooth\\Changes\\ChangeKind::Breaking')) > 0 ? '<span class="bad">1</span>'|raw : '<span class="s">0</span>'|raw }}</pre>
+</section>
+
+<section class="panel" aria-labelledby="log-title">
+<div class="ph"><h2 id="log-title">{{ 'dashboard.changes.changelog'|trans }}</h2><button class="btn sm" type="button" data-copy="{{ changelog }}"><span data-copy-label data-done="{{ 'dashboard.endpoint.copied'|trans }}">{{ 'dashboard.changes.copy'|trans }}</span></button></div>
+<pre class="code md">{% for line in changelog|split("\n") %}{% if line starts with '## ' %}<span class="at">{{ line }}</span>{% elseif line starts with '### ' %}<b>{{ line }}</b>{% else %}{{ line }}{% endif %}{{ "\n" }}
+{% endfor %}</pre>
+</section>
+
+<section class="panel" aria-labelledby="rel-title">
+<div class="ph"><h2 id="rel-title">{{ 'dashboard.changes.releases'|trans }}</h2><span class="m mu" style="font-size: 12px">{{ 'dashboard.changes.releases_sub'|trans }}</span></div>
+{% for release in releases %}
+<a class="rel" href="{{ path('tollbooth_dashboard_changes', {group: group, base: release.version}) }}"><span>{{ release.version }}</span><span class="mu">{{ release.createdAt ? release.createdAt|date('Y-m-d') : '' }}</span>{% if release.breaking is null %}<span class="mu">{{ 'dashboard.changes.first'|trans }}</span>{% elseif release.breaking > 0 %}<span class="bad">{{ 'dashboard.changes.breaking_count'|trans({'%count%': release.breaking}) }}</span>{% elseif release.changes == 0 %}<span class="mu">{{ 'dashboard.changes.unchanged'|trans }}</span>{% else %}<span class="ok">{{ 'dashboard.changes.breaking_count'|trans({'%count%': 0}) }}</span>{% endif %}</a>
+{% endfor %}
+</section>
+</div>
+</div>
+{% endif %}
+{% endblock %}
