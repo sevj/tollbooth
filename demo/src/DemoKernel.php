@@ -133,13 +133,6 @@ final class DemoKernel extends Kernel
                 ],
             ],
             'rate_limit' => [
-                'plans' => [
-                    'free' => ['5/10 seconds', '60/minute', '1000/day'],
-                    'pro' => ['burst' => '100/10 seconds', 'minute' => '600/minute', 'day' => '200000/day'],
-                    'partner' => ['burst' => '500/10 seconds', 'minute' => '3000/minute'],
-                ],
-                'default_plan' => 'free',
-                'anonymous_plan' => 'free',
                 'doctrine_plans' => ['enabled' => true, 'connection' => 'monitoring'],
             ],
             'monitoring' => ['enabled' => true, 'connection' => 'monitoring'],
