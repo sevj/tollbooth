@@ -6,6 +6,7 @@ dashboard:
     map: Map
     endpoints: Endpoints
     models: Models
+    requests: Requests
     openapi: OpenAPI spec
     collector:
       ok: collector healthy
@@ -203,3 +204,51 @@ dashboard:
     sent_as: Sent as
     envelope: Envelope
     case: Field names
+  requests:
+    title: Requests
+    crumb: requests
+    subtitle: every call as received · bodies, headers and query strings are never stored
+    live: Live tail
+    export: Export · NDJSON
+    filter: Filter requests
+    any: any
+    clear: 'Clear the %filter% filter'
+    last:
+      label: last
+      15m: 15 min
+      1h: 1 hour
+      24h: 24 hours
+      7d: 7 days
+    list: Requests
+    col:
+      time: time
+      method: method
+      path: path
+      status: status
+      consumer: consumer
+    none: No call matches these filters.
+    matching: '%count% matching · %shown% shown'
+    older: Load older
+    detail: Request detail
+    pick: Pick a request to see its detail.
+    copy_curl: Copy as cURL
+    kv:
+      id: request id
+      received: received
+      consumer: consumer
+      client: client
+      endpoint: endpoint
+      size: response
+    pipeline: Pipeline
+    stopped: stopped at %step%
+    state:
+      ok: passed
+      stopped: answered here
+      skipped: not run
+      none: not configured
+    limiters: Limiters at that moment
+    left: '%count% left · reset %time%'
+    headers: Response headers
+    headers_note: rebuilt from what was recorded
+    body: Response body
+    body_not_stored: Response bodies are not stored.

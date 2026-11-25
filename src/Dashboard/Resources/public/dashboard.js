@@ -60,3 +60,48 @@ for (const button of document.querySelectorAll('[data-copy]')) {
     }
   });
 }
+
+const live = document.querySelector('[data-live]');
+if (live) {
+  const rows = document.querySelector('[data-rows]');
+  let timer = null;
+  let last = live.dataset.last;
+  const dot = live.querySelector('.dot');
+  const poll = async () => {
+    try {
+      const url = new URL(live.dataset.live, location.href);
+      if (last) url.searchParams.set('after', last);
+      const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.html) {
+        const template = document.createElement('template');
+        template.innerHTML = data.html;
+        for (const row of template.content.querySelectorAll('.rq')) row.classList.add('fresh');
+        rows.prepend(template.content);
+        while (rows.children.length > 200) rows.lastElementChild.remove();
+      }
+      if (data.last) last = data.last;
+    } catch {
+      return;
+    }
+  };
+  const toggle = (on) => {
+    live.setAttribute('aria-pressed', String(on));
+    dot.style.background = on ? '#8FD69C' : '#6B7078';
+    clearInterval(timer);
+    timer = on ? setInterval(poll, 2000) : null;
+    if (on) poll();
+    try { localStorage.setItem('tollbooth.live', on ? '1' : '0'); } catch {}
+  };
+  live.addEventListener('click', () => toggle(live.getAttribute('aria-pressed') !== 'true'));
+  let saved = null;
+  try { saved = localStorage.getItem('tollbooth.live'); } catch {}
+  if (saved === '1' && !new URLSearchParams(location.search).has('before')) toggle(true);
+}
+
+for (const menu of document.querySelectorAll('details.chip')) {
+  document.addEventListener('click', (event) => {
+    if (menu.open && !menu.contains(event.target)) menu.open = false;
+  });
+}

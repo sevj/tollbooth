@@ -22,6 +22,7 @@ final readonly class Shell
         private ?HealthCheckInterface $collector = null,
         private ?string $docsRoute = null,
         private ?ModelCatalogFactory $models = null,
+        private bool $requests = false,
     ) {
     }
 
@@ -45,6 +46,7 @@ final readonly class Shell
                 ], $this->groups->names()),
                 'endpoints' => \count($this->groups->endpoints($group)),
                 'models' => $this->models?->catalog($group)?->count(),
+                'requests' => $this->requests,
                 'environment' => $this->environment,
                 'version' => $this->version,
                 'symfony' => Kernel::VERSION,

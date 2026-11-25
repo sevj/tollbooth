@@ -6,6 +6,7 @@ dashboard:
     map: Carte
     endpoints: Endpoints
     models: Modèles
+    requests: Requêtes
     openapi: Spécification OpenAPI
     collector:
       ok: collecteur opérationnel
@@ -203,3 +204,51 @@ dashboard:
     sent_as: Envoyé en
     envelope: Enveloppe
     case: Noms de champs
+  requests:
+    title: Requêtes
+    crumb: requêtes
+    subtitle: chaque appel tel que reçu · corps, en-têtes et query strings ne sont jamais stockés
+    live: Direct
+    export: Exporter · NDJSON
+    filter: Filtrer les requêtes
+    any: tous
+    clear: 'Retirer le filtre %filter%'
+    last:
+      label: depuis
+      15m: 15 min
+      1h: 1 heure
+      24h: 24 heures
+      7d: 7 jours
+    list: Requêtes
+    col:
+      time: heure
+      method: méthode
+      path: chemin
+      status: statut
+      consumer: consommateur
+    none: Aucun appel ne correspond à ces filtres.
+    matching: '%count% correspondants · %shown% affichés'
+    older: Plus anciens
+    detail: Détail de la requête
+    pick: Choisissez une requête pour voir son détail.
+    copy_curl: Copier en cURL
+    kv:
+      id: id de requête
+      received: reçue
+      consumer: consommateur
+      client: client
+      endpoint: endpoint
+      size: réponse
+    pipeline: Pipeline
+    stopped: arrêtée à l'étape %step%
+    state:
+      ok: passée
+      stopped: a répondu ici
+      skipped: non exécutée
+      none: non configurée
+    limiters: Limiteurs à ce moment
+    left: '%count% restants · remise à zéro %time%'
+    headers: En-têtes de réponse
+    headers_note: reconstruits à partir de l'enregistrement
+    body: Corps de réponse
+    body_not_stored: Les corps de réponse ne sont pas stockés.
