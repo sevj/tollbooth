@@ -240,7 +240,7 @@ RateLimit: "burst";r=97;t=4, "minute";r=581;t=34, "day";r=46020;t=35869
 
 ## Monitoring
 
-Every call to an endpoint is recorded once the response has been sent: endpoint, group, method, path (without its query string), status, duration, consumer, IP, response size, a short error description, and the time spent in each step (`auth`, `rate_limit`, `hydrate`, `handler`, `serialize`). Bodies and headers are never stored. A 500 is recorded with its exception class only, not its message.
+Every call to an endpoint is recorded once the response has been sent: endpoint, group, method, path (without its query string), status, duration, consumer, IP, response size, a short error description, the time spent in each step (`auth`, `rate_limit`, `hydrate`, `handler`, `serialize`), and the state of each rate limiter as sent in the `RateLimit` headers. Bodies, request headers and query strings are never stored. A 500 is recorded with its exception class only, not its message.
 
 ```yaml
 tollbooth:
@@ -397,6 +397,7 @@ composer require symfony/twig-bundle symfony/translation
 | `/_tollbooth/map/{group}.mmd` | The same map as a Mermaid flowchart |
 | `/_tollbooth/endpoints/{group}/{name}` | One endpoint: its request pipeline with this endpoint's settings, its declaration, request fields and rules, responses, example calls (cURL, PHP, JS) and response, and with monitoring its latency, status codes, top consumers and grouped errors |
 | `/_tollbooth/models/{group}/{model}` | Models of the group (outputs, inputs, enums) with a diagram of the selected one and the models it refers to (depth 1, 2 or all), a table of its fields and rules, the endpoints that use it and a preview of how it is serialized in each envelope and case; the diagram exports to SVG |
+| `/_tollbooth/requests/{group}` | Recorded calls, newest first, filtered with `endpoint:`, `status:4xx` or `status:429`, `consumer:`, `duration:>100` and `last:15m|1h|24h|7d`, with a live tail and an NDJSON export (`/_tollbooth/requests/{group}.ndjson`). A call opens its detail: consumer, pipeline steps and where it stopped, the limiters at that moment, the response headers and problem body rebuilt from what was recorded |
 
 With monitoring enabled, the map shows the traffic over the last hour, day, week or month (`?range=1h|24h|7d|30d`): requests, error rate, p95 latency, throttled calls and active consumers with their trend; each endpoint's share of its resource's calls, its p95, deprecated endpoints, endpoints throttled or answering errors above `tollbooth.health.error_rate`. A "Needs attention" list names the deprecated endpoints still called and by whom, the endpoints that fail (with their most frequent error), those hitting quotas and those whose p95 rose by half against the previous 7 days. `?mode=structure` shows the declared status and authentication instead.
 
@@ -433,7 +434,7 @@ The public API is the contract host applications and API clients rely on:
 - the health routes and the shape of their JSON, and the `tollbooth:health` command;
 - the monitoring tables: a change to their schema is announced with the SQL to run;
 - the documentation routes (`<docs.path>/docs/{group}`, `<docs.path>/openapi/{group}.json`); the content of the OpenAPI documents follows the endpoints and is not itself versioned;
-- the dashboard routes (`<dashboard.path>`, `<dashboard.path>/map/{group}`, `<dashboard.path>/endpoints/{group}/{name}` and `<dashboard.path>/models/{group}/{model}`); what the pages show and how they look is not versioned;
+- the dashboard routes (`<dashboard.path>`, `<dashboard.path>/map/{group}`, `<dashboard.path>/endpoints/{group}/{name}`, `<dashboard.path>/models/{group}/{model}` and `<dashboard.path>/requests/{group}`); what the pages show and how they look is not versioned;
 - the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, rate limit headers and the `limiters` list, and the problem details shape.
 
 Anything else is internal and may change in any release.
