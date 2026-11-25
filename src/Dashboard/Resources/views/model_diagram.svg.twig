@@ -29,7 +29,7 @@
 <rect class="md-hd" x="1" y="1" width="{{ card.width - 2 }}" height="39"/>
 <line class="md-line" x1="0" y1="40.5" x2="{{ card.width }}" y2="40.5"/>
 <text class="md-title" x="12" y="25">{{ name|tb_truncate(card.selected ? 20 : 18) }}</text>
-<text class="md-kind" x="{{ card.width - 12 }}" y="24" text-anchor="end">{{ {output: 'out', input: 'in', enum: 'enum'}[card.model.kind] }}{% if card.model.uses > 1 %} · {{ card.model.uses }}×{% endif %}</text>
+<text class="md-kind" x="{{ card.width - 12 }}" y="24" text-anchor="end">{% if card.model.uses > 1 %}<title>{{ 'dashboard.models.used_in'|trans({'%count%': card.model.uses}, 'tollbooth') }}</title>{% endif %}{{ ('dashboard.models.kind_one.' ~ card.model.kind)|trans({}, 'tollbooth') }}{% if card.model.uses > 1 %} · {{ card.model.uses }}×{% endif %}</text>
 {% for row in card.rows %}
 <text class="md-name" x="12" y="{{ 40 + 26 * loop.index0 + 18 }}">{{ row.name|tb_truncate(14) }}</text>
 <text x="{{ card.width - 12 }}" y="{{ 40 + 26 * loop.index0 + 18 }}" text-anchor="end">{% if row.nullable %}<tspan class="md-nl">?</tspan>{% endif %}<tspan class="{{ row.ref ? 'md-ref' : 'md-type' }}">{{ row.type|tb_truncate(card.selected ? 16 : 14) }}</tspan></text>

@@ -13,7 +13,7 @@
 <div class="head">
 <div>
 <h1>{{ 'dashboard.models.title'|trans }}</h1>
-<div class="sub">{{ 'dashboard.models.summary'|trans({'%count%': catalog.count}) }}</div>
+<div class="sub">{{ 'dashboard.models.intro'|trans }} · {{ 'dashboard.models.summary'|trans({'%count%': catalog.count}) }}</div>
 </div>
 <div class="actions">
 <div class="segs" role="group" aria-label="{{ 'dashboard.models.view.label'|trans }}">
@@ -33,9 +33,9 @@
 {% for kind, models in kinds %}
 {% if models is not empty %}
 <div class="group">
-<div class="th">{{ ('dashboard.models.kind.' ~ kind)|trans }} · {{ models|length }}</div>
+<div class="th"><span>{{ ('dashboard.models.kind.' ~ kind)|trans }} · {{ models|length }}</span><span>{{ 'dashboard.models.list_uses'|trans }}</span></div>
 {% for item in models %}
-<a class="li{% if item.name == model.name %} sel{% endif %}" href="{{ path('tollbooth_dashboard_model', {group: group, model: item.name}|merge(query)) }}" data-search-text="{{ item.name|lower }}"{% if item.name == model.name %} aria-current="page"{% endif %}><span>{{ item.name }}</span>{% if item.usages|length > 0 %}<span class="uses">{{ item.usages|length }}</span>{% endif %}</a>
+<a class="li{% if item.name == model.name %} sel{% endif %}" href="{{ path('tollbooth_dashboard_model', {group: group, model: item.name}|merge(query)) }}" data-search-text="{{ item.name|lower }}"{% if item.name == model.name %} aria-current="page"{% endif %}><span>{{ item.name }}</span>{% if item.usages|length > 0 %}<span class="uses" title="{{ 'dashboard.models.used_by_endpoints'|trans({'%count%': item.usages|length}) }}">{{ item.usages|length }}</span>{% endif %}</a>
 {% endfor %}
 </div>
 {% endif %}
@@ -49,6 +49,7 @@
 <span class="legend-line mu"><i></i>{{ 'dashboard.models.legend.direct'|trans }}</span>
 <span class="legend-line mu"><i class="nested"></i>{{ 'dashboard.models.legend.nested'|trans }}</span>
 <span class="mu"><span style="color: #C3A8FF">?</span> {{ 'dashboard.models.legend.nullable'|trans }}</span>
+<span class="mu">N× {{ 'dashboard.models.legend.uses'|trans }}</span>
 </div>
 {% endif %}
 </div>
@@ -84,15 +85,16 @@
 <h2 id="preview-title" style="margin-right: auto">{{ model.kind == 'input' ? 'dashboard.models.sent_as'|trans : 'dashboard.models.serialized_as'|trans }}</h2>
 {% if model.kind == 'output' %}
 <div class="segs inset" role="group" aria-label="{{ 'dashboard.models.envelope'|trans }}">
-{% for option in envelopes %}<a class="seg{% if envelope == option %} sel{% endif %}" href="{{ path('tollbooth_dashboard_model', base|merge(query)|merge({envelope: option})) }}#preview-title">{{ ('dashboard.envelope.' ~ option)|trans }}</a>{% endfor %}
+{% for option in envelopes %}<a class="seg{% if envelope == option %} sel{% endif %}{% if configured.envelope == option %} cfg{% endif %}"{% if configured.envelope == option %} title="{{ 'dashboard.models.configured'|trans }}"{% endif %} href="{{ path('tollbooth_dashboard_model', base|merge(query)|merge({envelope: option})) }}#preview-title">{{ ('dashboard.envelope.' ~ option)|trans }}</a>{% endfor %}
 </div>
 {% endif %}
 {% if model.kind != 'enum' %}
 <div class="segs inset" role="group" aria-label="{{ 'dashboard.models.case'|trans }}">
-{% for option in cases %}<a class="seg{% if case == option %} sel{% endif %}" href="{{ path('tollbooth_dashboard_model', base|merge(query)|merge({case: option})) }}#preview-title">{{ ('dashboard.case.' ~ option)|trans }}</a>{% endfor %}
+{% for option in cases %}<a class="seg{% if case == option %} sel{% endif %}{% if configured.case == option %} cfg{% endif %}"{% if configured.case == option %} title="{{ 'dashboard.models.configured'|trans }}"{% endif %} href="{{ path('tollbooth_dashboard_model', base|merge(query)|merge({case: option})) }}#preview-title">{{ ('dashboard.case.' ~ option)|trans }}</a>{% endfor %}
 </div>
 {% endif %}
 </div>
+{% if model.kind != 'enum' %}<p class="preview-note">{{ 'dashboard.models.preview_note'|trans({'%envelope%': ('dashboard.envelope.' ~ configured.envelope)|trans, '%case%': ('dashboard.case.' ~ configured.case)|trans}) }}{% if envelope != configured.envelope or case != configured.case %} <a href="{{ path('tollbooth_dashboard_model', base|merge(query)|merge({envelope: configured.envelope, case: configured.case})) }}#preview-title">{{ 'dashboard.models.back_to_config'|trans }}</a>{% endif %}</p>{% endif %}
 <pre class="code">{{ tb_json(preview) }}</pre>
 </section>
 </div>

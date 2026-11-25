@@ -46,10 +46,11 @@ final readonly class ModelsController
         $selected = $catalog->get($model) ?? throw new NotFoundHttpException(\sprintf('The group "%s" has no model "%s".', $group, $model));
         $endpoints = $this->catalogs->endpoints($group);
         $depth = self::depth($request->query->get('depth'));
+        $configured = ['envelope' => $endpoints[0]->envelope ?? 'plain', 'case' => $endpoints[0]->case ?? 'snake_case'];
         $envelope = $request->query->get('envelope');
         $case = $request->query->get('case');
-        $envelope = \is_string($envelope) && \in_array($envelope, ModelPreview::ENVELOPES, true) ? $envelope : ($endpoints[0]->envelope ?? 'plain');
-        $case = \is_string($case) && \in_array($case, ModelPreview::CASES, true) ? $case : ($endpoints[0]->case ?? 'snake_case');
+        $envelope = \is_string($envelope) && \in_array($envelope, ModelPreview::ENVELOPES, true) ? $envelope : $configured['envelope'];
+        $case = \is_string($case) && \in_array($case, ModelPreview::CASES, true) ? $case : $configured['case'];
 
         return new Response($this->twig->render('@TollboothDashboard/models.html.twig', [
             ...$this->shell->context($group, 'models'),
@@ -62,6 +63,7 @@ final readonly class ModelsController
             'view' => 'table' === $request->query->get('view') ? 'table' : 'diagram',
             'envelope' => $envelope,
             'case' => $case,
+            'configured' => $configured,
             'envelopes' => ModelPreview::ENVELOPES,
             'cases' => ModelPreview::CASES,
             'preview' => ModelPreview::render((array) $this->catalogs->document($group), $selected, $envelope, $case),

@@ -214,7 +214,7 @@ pre.code{margin:0;padding:18px 20px;font:12.5px/1.7 var(--mono);color:var(--text
 
 .models{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;margin-bottom:24px}
 .mlist{flex:0 1 200px;min-width:180px;padding:12px 8px;margin-bottom:0}
-.mlist .th{padding:6px 10px 8px}
+.mlist .th{padding:6px 10px 8px;display:flex;justify-content:space-between;gap:8px}
 .mlist .th+.li,.mlist .li+.th{margin-top:0}
 .mlist .group+.group{margin-top:10px}
 .li{display:flex;justify-content:space-between;align-items:center;gap:8px;height:30px;padding:0 10px;font:12px var(--mono);color:var(--neutral)}
@@ -386,3 +386,5 @@ pre.code.md b{color:var(--text);font-weight:600}
 .secret-panel{max-width:820px}
 .secret{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:22px 20px}
 .secret code{flex:1;min-width:0;font-size:15px;padding:12px 14px;background:var(--bg);border:1px solid var(--accent);color:var(--text-strong);overflow-wrap:anywhere;user-select:all}
+.seg.cfg::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--ok);margin-left:6px;vertical-align:middle}
+.preview-note{margin:0;padding:12px 20px 0;font:11px/1.5 var(--mono);color:var(--muted)}
