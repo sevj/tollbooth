@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Tollbooth\Docs;
 
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\TypeInfo\Type;
 use Symfony\Component\TypeInfo\Type\CollectionType;
 use Symfony\Component\TypeInfo\Type\NullableType;
@@ -53,6 +57,7 @@ final class OpenApiGenerator
         private readonly bool $hasPlans = false,
         private readonly array $groupPrefixes = [],
         private readonly ?CacheInterface $cache = null,
+        private readonly bool $etag = true,
     ) {
     }
 
@@ -238,13 +243,46 @@ final class OpenApiGenerator
             return [(string) (200 === $endpoint->status ? 204 : $endpoint->status) => array_filter(['description' => 'No content.', 'headers' => $headers])];
         }
 
-        $envelope = Envelope::from($endpoint->envelope);
+        $response = self::responseClass($type);
+        if (null !== $response) {
+            return [(string) $endpoint->status => array_filter([
+                'description' => 'Success.',
+                'headers' => $headers,
+                'content' => match (true) {
+                    is_a($response, BinaryFileResponse::class, true), is_a($response, StreamedResponse::class, true) => ['application/octet-stream' => ['schema' => ['type' => 'string', 'format' => 'binary']]],
+                    is_a($response, JsonResponse::class, true) => ['application/json' => ['schema' => new \ArrayObject()]],
+                    default => [],
+                },
+            ])];
+        }
 
-        return [(string) $endpoint->status => array_filter([
-            'description' => 'Success.',
-            'headers' => $headers,
-            'content' => [$envelope->contentType() => ['schema' => $this->document($type, $envelope, NameCase::from($endpoint->case), $schemas)]],
-        ])];
+        $envelope = Envelope::from($endpoint->envelope);
+        $etag = $this->etag && 'GET' === $endpoint->method && 200 === $endpoint->status;
+        if ($etag) {
+            $headers['ETag'] = ['description' => 'Version of the answer, to send back in If-None-Match.', 'schema' => ['type' => 'string']];
+        }
+
+        return array_filter([
+            (string) $endpoint->status => array_filter([
+                'description' => 'Success.',
+                'headers' => $headers,
+                'content' => [$envelope->contentType() => ['schema' => $this->document($type, $envelope, NameCase::from($endpoint->case), $schemas)]],
+            ]),
+            '304' => $etag ? ['description' => 'Not modified: the answer still has the ETag sent in If-None-Match.'] : null,
+        ]);
+    }
+
+    /**
+     * @return class-string<Response>|null
+     */
+    private static function responseClass(Type $type): ?string
+    {
+        $type = $type instanceof NullableType ? $type->getWrappedType() : $type;
+        if (!$type instanceof ObjectType || !is_a($type->getClassName(), Response::class, true)) {
+            return null;
+        }
+
+        return $type->getClassName();
     }
 
     /**
