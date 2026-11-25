@@ -8,6 +8,21 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- One OpenAPI 3.1 document per group, generated from the compiled endpoint metadata and served at
+  `/_tollbooth/openapi/{group}.json`, with a documentation page at `/_tollbooth/docs/{group}`.
+- Schemas are read from PHP types, docblock types (`list<OrderView>`) and validation constraints, named
+  in the group's case and wrapped in the group's envelope, JSON:API resource documents included.
+- Each operation lists the errors it can actually answer (400, 401, 403, 404, 415, 422, 429) as problem
+  details, its security requirements with their scopes, and its rate limit headers.
+- `tollbooth:openapi:export [group] [--output=file] [--yaml]` prints or writes a document.
+- `tollbooth.docs` sets the base `path`, the `title` and `version` of the documents, and whether the
+  `ui` page is served. `tollbooth.docs.enabled: false` removes the routes.
+
+### Upgrade notes
+- The documentation routes are imported with the endpoints. Protect `/_tollbooth` with the firewall if
+  the documentation must not be public.
+
 ## [0.5.0] - 2026-11-25
 
 ### Added

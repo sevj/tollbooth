@@ -29,7 +29,15 @@ final class ResourceTypeResolver
 
     public function typeOf(object $resource, NameCase $case): string
     {
-        return $this->types[$resource::class.'|'.$case->value] ??= $this->resolve($resource::class, $case);
+        return $this->typeOfClass($resource::class, $case);
+    }
+
+    /**
+     * @param class-string $class
+     */
+    public function typeOfClass(string $class, NameCase $case): string
+    {
+        return $this->types[$class.'|'.$case->value] ??= $this->resolve($class, $case);
     }
 
     /**

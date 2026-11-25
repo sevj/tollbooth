@@ -238,6 +238,39 @@ RateLimit: "burst";r=97;t=4, "minute";r=581;t=34, "day";r=46020;t=35869
 
 `legacy_headers: true` also sends `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` for the tightest limit. Calls rejected before authentication are not counted.
 
+## Documentation
+
+Tollbooth writes one OpenAPI 3.1 document per group from the same metadata that routes the calls, so the documentation cannot drift from the code.
+
+| Route | Content |
+| --- | --- |
+| `/_tollbooth/docs/{group}` | Documentation page (Scalar), with a link per group |
+| `/_tollbooth/openapi/{group}.json` | OpenAPI document |
+
+```
+bin/console tollbooth:openapi:export partner --yaml --output=public/openapi.yaml
+```
+
+What the document contains:
+
+- **Schemas** from the PHP types of `__invoke()` arguments and return values and of the public properties of DTOs, including docblock types such as `list<OrderView>`. Backed enums become `enum`, nullable types accept `null`, dates are `date-time`, defaults are kept. Field names follow the group's case.
+- **Constraints** from the validation attributes: `NotBlank`, `Length`, `Range`, `Positive`, `Count`, `Choice`, `Email`, `Url`, `Uuid` and their siblings.
+- **Responses** wrapped in the group's envelope, with JSON:API resource documents whose `type` is the one Tollbooth sends.
+- **Errors** each endpoint can actually answer: 400 for query or body problems, 401 when it needs credentials, 403 when it requires scopes, 404 when it has path parameters, 415 and 422 when it reads a body, 429 when it is rate limited, all as problem details.
+- **Security** from the accepted methods: `ApiKey` (header), `Bearer` (JWT), `Session` (cookie), with the required scopes; public endpoints have none.
+- **Rate limits** as `RateLimit-Policy` and `RateLimit` response headers, and the endpoint's own limits under `x-rate-limits`.
+
+```yaml
+tollbooth:
+    docs:
+        path: /_tollbooth
+        title: Shop API
+        version: 2.4.0
+        ui: true        # false serves only the JSON documents
+```
+
+The routes are imported with the endpoints and are not protected by Tollbooth: put them behind the application firewall, or leave them open when the documentation is public. The page loads `@scalar/api-reference` 1.77.0 from jsDelivr.
+
 ## Versioning
 
 Tollbooth follows [Semantic Versioning 2.0.0](https://semver.org/). Notable changes for each release are recorded in [`CHANGELOG.md`](CHANGELOG.md), and each version is a git tag.
@@ -252,7 +285,8 @@ The public API is the contract host applications and API clients rely on:
 - the format of API keys (`tb_live_` or `tb_test_`, a 12 character id, a 32 character secret);
 - the `tollbooth` route loader type;
 - the `tollbooth.*` configuration keys;
-- the console command `tollbooth:api-key:generate` and its options;
+- the console commands `tollbooth:api-key:generate` and `tollbooth:openapi:export` and their options;
+- the documentation routes (`<docs.path>/docs/{group}`, `<docs.path>/openapi/{group}.json`); the content of the OpenAPI documents follows the endpoints and is not itself versioned;
 - the HTTP contract: status codes, envelopes, field name cases, authentication headers and challenges, rate limit headers and the `limiters` list, and the problem details shape.
 
 Anything else is internal and may change in any release.
