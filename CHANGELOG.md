@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-25
+
 ### Added
 - Consumers screen in the dashboard (`/_tollbooth/consumers/{group}`): the rate limit plans with their
   limits and how many keys use them, a flow from consumers to the resources they call over 24 hours, and
