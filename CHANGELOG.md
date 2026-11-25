@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-11-25
+
 ### Fixed
 - Consumer names in the dashboard now open the consumer's page wherever they appear: top consumers
   of an endpoint, the "Needs attention" list of the map, the impact of a change, the flow diagram of
