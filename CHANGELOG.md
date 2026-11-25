@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-25
+
 ### Added
 - `tollbooth.monitoring` records every call to an endpoint after the response is sent: endpoint, group,
   method, path, status, duration, consumer, IP, size, a short error description and the time spent in
