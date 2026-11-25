@@ -42,6 +42,7 @@ final class KeysTest extends TestCase
         self::assertNotSame($token, (new FormGuard('other'))->token('revoke', 'k1'));
 
         $guard->check(self::post(['_token' => $token], ['HTTP_ORIGIN' => 'http://localhost', 'HTTP_SEC_FETCH_SITE' => 'same-origin']), 'revoke', 'k1');
+        $guard->check(self::post(['_token' => $token], ['HTTP_ORIGIN' => 'https://localhost', 'HTTP_SEC_FETCH_SITE' => 'same-origin']), 'revoke', 'k1');
 
         foreach ([[['_token' => 'nope'], []], [['_token' => $token], ['HTTP_ORIGIN' => 'https://evil.example']], [['_token' => $token], ['HTTP_SEC_FETCH_SITE' => 'cross-site']]] as [$body, $server]) {
             try {

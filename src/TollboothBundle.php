@@ -984,7 +984,7 @@ final class TollboothBundle extends AbstractBundle
             ->args([$config['dashboard']['locale']])
             ->tag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'priority' => 20]);
         $services->set(DashboardRouteProvider::class)
-            ->args([$config['dashboard']['path']])
+            ->args([$config['dashboard']['path'], $monitoring, $config['docs']['enabled'], $config['changes']['enabled'] && $config['docs']['enabled'], $config['health']['enabled']])
             ->tag(RouteProviderInterface::TAG);
     }
 

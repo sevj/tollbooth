@@ -9,6 +9,10 @@ of `README.md` for the definition of the public API.
 ## [Unreleased]
 
 ### Fixed
+- Dashboard screens of a disabled module (requests, consumers and keys without monitoring, models without
+  docs, changes, health) have no route any more: their URL answered 500 instead of 404.
+- The dashboard's forms compare only the host of the browser's `Origin`: behind a proxy that terminates TLS,
+  every form used to be refused unless trusted proxies were configured.
 - `tollbooth:diff` stops with exit code 2 on an unknown `--fail-on` or `--format` value: a misspelled
   `--fail-on` used to make the check pass in CI. When the monitoring database cannot be read, it lists the
   changes without their impact instead of failing.

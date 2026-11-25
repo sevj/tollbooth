@@ -164,7 +164,7 @@ The health report shows how far behind aggregation and purge are (`tollbooth.hea
 
 The dashboard's forms (API keys, plans) carry a token signed with `kernel.secret`. A form rendered by one server and submitted to another is refused with 403 unless both have the same secret: set the same `APP_SECRET` on every server.
 
-The forms are also refused when the browser's `Origin` header differs from the scheme and host Symfony sees. Behind a load balancer that terminates TLS, configure the trusted proxies:
+The forms are also refused when the host of the browser's `Origin` header differs from the host Symfony sees (the scheme and port are not compared, so TLS termination alone is fine). Behind a load balancer that rewrites the host, configure the trusted proxies:
 
 ```yaml
 # config/packages/framework.yaml
