@@ -649,6 +649,7 @@ final class TollboothBundle extends AbstractBundle
                 array_map(static fn (array $group): string => rtrim('/'.trim($group['prefix'], '/'), '/'), $config['groups']),
                 $debug ? null : service('cache.system')->nullOnInvalid(),
                 $config['output']['etag'],
+                $config['rate_limit']['enabled'],
             ]);
 
         $services->set(DocsController::class)
@@ -935,6 +936,7 @@ final class TollboothBundle extends AbstractBundle
                 $monitoring ? service(CallBreakdownInterface::class) : null,
                 $config['docs']['enabled'] ? service(OpenApiGenerator::class) : null,
                 service('clock')->nullOnInvalid(),
+                $config['rate_limit']['enabled'],
             ]);
         $services->set(EndpointController::class)
             ->args([

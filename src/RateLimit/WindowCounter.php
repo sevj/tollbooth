@@ -7,6 +7,7 @@ namespace Tollbooth\RateLimit;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Lock\LockFactory;
+use Symfony\Component\Lock\Store\FlockStore;
 use Tollbooth\Core\Metadata\Limit;
 
 /**
@@ -14,11 +15,14 @@ use Tollbooth\Core\Metadata\Limit;
  */
 final readonly class WindowCounter
 {
+    private LockFactory $locks;
+
     public function __construct(
         private CacheItemPoolInterface $cache,
-        private ?LockFactory $locks = null,
+        ?LockFactory $locks = null,
         private ?ClockInterface $clock = null,
     ) {
+        $this->locks = $locks ?? new LockFactory(new FlockStore());
     }
 
     public function hit(string $consumer, Limit $limit): LimitState
@@ -60,8 +64,8 @@ final readonly class WindowCounter
      */
     private function update(string $key, int $resetIn, \Closure $change): array
     {
-        $lock = $this->locks?->createLock($key, 5.0);
-        $lock?->acquire(true);
+        $lock = $this->locks->createLock($key, 5.0);
+        $lock->acquire(true);
         try {
             $item = $this->cache->getItem($key);
             $stored = $item->isHit() ? $item->get() : 0;
@@ -76,7 +80,7 @@ final readonly class WindowCounter
 
             return [$next, true];
         } finally {
-            $lock?->release();
+            $lock->release();
         }
     }
 }

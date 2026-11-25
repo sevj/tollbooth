@@ -170,7 +170,7 @@ A counter is identified by the consumer id, the limit's scope (plan, `group:<nam
 
 ## Counter storage
 
-Counters live in the PSR-6 cache pool named by `rate_limit.cache_pool` (`cache.app` by default). Each update runs under a lock from the `lock.factory` service when it exists (Symfony's `framework.lock`), held at most 5 seconds; without a lock factory, updates are not locked and concurrent calls can be under-counted.
+Counters live in the PSR-6 cache pool named by `rate_limit.cache_pool` (`cache.app` by default). Each update runs under a lock from the `lock.factory` service when it exists (Symfony's `framework.lock`), held at most 5 seconds; without one, Tollbooth locks with local files (`FlockStore`), which is right for a single server.
 
 | Setup | Use |
 | --- | --- |
@@ -330,4 +330,4 @@ tollbooth:
     rate_limit: false
 ```
 
-registers no rate limiting service: no limit is counted (not even group or endpoint limits), no header is sent, and `tollbooth:plan:setup` does not exist. The OpenAPI documents still list a 429 response and the rate limit headers on endpoints that declare group or endpoint limits, although nothing counts them. With rate limiting enabled but neither `plans` nor `doctrine_plans`, group and endpoint limits are still counted, but the OpenAPI documents describe the 429 response and the rate limit headers only on the endpoints that have such limits, and the `rate_limit_storage` check is not registered.
+registers no rate limiting service: no limit is counted (not even group or endpoint limits), no header is sent, and `tollbooth:plan:setup` does not exist. The OpenAPI documents and the dashboard pipeline then show no limit either. With rate limiting enabled but neither `plans` nor `doctrine_plans`, group and endpoint limits are still counted, but the OpenAPI documents describe the 429 response and the rate limit headers only on the endpoints that have such limits, and the `rate_limit_storage` check is not registered.

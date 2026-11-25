@@ -28,7 +28,13 @@ final readonly class EndpointPageBuilder
         private ?CallBreakdownInterface $breakdown = null,
         private ?OpenApiGenerator $documents = null,
         private ?ClockInterface $clock = null,
+        private bool $limitsEnforced = true,
     ) {
+    }
+
+    private function limited(EndpointMetadata $endpoint): bool
+    {
+        return $this->rateLimited || ($this->limitsEnforced && [] !== $endpoint->limits);
     }
 
     public function find(string $group, string $name): ?EndpointMetadata
@@ -50,7 +56,7 @@ final readonly class EndpointPageBuilder
         $resource = ResourceGrouper::resourceOf(ResourceGrouper::localPath($endpoint->path, $this->groups->localPrefixes($group)));
 
         if (null === $this->traffic) {
-            return new EndpointPage($endpoint, $resource, $operation, Declaration::of($endpoint->class, $this->projectDir), Pipeline::steps($endpoint, $operation, [], $this->rateLimited));
+            return new EndpointPage($endpoint, $resource, $operation, Declaration::of($endpoint->class, $this->projectDir), Pipeline::steps($endpoint, $operation, [], $this->limited($endpoint)));
         }
 
         $window = Window::ending(($this->clock?->now() ?? new \DateTimeImmutable())->getTimestamp(), $range);
@@ -63,7 +69,7 @@ final readonly class EndpointPageBuilder
             $resource,
             $operation,
             Declaration::of($endpoint->class, $this->projectDir),
-            Pipeline::steps($endpoint, $operation, $statuses, $this->rateLimited),
+            Pipeline::steps($endpoint, $operation, $statuses, $this->limited($endpoint)),
             $this->traffic->total($window, $group, $route),
             $statuses,
             $this->traffic->buckets($window, $range->buckets(), $group, $route),

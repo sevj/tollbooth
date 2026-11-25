@@ -58,11 +58,7 @@ The counters themselves are described in [rate-limiting.md](../rate-limiting.md)
 
 ## Locks
 
-A counter update reads the current value, checks it against the limit and writes the new value. Tollbooth wraps this in a lock from Symfony's `lock.factory` (one lock per counter key). The lock store must be shared too: with a local store (`flock`, `semaphore`), two servers can read the same value at the same moment and one increment is lost, which lets a consumer slightly exceed its limit under load. Without the Lock component at all, no lock is taken.
-
-```
-composer require symfony/lock
-```
+A counter update reads the current value, checks it against the limit and writes the new value. Tollbooth wraps this in a lock from Symfony's `lock.factory` (one lock per counter key), or in a local file lock when the application configures none. The lock store must be shared too: with a local store (`flock`, `semaphore`), two servers can read the same value at the same moment and one increment is lost, which lets a consumer slightly exceed its limit under load.
 
 ```yaml
 # config/packages/lock.yaml
