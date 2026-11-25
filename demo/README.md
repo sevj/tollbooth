@@ -14,6 +14,8 @@ docker compose run --rm php php demo/bin/console demo:traffic  # live calls, Ctr
 
 `demo:setup` resets the shop database. `demo:seed` replaces the monitoring data.
 
+The demo runs in prod mode: Symfony's debug mode rebuilds-checks its container on every request and costs about 0.6 s per page in Docker on Windows. After changing code, run `cache:clear`, or set `DEMO_DEBUG=1` (and `DEMO_ENV=dev`) on the demo service to work in debug.
+
 ## The APIs
 
 | Group | Prefix | Matched by | Conventions | Auth | Shows |
