@@ -67,6 +67,15 @@ final class AuthTest extends TestCase
         self::assertSame(AuthMethod::Jwt, $resolver->resolve(new Request(server: ['HTTP_AUTHORIZATION' => 'Bearer abc']))?->method);
     }
 
+    public function testABearerTokenOfAFirewallIsAUserWhereJwtIsNotAccepted(): void
+    {
+        $resolver = $this->resolver(new InMemoryUser('alice', null));
+        $bearer = new Request(server: ['HTTP_AUTHORIZATION' => 'Bearer personal-token']);
+
+        self::assertSame(AuthMethod::User, $resolver->resolve($bearer, [AuthMethod::User])?->method);
+        self::assertSame(AuthMethod::Jwt, $resolver->resolve($bearer, [AuthMethod::Jwt])?->method);
+    }
+
     public function testNoTokenStorageMeansNoConsumer(): void
     {
         self::assertNull((new TokenConsumerResolver())->resolve(new Request()));

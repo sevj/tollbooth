@@ -55,7 +55,7 @@ final readonly class AccessListener
             return $this->apiKeys->authenticate($request);
         }
 
-        $consumer = $this->tokens->resolve($request);
+        $consumer = $this->tokens->resolve($request, $allowed);
         if (null !== $consumer && \in_array($consumer->method, $allowed, true)) {
             return $consumer;
         }
