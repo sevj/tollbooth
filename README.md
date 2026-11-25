@@ -6,7 +6,17 @@ Planned on top of that core: OpenAPI documentation, rate limiting with quotas, c
 
 Requires PHP 8.4 and Symfony 7.4 or 8.x.
 
+The detailed documentation lives in [`docs/`](docs/README.md): a getting started guide, a reference page per module, guides, and [a page for coding agents](docs/agents.md).
+
 ## Installation
+
+Tollbooth is not on Packagist yet: declare its repository in the application's `composer.json`, then require it.
+
+```json
+"repositories": [
+    { "type": "vcs", "url": "https://github.com/sevj/tollbooth" }
+]
+```
 
 ```
 composer require tollbooth/tollbooth-bundle
