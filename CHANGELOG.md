@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-25
+
 ### Changed
 - The dashboard map shows every path whole: blocks widen to the longest path, and the map switches
   between three and two columns to fit the screen instead of cutting paths short.
