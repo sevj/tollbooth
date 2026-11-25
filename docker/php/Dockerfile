@@ -1,7 +1,7 @@
 FROM php:8.4-cli-alpine
 
-RUN apk add --no-cache git unzip icu-dev linux-headers $PHPIZE_DEPS \
-    && docker-php-ext-install intl opcache \
+RUN apk add --no-cache git unzip icu-dev libpq-dev linux-headers $PHPIZE_DEPS \
+    && docker-php-ext-install intl opcache pdo_pgsql \
     && pecl install pcov \
     && docker-php-ext-enable pcov \
     && apk del $PHPIZE_DEPS linux-headers

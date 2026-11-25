@@ -29,7 +29,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tollbooth\\Tests\\": "tests/"
+            "Tollbooth\\Tests\\": "tests/",
+            "Tollbooth\\Demo\\": "demo/src/"
         }
     },
     "config": {
@@ -51,6 +52,7 @@
     "require-dev": {
         "deptrac/deptrac": "^4.7",
         "doctrine/dbal": "^4.0",
+        "doctrine/doctrine-bundle": "^3.4",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^13.4",

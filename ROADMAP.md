@@ -70,6 +70,9 @@ What Tollbooth does today, what is being built and what comes next. The dashboar
 - [x] `#[DeprecatedEndpoint]` with `Deprecation`, `Sunset` and `Link` headers, optional 410 after sunset
 - [x] Health finding: deprecated endpoints still called, and by whom
 
+### Demo application
+- [x] Shop backend with six APIs and sixty endpoints on PostgreSQL, login, 24 h of seeded traffic, live traffic command
+
 ## Next
 
 ### 1.0 · Dashboard

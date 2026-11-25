@@ -1,0 +1,11 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Tollbooth\Demo\DemoKernel;
+
+require dirname(__DIR__, 2).'/vendor/autoload.php';
+
+exit((new Application(new DemoKernel('dev', true)))->run());
