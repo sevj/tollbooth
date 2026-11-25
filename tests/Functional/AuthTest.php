@@ -65,7 +65,16 @@ final class AuthTest extends FunctionalTestCase
         $client->request('GET', '/api/secure/me', server: ['HTTP_X_API_KEY' => TestKeys::READER]);
 
         self::assertResponseStatusCodeSame(200, (string) $client->getResponse()->getContent());
-        self::assertSame(['id' => 'reader000001', 'method' => 'api_key', 'plan' => 'pro'], $this->json($client));
+        self::assertSame(['id' => 'reader000001', 'name' => 'reader', 'method' => 'api_key', 'plan' => 'pro'], $this->json($client));
+    }
+
+    public function testKeyNamesKeepTheirDashes(): void
+    {
+        $client = $this->client();
+        $client->request('GET', '/api/secure/me', server: ['HTTP_X_API_KEY' => TestKeys::ACME]);
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('acme-erp', $this->json($client)['name']);
     }
 
     public function testSymfonyUserIsAcceptedWhereTheEndpointAllowsIt(): void
@@ -74,7 +83,7 @@ final class AuthTest extends FunctionalTestCase
         $client->request('GET', '/api/secure/me', server: ['PHP_AUTH_USER' => 'alice', 'PHP_AUTH_PW' => 'secret']);
 
         self::assertResponseStatusCodeSame(200);
-        self::assertSame(['id' => 'alice', 'method' => 'user', 'plan' => null], $this->json($client));
+        self::assertSame(['id' => 'alice', 'name' => 'alice', 'method' => 'user', 'plan' => null], $this->json($client));
     }
 
     public function testSymfonyUserIsRefusedWhereOnlyApiKeysAreAccepted(): void

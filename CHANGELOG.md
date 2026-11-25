@@ -8,6 +8,15 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- Names of groups, API keys and rate limit plans lost their dashes: Symfony's configuration turned
+  `legacy-ios` into `legacy_ios`, so the consumer, its monitoring rows and its findings carried another
+  name than the one configured. Names are now kept as written.
+
+### Upgrade notes
+- A consumer whose key name contains a dash shows under its real name from now on; monitoring rows
+  recorded before keep the underscored one.
+
 ## [0.9.2] - 2026-11-25
 
 ### Fixed
