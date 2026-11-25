@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-11-25
+
 ### Fixed
 - Dashboard pages took 0.6 to 1.3 seconds: every page rebuilt the OpenAPI document of its group, sometimes
   twice, and checked the monitoring tables for the navigation. The OpenAPI documents are now built once
