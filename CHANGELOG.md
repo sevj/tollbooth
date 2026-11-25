@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-25
+
 ### Added
 - One OpenAPI 3.1 document per group, generated from the compiled endpoint metadata and served at
   `/_tollbooth/openapi/{group}.json`, with a documentation page at `/_tollbooth/docs/{group}`.
