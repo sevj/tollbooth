@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-25
+
 ### Added
 - Operator dashboard under `/_tollbooth`, with its first screen: the API map of each group
   (`/_tollbooth/map/{group}`). It draws the group's endpoints by resource, links resources whose models
