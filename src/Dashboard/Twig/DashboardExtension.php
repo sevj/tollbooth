@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tollbooth\Dashboard\Twig;
 
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Tollbooth\Dashboard\Assets;
 use Tollbooth\Dashboard\DashboardRouteProvider;
+use Tollbooth\Dashboard\Endpoint\PhpHighlighter;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
@@ -38,6 +40,10 @@ final class DashboardExtension extends AbstractExtension
         return [
             new TwigFunction('tb_asset', $this->asset(...)),
             new TwigFunction('tb_sparkline', Format::sparkline(...)),
+            new TwigFunction('tb_php', PhpHighlighter::highlight(...), ['is_safe' => ['html']]),
+            new TwigFunction('tb_json', Format::json(...), ['is_safe' => ['html']]),
+            new TwigFunction('tb_status_text', static fn (int $status): string => Response::$statusTexts[$status] ?? ''),
+            new TwigFunction('tb_ago', static fn (int $milliseconds): array => Format::ago($milliseconds)),
         ];
     }
 

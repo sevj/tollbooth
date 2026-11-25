@@ -9,15 +9,17 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
+use Tollbooth\Monitoring\CallBreakdownInterface;
 use Tollbooth\Monitoring\CallQuery;
 use Tollbooth\Monitoring\CallReaderInterface;
 use Tollbooth\Monitoring\CallRecord;
 use Tollbooth\Monitoring\CallRecorderInterface;
+use Tollbooth\Monitoring\ErrorGroup;
 use Tollbooth\Monitoring\LatencyHistogram;
 use Tollbooth\Monitoring\RollupInterface;
 use Tollbooth\Monitoring\Stats;
 
-final readonly class DoctrineCallStorage implements CallRecorderInterface, CallReaderInterface, RollupInterface
+final readonly class DoctrineCallStorage implements CallRecorderInterface, CallReaderInterface, CallBreakdownInterface, RollupInterface
 {
     private const string ROLLED_UNTIL = 'rolled_until';
     private const string PURGED_AT = 'purged_before';
@@ -162,6 +164,50 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
         usort($totals, static fn (Stats $a, Stats $b): int => [$b->calls, $a->key] <=> [$a->calls, $b->key]);
 
         return $totals;
+    }
+
+    public function statuses(int $from, int $to, ?CallQuery $filter = null): array
+    {
+        $builder = $this->connection->createQueryBuilder()
+            ->select('status', 'COUNT(*) AS calls')
+            ->from($this->calls)
+            ->where('occurred_at >= :from AND occurred_at < :to')
+            ->groupBy('status')
+            ->orderBy('calls', 'DESC')
+            ->addOrderBy('status')
+            ->setParameter('from', $from * 1000, ParameterType::INTEGER)
+            ->setParameter('to', $to * 1000, ParameterType::INTEGER);
+        $this->filter($builder, $filter, true);
+
+        $statuses = [];
+        foreach ($builder->executeQuery()->fetchAllAssociative() as $row) {
+            $statuses[(int) self::scalar($row['status'])] = (int) self::scalar($row['calls']);
+        }
+
+        return $statuses;
+    }
+
+    public function errors(int $from, int $to, ?CallQuery $filter = null, int $limit = 10): array
+    {
+        $builder = $this->connection->createQueryBuilder()
+            ->select('status', 'error', 'COUNT(*) AS calls', 'COUNT(DISTINCT consumer_id) AS consumers', 'MAX(occurred_at) AS last_seen')
+            ->from($this->calls)
+            ->where('occurred_at >= :from AND occurred_at < :to AND status >= 400')
+            ->groupBy('status', 'error')
+            ->orderBy('calls', 'DESC')
+            ->addOrderBy('last_seen', 'DESC')
+            ->setMaxResults(max(1, $limit))
+            ->setParameter('from', $from * 1000, ParameterType::INTEGER)
+            ->setParameter('to', $to * 1000, ParameterType::INTEGER);
+        $this->filter($builder, $filter, true);
+
+        return array_map(static fn (array $row): ErrorGroup => new ErrorGroup(
+            (int) self::scalar($row['status']),
+            null === $row['error'] ? null : (string) self::scalar($row['error']),
+            (int) self::scalar($row['calls']),
+            (int) self::scalar($row['consumers']),
+            (int) self::scalar($row['last_seen']),
+        ), $builder->executeQuery()->fetchAllAssociative());
     }
 
     public function schema(): Schema

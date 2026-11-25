@@ -41,17 +41,25 @@ final readonly class TrafficReader
         return $this->calls->totals($window->from, $window->to, 'consumer', new CallQuery(endpoint: $endpoint, group: $group));
     }
 
-    public function total(Window $window, string $group): Stats
+    public function total(Window $window, string $group, ?string $endpoint = null): Stats
     {
-        return self::sum($this->byEndpoint($window, $group));
+        return self::sum($this->calls->totals($window->from, $window->to, 'endpoint', new CallQuery(endpoint: $endpoint, group: $group)));
     }
 
     /**
      * @return list<Stats>
      */
-    public function buckets(Window $window, int $parts, string $group): array
+    public function buckets(Window $window, int $parts, string $group, ?string $endpoint = null): array
     {
-        return array_map(fn (Window $bucket): Stats => $this->total($bucket, $group), $window->split($parts));
+        return array_map(fn (Window $bucket): Stats => $this->total($bucket, $group, $endpoint), $window->split($parts));
+    }
+
+    /**
+     * @return list<CallRecord>
+     */
+    public function recent(Window $window, string $group, string $endpoint, int $limit = 500): array
+    {
+        return $this->calls->recent(new CallQuery(endpoint: $endpoint, group: $group, since: $window->from * 1000, limit: $limit));
     }
 
     /**

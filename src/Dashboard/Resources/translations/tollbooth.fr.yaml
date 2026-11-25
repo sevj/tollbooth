@@ -4,6 +4,7 @@ dashboard:
     label: Tableau de bord
     switch_group: Changer d'API
     map: Carte
+    endpoints: Endpoints
     openapi: Spécification OpenAPI
     collector:
       ok: collecteur opérationnel
@@ -72,3 +73,92 @@ dashboard:
       errors_cause: Taux d'erreur %rate%, surtout %cause%
       throttling: '%count% × 429, de %consumers% qui atteignent leur quota'
       slow: p95 %p95%, en hausse de %increase% sur les 7 derniers jours
+      open: Voir l'endpoint
+  ago:
+    now: à l'instant
+    minutes: 'il y a %count% min'
+    hours: '{1}il y a 1 heure|]1,Inf[il y a %count% heures'
+    days: '{1}il y a 1 jour|]1,Inf[il y a %count% jours'
+  endpoint:
+    crumb: endpoints
+    resource: ressource %resource%
+    stable: stable
+    deprecated: déprécié
+    deprecated_sunset: déprécié · fin le %date%
+    copy_curl: Copier cURL
+    copied: Copié
+    try: Essayer
+    kpi:
+      calls: Appels %range%
+      errors: Erreurs
+      throttled: Limitées
+    pipeline:
+      title: Pipeline de la requête
+      subtitle: chaque appel passe par ces étapes, avec la configuration de cet endpoint
+      public: public
+      scope: scope %scopes%
+      plan: plan du consommateur
+      plan_extra: + plan du consommateur
+      'off': non limité
+      body: corps → %model%
+      query: '{1}1 paramètre de requête|]1,Inf[%count% paramètres de requête'
+      path: '{1}1 paramètre de chemin|]1,Inf[%count% paramètres de chemin'
+      no_input: aucune entrée
+      no_body: pas de corps
+      constrained: '{0}aucun champ contraint|{1}1 champ contraint|]1,Inf[%count% champs contraints'
+      nested: '{0}aucun champ imbriqué|{1}1 champ imbriqué|]1,Inf[%count% champs imbriqués'
+      no_content: pas de contenu
+    step:
+      auth: Auth
+      rate_limit: Limite de débit
+      hydrate: Hydratation
+      validate: Validation
+      handler: Handler
+      serialize: Sérialisation
+    time:
+      title: 'où passe le temps, appels autour du p95 (sur %count% récents)'
+      kernel: kernel
+      auth: auth
+      rate_limit: limiteur
+      hydrate: hydratation · validation
+      handler: handler
+      serialize: sérialisation
+    declaration: Déclaration
+    no_source: Le fichier source de cet endpoint est illisible.
+    request_body: Corps de la requête
+    parameters: Paramètres
+    no_input: Cet endpoint ne prend ni paramètre ni corps.
+    field: champ
+    type: type
+    rules: règles
+    in:
+      path: chemin
+      query: requête
+      header: en-tête
+    responses: Réponses
+    errors_as: 'erreurs : application/problem+json'
+    status:
+      200: OK
+      201: créé
+      202: accepté, traité plus tard
+      204: pas de contenu
+      400: requête ou corps mal formé
+      401: identifiants absents ou refusés
+      403: un scope requis manque
+      404: la ressource n'existe pas
+      415: le corps n'est pas du JSON
+      422: 'violations[] par champ'
+      429: en-têtes RateLimit et Retry-After
+    example: Exemple
+    response_tab: 'réponse %status%'
+    latency: Latence
+    latency_label: latence p50 et p95 sur les dernières %range%
+    now: maintenant
+    status_codes: Codes de statut
+    calls: '{0}aucun appel|{1}1 appel|]1,Inf[%count% appels'
+    no_calls: Aucun appel sur cette période.
+    top_consumers: Principaux consommateurs
+    recent_errors: Erreurs récentes
+    grouped: regroupées
+    no_errors: Aucune erreur sur les dernières %range%.
+    consumers: '{1}1 consommateur|]1,Inf[%count% consommateurs'
