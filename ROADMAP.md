@@ -82,7 +82,7 @@ Twig, rendered on the server, assets shipped prebuilt, every string translated (
 - [x] Models: diagram, usage, serialized preview per convention, SVG export
 - [x] Requests: live tail, filters, call detail with limiter state, NDJSON export
 - [x] Consumers and a consumer page: quotas, minute limiter, endpoints used, upcoming changes, key
-- [ ] Changes and Health screens
+- [x] Changes and Health screens
 - [ ] API key management from the UI, with a Doctrine key provider
 
 ## Later

@@ -8,6 +8,16 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Changes screen in the dashboard (`/_tollbooth/changes/{group}`): the group's contract compared between
+  the latest snapshot and the code, or between any two snapshots, with the count of each kind of change,
+  the next version, each change with the calls and consumers it touches, the matching
+  `tollbooth:diff` command for CI, a Markdown changelog for consumers to copy, and the releases with
+  their breaking changes. The navigation shows how many breaking changes are waiting.
+- Health screen in the dashboard (`/_tollbooth/status/{group}`): the overall status, every check grouped
+  by source with its summary and duration, the findings, the facts and the probes with what they answer
+  without a token.
+
 ## [0.14.0] - 2026-11-25
 
 ### Added
