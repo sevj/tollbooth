@@ -14,6 +14,10 @@ final readonly class CallQuery
         public ?int $since = null,
         public ?string $before = null,
         public int $limit = 50,
+        public ?int $status = null,
+        public ?float $minDuration = null,
+        public ?string $after = null,
+        public ?string $id = null,
     ) {
     }
 }

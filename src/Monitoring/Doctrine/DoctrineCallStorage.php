@@ -58,6 +58,7 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
             'response_size' => $call->responseSize,
             'error' => $call->error,
             'steps' => json_encode($call->steps, \JSON_THROW_ON_ERROR | \JSON_PRESERVE_ZERO_FRACTION),
+            'limiters' => null === $call->limiters ? null : json_encode($call->limiters, \JSON_THROW_ON_ERROR),
         ]);
     }
 
@@ -132,6 +133,10 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
 
         if (null !== $query->before) {
             $builder->andWhere('id < :before')->setParameter('before', $query->before);
+        }
+
+        if (null !== $query->after) {
+            $builder->andWhere('id > :after')->setParameter('after', $query->after);
         }
 
         return array_map($this->hydrate(...), $builder->executeQuery()->fetchAllAssociative());
@@ -232,6 +237,7 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
         $calls->addColumn('response_size', Types::INTEGER, ['notnull' => false]);
         $calls->addColumn('error', Types::STRING, ['length' => 255, 'notnull' => false]);
         $calls->addColumn('steps', Types::TEXT);
+        $calls->addColumn('limiters', Types::TEXT, ['notnull' => false]);
         $calls->setPrimaryKey(['id']);
         $calls->addIndex(['minute'], $this->calls.'_by_minute');
         $calls->addIndex(['occurred_at'], $this->calls.'_by_time');
@@ -375,11 +381,52 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
             }
         }
 
-        if ($byStatus && null !== $query->statusClass) {
+        if (!$byStatus) {
+            return;
+        }
+        if (null !== $query->statusClass) {
             $builder->andWhere('status >= :status_from AND status < :status_to')
                 ->setParameter('status_from', $query->statusClass * 100, ParameterType::INTEGER)
                 ->setParameter('status_to', $query->statusClass * 100 + 100, ParameterType::INTEGER);
         }
+        if (null !== $query->status) {
+            $builder->andWhere('status = :status')->setParameter('status', $query->status, ParameterType::INTEGER);
+        }
+        if (null !== $query->minDuration) {
+            $builder->andWhere('duration >= :min_duration')->setParameter('min_duration', $query->minDuration);
+        }
+        if (null !== $query->id) {
+            $builder->andWhere('id = :id')->setParameter('id', $query->id);
+        }
+    }
+
+    /**
+     * @return list<array{name: string, limit: int, window: int, remaining: int, reset: int}>|null
+     */
+    private static function limiters(mixed $value): ?array
+    {
+        if (!\is_string($value) || '' === $value) {
+            return null;
+        }
+        $decoded = json_decode($value, true);
+        if (!\is_array($decoded)) {
+            return null;
+        }
+
+        $limiters = [];
+        foreach ($decoded as $limiter) {
+            if (\is_array($limiter) && \is_string($limiter['name'] ?? null)) {
+                $limiters[] = [
+                    'name' => $limiter['name'],
+                    'limit' => (int) self::scalar($limiter['limit'] ?? 0),
+                    'window' => (int) self::scalar($limiter['window'] ?? 0),
+                    'remaining' => (int) self::scalar($limiter['remaining'] ?? 0),
+                    'reset' => (int) self::scalar($limiter['reset'] ?? 0),
+                ];
+            }
+        }
+
+        return $limiters;
     }
 
     /**
@@ -405,6 +452,7 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
             responseSize: null === $row['response_size'] ? null : (int) self::scalar($row['response_size']),
             error: null === $row['error'] ? null : (string) self::scalar($row['error']),
             steps: self::steps($steps),
+            limiters: self::limiters($row['limiters'] ?? null),
         );
     }
 

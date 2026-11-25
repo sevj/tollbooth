@@ -66,6 +66,7 @@ final readonly class CollectorListener
             responseSize: $response instanceof StreamedResponse ? null : \strlen((string) $response->getContent()),
             error: $response->getStatusCode() >= 400 ? EndpointRequest::error($request) : null,
             steps: EndpointRequest::timings($request),
+            limiters: RateLimitHeaders::parse($response->headers->get('RateLimit-Policy'), $response->headers->get('RateLimit')),
         );
     }
 
