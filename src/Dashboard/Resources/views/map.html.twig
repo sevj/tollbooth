@@ -124,7 +124,12 @@
 {% set params = {} %}
 {% for key, value in item.parameters %}
 {% set shown = value is same as('') ? '' : (key in ['calls', 'count'] ? value|tb_number : (key == 'rate' ? value ~ '%' : (key == 'p95' ? value ~ 'ms' : (key == 'increase' ? value ~ '%' : value)))) %}
+{% if key == 'consumers' and item.consumers is not empty %}
+{% set links = item.consumers|slice(0, 2)|map(c => '<a href="' ~ path('tollbooth_dashboard_consumer', {group: map.group, consumer: c.id})|e ~ '">' ~ c.label|e ~ '</a>')|join(', ') ~ (item.consumers|length > 2 ? ' +' ~ (item.consumers|length - 2) : '') %}
+{% set params = params|merge({'%consumers%': '<span class="v">' ~ links ~ '</span>'}) %}
+{% else %}
 {% set params = params|merge({('%' ~ key ~ '%'): '<span class="v">' ~ (shown|e) ~ '</span>'}) %}
+{% endif %}
 {% endfor %}
 <div class="att">
 <span class="kind {{ item.kind }}"><span class="dot"></span>{{ ('dashboard.map.attention.kind.' ~ item.kind)|trans }}</span>

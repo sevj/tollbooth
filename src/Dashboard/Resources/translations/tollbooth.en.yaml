@@ -222,6 +222,7 @@ dashboard:
     envelope: Envelope
     case: Field names
   requests:
+    consumer_calls: (filter its calls)
     title: Requests
     crumb: requests
     subtitle: every call as received · bodies, headers and query strings are never stored

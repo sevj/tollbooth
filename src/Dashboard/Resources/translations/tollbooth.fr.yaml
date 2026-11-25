@@ -222,6 +222,7 @@ dashboard:
     envelope: Enveloppe
     case: Noms de champs
   requests:
+    consumer_calls: (filtrer ses appels)
     title: Requêtes
     crumb: requêtes
     subtitle: chaque appel tel que reçu · corps, en-têtes et query strings ne sont jamais stockés

@@ -29,7 +29,7 @@ final readonly class Impact
      * @param list<string>          $operations
      * @param array<string, string> $operationIds
      *
-     * @return array{calls: int, consumers: list<string>}|null
+     * @return array{calls: int, consumers: list<string>, consumer_ids: list<string>}|null
      */
     public function of(array $operations, array $operationIds): ?array
     {
@@ -52,7 +52,7 @@ final readonly class Impact
             }
         }
 
-        return ['calls' => $calls, 'consumers' => array_values($consumers)];
+        return ['calls' => $calls, 'consumers' => array_values($consumers), 'consumer_ids' => array_map('strval', array_keys($consumers))];
     }
 
     public function days(): int

@@ -75,7 +75,7 @@
 <div class="kv">
 <span>{{ 'dashboard.requests.kv.id'|trans }}</span><span>{{ call.id }}</span>
 <span>{{ 'dashboard.requests.kv.received'|trans }}</span><span>{{ (call.occurredAt // 1000)|date('Y-m-d H:i:s', 'UTC') }}.{{ '%03d'|format(call.occurredAt % 1000) }} UTC</span>
-<span>{{ 'dashboard.requests.kv.consumer'|trans }}</span><a href="{{ path('tollbooth_dashboard_requests', {group: group, q: filter.with('consumer', ' ' in call.consumerName ? call.consumerId : call.consumerName)}) }}">{{ call.consumerName }}{% if call.consumerId != call.consumerName %} · {{ call.consumerId }}{% endif %}</a>
+<span>{{ 'dashboard.requests.kv.consumer'|trans }}</span><span><a href="{{ path('tollbooth_dashboard_consumer', {group: group, consumer: call.consumerId}) }}">{{ call.consumerName }}{% if call.consumerId != call.consumerName %} · {{ call.consumerId }}{% endif %}</a> <a class="mu" href="{{ path('tollbooth_dashboard_requests', {group: group, q: filter.with('consumer', ' ' in call.consumerName ? call.consumerId : call.consumerName)}) }}">{{ 'dashboard.requests.consumer_calls'|trans }}</a></span>
 <span>{{ 'dashboard.requests.kv.client'|trans }}</span><span>{{ ('dashboard.auth.' ~ call.authMethod)|trans }}{% if call.ip %} · {{ call.ip }}{% endif %}</span>
 <span>{{ 'dashboard.requests.kv.endpoint'|trans }}</span>{% if ep %}<a href="{{ path('tollbooth_dashboard_endpoint', {group: group, name: ep.name}) }}">{{ ep.class|split('\\')|last }}</a>{% else %}<span>{{ call.endpoint }}</span>{% endif %}
 {% if call.responseSize is not null %}<span>{{ 'dashboard.requests.kv.size'|trans }}</span><span>{{ call.responseSize|tb_number }} B</span>{% endif %}
