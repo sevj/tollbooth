@@ -178,6 +178,10 @@ final class EndpointMetadataFactory
             return $group->scopes;
         }
 
+        if (null !== $group->path && $group->matchesPath($path)) {
+            $path = substr($path, \strlen($group->path));
+        }
+
         $resource = explode('/', trim($path, '/'))[0];
         if ('' === $resource || str_starts_with($resource, '{')) {
             return $group->scopes;
