@@ -286,7 +286,7 @@ $violations = new ConstraintViolationList([
 throw new UnprocessableEntityHttpException('', new ValidationFailedException($input, $violations));
 ```
 
-Throwing a bare `ValidationFailedException` is not enough: it is not an HTTP exception, so it answers status 500 (with the violations listed).
+Throwing the bare `ValidationFailedException` gives the same 422.
 
 ## Return values
 
@@ -332,7 +332,8 @@ if ($order->isShipped()) {
 ```
 
 - An exception implementing `HttpExceptionInterface` keeps its status code and headers, and its message becomes the `detail` member: never put internal information in it.
-- Any other exception answers 500, without `detail` unless `kernel.debug` is on. This includes Symfony Security's `AccessDeniedException` (thrown by `#[IsGranted]` or `denyAccessUnlessGranted()`): to answer 403 from an endpoint, throw `Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException`.
+- Symfony Security's `AccessDeniedException` (thrown by `#[IsGranted]` or `denyAccessUnlessGranted()`) answers 403, and its `AuthenticationException` answers 401 with `WWW-Authenticate: Session`. A bare `ValidationFailedException` answers 422 with its violations.
+- Any other exception answers 500, without `detail` unless `kernel.debug` is on.
 - An exception implementing `Tollbooth\Core\Problem\ProblemMembersInterface` adds members to the problem body. See [guides/extending.md](guides/extending.md).
 
 The exact shapes are in [http-contract.md](http-contract.md#problem-details).

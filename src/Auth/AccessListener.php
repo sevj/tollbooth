@@ -86,6 +86,6 @@ final readonly class AccessListener
             };
         }
 
-        return implode(', ', array_filter($challenges)) ?: 'Bearer';
+        return implode(', ', array_filter($challenges)) ?: (\in_array(AuthMethod::User, $allowed, true) ? 'Session' : 'Bearer');
     }
 }
