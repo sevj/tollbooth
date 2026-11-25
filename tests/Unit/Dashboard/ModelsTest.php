@@ -55,17 +55,17 @@ final class ModelsTest extends TestCase
     {
         $diagram = ModelDiagram::build(self::catalog(), 'OrderView', 2);
 
-        self::assertSame(310, $diagram->cards['OrderView']['x']);
+        self::assertSame(314, $diagram->cards['OrderView']['x']);
         self::assertTrue($diagram->cards['OrderView']['selected']);
-        self::assertSame(640, $diagram->cards['OrderStatus']['x']);
+        self::assertSame(644, $diagram->cards['OrderStatus']['x']);
         self::assertSame(0, $diagram->cards['OrderLineView']['x']);
-        self::assertSame(640, $diagram->cards['Money']['x']);
-        self::assertSame(860, $diagram->width);
+        self::assertSame(644, $diagram->cards['Money']['x']);
+        self::assertSame(864, $diagram->width);
         self::assertSame(
             [['status', true], ['lines[]', true], ['total', true]],
             array_map(static fn (array $link): array => [$link['label'], $link['direct']], $diagram->links),
         );
-        self::assertSame('M550 53 H595 V20 H640', $diagram->links[0]['path']);
+        self::assertSame('M554 53 H599 V20 H644', $diagram->links[0]['path']);
     }
 
     public function testPreviewsFollowTheChosenConvention(): void

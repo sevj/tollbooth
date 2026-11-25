@@ -9,6 +9,9 @@ of `README.md` for the definition of the public API.
 ## [Unreleased]
 
 ### Fixed
+- Long model names are shown whole on the models screen: diagram cards widen to their longest name or
+  field (up to 480 pixels) instead of cutting them, and the list widens up to 300 pixels, then ends the
+  name with an ellipsis and shows it whole on hover, keeping the count inside the panel.
 - The dashboard and health pages read the database far less: the map in live mode went from about 100
   queries to about 20, the consumers screen from 65 to about 20, the health report from 45 to about 25.
   The aggregation state is read once per request, the active consumers curve and the consumers' last calls
