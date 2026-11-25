@@ -27,6 +27,49 @@ abstract class FunctionalTestCase extends WebTestCase
     }
 
     /**
+     * @param array<mixed> $data
+     * @param list<string> $keys
+     *
+     * @return array<mixed>
+     */
+    protected static function withPath(array $data, array $keys, mixed $value, bool $remove = false): array
+    {
+        $key = array_shift($keys);
+        if (null === $key) {
+            return $data;
+        }
+
+        if ([] === $keys) {
+            if ($remove) {
+                unset($data[$key]);
+            } else {
+                $data[$key] = $value;
+            }
+
+            return $data;
+        }
+
+        $data[$key] = self::withPath(\is_array($data[$key] ?? null) ? $data[$key] : [], $keys, $value, $remove);
+
+        return $data;
+    }
+
+    /**
+     * @param array<mixed> $data
+     */
+    protected static function path(array $data, string ...$keys): mixed
+    {
+        foreach ($keys as $key) {
+            if (!\is_array($data) || !\array_key_exists($key, $data)) {
+                return null;
+            }
+            $data = $data[$key];
+        }
+
+        return $data;
+    }
+
+    /**
      * @param array<mixed> $problem
      *
      * @return list<mixed>

@@ -163,6 +163,17 @@ final readonly class OpenApiGenerator
             $operation['security'] = $security;
         }
 
+        if (null !== $endpoint->deprecation) {
+            $operation['deprecated'] = true;
+            $operation['x-deprecated-since'] = gmdate('Y-m-d', $endpoint->deprecation['since']);
+            if (null !== $endpoint->deprecation['sunset']) {
+                $operation['x-sunset'] = gmdate('Y-m-d', $endpoint->deprecation['sunset']);
+            }
+            if (null !== $endpoint->deprecation['link']) {
+                $operation['externalDocs'] = ['description' => 'Migration guide', 'url' => $endpoint->deprecation['link']];
+            }
+        }
+
         if ([] !== $endpoint->limits) {
             $operation['x-rate-limits'] = array_map(static fn (array $limit): array => ['name' => $limit['name'], 'limit' => $limit['limit'], 'window' => $limit['window']], $endpoint->limits);
         }

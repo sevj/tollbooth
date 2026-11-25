@@ -107,7 +107,7 @@ final class TestKernel extends Kernel
                 'monitoring' => ['enabled' => true, 'connection' => 'tollbooth.test_connection', 'cache_pool' => 'tollbooth.test_limits'],
                 'health' => ['token' => 'probe-secret'],
             ],
-            default => ['path_prefix' => '/api', 'auth' => $open],
+            default => ['path_prefix' => '/api', 'auth' => $open, 'changes' => ['directory' => self::contractDirectory()]],
         });
 
         if ('auth' === $this->environment) {
@@ -140,6 +140,11 @@ final class TestKernel extends Kernel
                 ->args([['driver' => 'pdo_sqlite', 'path' => self::monitoringDatabase()]])
                 ->public();
         }
+    }
+
+    public static function contractDirectory(): string
+    {
+        return sys_get_temp_dir().'/tollbooth-tests/contract';
     }
 
     public static function monitoringDatabase(): string

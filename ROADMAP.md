@@ -63,14 +63,14 @@ What Tollbooth does today, what is being built and what comes next. The dashboar
 - [x] Findings: error rates, unused endpoints, keys expired or expiring, pages outside any firewall
 - [x] `/live` and `/ready` probes, details behind a token, full report and `tollbooth:health`
 
-## Next
-
 ### 0.9 · Changes
-- [ ] Contract snapshot per release
-- [ ] Diff between two snapshots: breaking, risky, added, changed, deprecated, with impact from real traffic
-- [ ] `tollbooth:diff --fail-on=breaking` for CI and a consumer-facing changelog
-- [ ] `Deprecation` and `Sunset` headers
-- [ ] Health finding: deprecated endpoints still called, and by whom
+- [x] Contract snapshot per release (the OpenAPI documents of every group)
+- [x] Diff aware of direction: breaking, risky, added, changed, deprecated, with impact from real traffic
+- [x] `tollbooth:diff --fail-on=breaking` for CI, next version, consumer changelog in Markdown
+- [x] `#[DeprecatedEndpoint]` with `Deprecation`, `Sunset` and `Link` headers, optional 410 after sunset
+- [x] Health finding: deprecated endpoints still called, and by whom
+
+## Next
 
 ### 1.0 · Dashboard
 Twig, rendered on the server, assets shipped prebuilt, every string translated (`en`, `fr`).

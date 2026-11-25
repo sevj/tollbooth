@@ -342,6 +342,46 @@ tollbooth:
 
 The routes are imported with the endpoints and are not protected by Tollbooth: put them behind the application firewall, or leave them open when the documentation is public. The page loads `@scalar/api-reference` 1.77.0 from jsDelivr.
 
+## Contract changes
+
+### Deprecating an endpoint
+
+```php
+#[Endpoint('GET', '/v1/users/{id}')]
+#[DeprecatedEndpoint(since: '2026-06-01', sunset: '2027-03-01', link: 'https://docs.example.com/migrate-to-v2')]
+final class GetUserV1 { … }
+```
+
+Every response then carries `Deprecation: @1780272000` (RFC 9745), `Sunset: Mon, 01 Mar 2027 00:00:00 GMT` (RFC 8594) and `Link: <…>; rel="deprecation"`. The OpenAPI operation is marked `deprecated`, and the health report names the consumers still calling it. With `tollbooth.changes.gone_after_sunset: true`, the endpoint answers 410 Gone once its sunset date has passed.
+
+### Snapshots and diff
+
+At each release, save the contract and commit it:
+
+```
+bin/console tollbooth:contract:snapshot 2.4.0     # writes tollbooth/contract/2.4.0.json
+```
+
+Then compare the code with the latest snapshot, in CI for instance:
+
+```
+bin/console tollbooth:diff --fail-on=breaking
+```
+
+```
+ BREAKING   ProductView.stock: Removed. (139700 calls from 4 consumers in 30 days)
+ RISKY      OrderStatus: New value "refunded".
+ ADDED      POST /payments/{id}/refund: New endpoint.
+ CHANGED    GET /products/search: The rate limit "minute" is relaxed.
+ DEPRECATED GET /v1/users/{id}: Deprecated, sunset on 2027-03-01.
+
+ 1 breaking · 1 risky · 1 added · 1 changed · 1 deprecated · next version 3.0.0
+```
+
+The snapshot of a release is the set of OpenAPI documents of its groups, so whatever the documentation shows is compared. The direction matters: a field removed from a response breaks clients, removed from a request body it is only no longer read; a new enum value is risky in a response and harmless in a request; tightening a request constraint breaks, relaxing it does not. A change to a shared model is reported once, with the operations that use it. With monitoring enabled, breaking, risky and deprecated changes show how many calls and consumers they touch.
+
+`--fail-on` takes `breaking` (default), `risky` or `none`. `--format=markdown` prints a changelog for API consumers, `--format=json` the raw changes. `--target=<version>` compares two snapshots instead of the code. The suggested next version follows semver from the base snapshot (a breaking change bumps the minor version before 1.0).
+
 ## Versioning
 
 Tollbooth follows [Semantic Versioning 2.0.0](https://semver.org/). Notable changes for each release are recorded in [`CHANGELOG.md`](CHANGELOG.md), and each version is a git tag.
@@ -350,7 +390,8 @@ Tollbooth follows [Semantic Versioning 2.0.0](https://semver.org/). Notable chan
 
 The public API is the contract host applications and API clients rely on:
 
-- the attributes `Tollbooth\Core\Attribute\Endpoint`, `Body`, `Query`, `Auth`, `Scope`, `PublicEndpoint` and `RateLimit`, and the limit syntax `<count>/<interval>`;
+- the attributes `Tollbooth\Core\Attribute\Endpoint`, `Body`, `Query`, `Auth`, `Scope`, `PublicEndpoint`, `RateLimit` and `DeprecatedEndpoint`, and the limit syntax `<count>/<interval>`;
+- the snapshot file format, the commands `tollbooth:contract:snapshot` and `tollbooth:diff` with their options and exit codes;
 - the exception `Tollbooth\RateLimit\RateLimitExceededException` and the interface `Tollbooth\Core\Problem\ProblemMembersInterface`;
 - the enum `Tollbooth\Core\Security\AuthMethod`, the value objects `Tollbooth\Auth\Consumer` and `Tollbooth\Auth\ApiKey\ApiKey`, and the interface `Tollbooth\Auth\ApiKey\ApiKeyProviderInterface`;
 - the format of API keys (`tb_live_` or `tb_test_`, a 12 character id, a 32 character secret);
