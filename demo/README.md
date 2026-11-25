@@ -27,7 +27,7 @@ The demo runs in prod mode: Symfony's debug mode rebuilds-checks its container o
 | legacy | `/api/v1` | namespace | plain | API key | deprecation with a near and a far sunset, and without |
 | backoffice | `/api/backoffice` | path | plain, camelCase | JWT | access token with scopes in the claims |
 
-Documentation: http://localhost:8080/_tollbooth/docs/shop (public). Health report: http://localhost:8080/_tollbooth/health.json (admin).
+Dashboard: http://localhost:8080/_tollbooth (log in as admin). Documentation: http://localhost:8080/_tollbooth/docs/shop (public). Health report: http://localhost:8080/_tollbooth/health.json (admin).
 
 ## Credentials
 
