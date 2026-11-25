@@ -28,6 +28,12 @@ docker compose run --rm php composer deptrac   # module boundaries
 docker compose run --rm php composer qa        # all of the above
 ```
 
+## Demo application
+
+`demo/` is a shop backend with six APIs on PostgreSQL, used to try features by hand and to develop the dashboard against real data (see `demo/README.md`). It is excluded from the package. Run `demo:setup` then `demo:seed`, `docker compose up -d demo` serves it on http://localhost:8080, and `demo:traffic` sends live calls. When a feature changes what an API can do, give the demo an endpoint that shows it. Bugs the demo reveals in the bundle are fixed on their own `fix/` branch with a regression test, never inside the demo branch.
+
+To see a page, `scripts/browse.ts` drives headless Edge on port 9473 (run it with a `tsx` from another project, for instance `../lignee/node_modules/.bin/tsx`). It refuses to start if the port is taken. Never open a visible browser window.
+
 ## Architecture
 
 Modules live side by side under `src/`, one namespace each:
