@@ -8,6 +8,11 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- A call that a Symfony firewall authenticates from an `Authorization: Bearer` header (a personal token
+  read by a custom authenticator, for instance) is accepted by endpoints that allow the `user` method.
+  It used to be taken for a JWT and refused with 401 unless the endpoint also allowed `jwt`.
+
 ## [0.22.0] - 2026-11-25
 
 ### Added

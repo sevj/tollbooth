@@ -20,7 +20,10 @@ final readonly class TokenConsumerResolver
     ) {
     }
 
-    public function resolve(Request $request): ?Consumer
+    /**
+     * @param list<AuthMethod> $allowed
+     */
+    public function resolve(Request $request, array $allowed = [AuthMethod::Jwt, AuthMethod::User]): ?Consumer
     {
         $user = $this->tokens?->getToken()?->getUser();
         if (!$user instanceof UserInterface) {
@@ -31,7 +34,8 @@ final readonly class TokenConsumerResolver
             return $this->fromOidc($user);
         }
 
-        $method = str_starts_with((string) $request->headers->get('Authorization'), 'Bearer ') ? AuthMethod::Jwt : AuthMethod::User;
+        $bearer = str_starts_with((string) $request->headers->get('Authorization'), 'Bearer ');
+        $method = $bearer && \in_array(AuthMethod::Jwt, $allowed, true) ? AuthMethod::Jwt : AuthMethod::User;
 
         return new Consumer($user->getUserIdentifier(), $user->getUserIdentifier(), $method);
     }
