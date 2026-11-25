@@ -260,7 +260,7 @@ RateLimit: "burst";r=97;t=4, "minute";r=581;t=34, "day";r=46020;t=35869
 
 `legacy_headers: true` also sends `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` for the tightest limit. Calls rejected before authentication are not counted.
 
-With Doctrine DBAL, plans can also live in a table, where the dashboard's configuration screen creates, edits and deletes them, so a customer's quota can change without a deployment:
+With Doctrine DBAL, plans can live in a table instead, where the dashboard's configuration screen creates, edits and deletes them and picks the default and anonymous plans, so a customer's quota changes without a deployment. Nothing then needs to be declared in YAML:
 
 ```yaml
 tollbooth:
@@ -273,9 +273,10 @@ tollbooth:
 
 ```
 bin/console tollbooth:plan:setup                     # creates tollbooth_rate_limit_plan, --dump-sql for a migration
+bin/console tollbooth:plan:setup --import            # also copies the declared plans the table lacks
 ```
 
-Plans declared under `plans` keep working next to them and stay read-only; `default_plan` and `anonymous_plan` must be declared there. The stored plans are cached for a minute in `cache_pool` and the cache is cleared on every change, so a shared pool spreads a change to every server at once. When the table cannot be read, only the declared plans apply and the health report turns critical.
+The table is then the only source of plans. `plans`, `default_plan` and `anonymous_plan`, when present, fill the table the first time `tollbooth:plan:setup` finds it empty, and apply while the table cannot be read, a case the health report shows as critical. The plans are cached for a minute in `cache_pool` and the cache is cleared on every change, so a shared pool spreads a change to every server at once. A plan cannot be deleted while API keys use it or while it is the default or anonymous plan.
 
 ## Monitoring
 
@@ -441,7 +442,7 @@ composer require symfony/twig-bundle symfony/translation
 | `/_tollbooth/consumers/{group}/{consumer}` | One consumer: daily quota with the time it runs out at the current pace, the minute limiter over the last hour, endpoints used, upcoming breaking or risky changes and deprecated endpoints it still calls, and its key (id, expiry, allowed IPs, scopes, last call) |
 | `/_tollbooth/changes/{group}` | The contract of the group compared between the latest snapshot (or any two) and the code: changes by kind with the calls and consumers they touch, the next version, the CI command, a Markdown changelog for consumers and the releases with their breaking changes |
 | `/_tollbooth/status/{group}` | The health report: overall status, each check with its duration, findings, facts and the probes with what they answer without a token |
-| `/_tollbooth/configuration/{group}` | Rate limit plans with their limits, keys and source, created, edited and deleted here when `rate_limit.doctrine_plans` is on; and the current value of every `tollbooth.*` setting, by section, secrets hidden |
+| `/_tollbooth/configuration/{group}` | Rate limit plans with their limits and keys, created, edited and deleted here (with the default and anonymous plans) when `rate_limit.doctrine_plans` is on; and the current value of every `tollbooth.*` setting, by section, secrets hidden |
 
 With monitoring enabled, the map shows the traffic over the last hour, day, week or month (`?range=1h|24h|7d|30d`): requests, error rate, p95 latency, throttled calls and active consumers with their trend; each endpoint's share of its resource's calls, its p95, deprecated endpoints, endpoints throttled or answering errors above `tollbooth.health.error_rate`. A "Needs attention" list names the deprecated endpoints still called and by whom, the endpoints that fail (with their most frequent error), those hitting quotas and those whose p95 rose by half against the previous 7 days. `?mode=structure` shows the declared status and authentication instead.
 

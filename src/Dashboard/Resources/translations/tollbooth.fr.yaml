@@ -477,7 +477,7 @@ dashboard:
     saved: 'Le plan %name% est enregistré. Il s''applique dès le prochain appel.'
     deleted: 'Le plan %name% est supprimé.'
     explain: "Un plan fixe combien d'appels un consommateur peut faire, tous endpoints confondus. Chaque clé d'API a un plan ; sans plan, elle suit le plan par défaut."
-    read_only: Les plans viennent de la configuration et sont en lecture seule. Activez tollbooth.rate_limit.doctrine_plans pour en créer et en modifier ici.
+    read_only: Les plans viennent de la configuration et sont en lecture seule. Activez tollbooth.rate_limit.doctrine_plans pour les gérer ici.
     disabled: La limitation de débit est désactivée (tollbooth.rate_limit).
     none: Aucun plan pour l'instant.
     default: par défaut
@@ -486,16 +486,14 @@ dashboard:
       plan: plan
       limits: limites
       keys: clés
-      source: origine
-    source:
-      config: configuration
-      dashboard: tableau de bord
     form_sub: "Les limites s'appliquent à chaque consommateur du plan, sur des fenêtres alignées sur l'horloge."
     name: Nom
     name_help: Lettres minuscules, chiffres, tirets et tirets bas. Il ne pourra plus changer.
     limits: Limites
     limits_help: 'Une limite par ligne, sous la forme nombre/période : 60/minute, 100/10 seconds, 10000/day. Nommez-en une avec « nom: », par exemple burst: 10/10 seconds.'
     create: Créer le plan
+    is_default: Plan par défaut, pour les clés sans plan
+    is_anonymous: Plan des appels anonymes, sans clé
     save: Enregistrer
     error:
       name_required: Donnez un nom au plan.

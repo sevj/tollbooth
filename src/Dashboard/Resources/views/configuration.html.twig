@@ -29,14 +29,13 @@
 {% if plans is empty %}
 <div class="empty">{{ 'dashboard.plans.none'|trans }}</div>
 {% else %}
-<div class="pt th"><span>{{ 'dashboard.plans.col.plan'|trans }}</span><span>{{ 'dashboard.plans.col.limits'|trans }}</span><span class="r">{{ 'dashboard.plans.col.keys'|trans }}</span><span>{{ 'dashboard.plans.col.source'|trans }}</span><span></span></div>
+<div class="pt th"><span>{{ 'dashboard.plans.col.plan'|trans }}</span><span>{{ 'dashboard.plans.col.limits'|trans }}</span><span class="r">{{ 'dashboard.plans.col.keys'|trans }}</span><span></span></div>
 {% for plan in plans %}
 <div class="pt">
 <span><strong class="m">{{ plan.name }}</strong>{% if plan.default %} <span class="tagk">{{ 'dashboard.plans.default'|trans }}</span>{% endif %}{% if plan.anonymous %} <span class="tagk">{{ 'dashboard.plans.anonymous'|trans }}</span>{% endif %}</span>
 <span class="m">{% for limit in plan.limits %}{% if not loop.first %} <span class="dotsep">·</span> {% endif %}{% include '@TollboothDashboard/_limit.html.twig' %}{% endfor %}</span>
 <span class="r m">{{ keys_listed ? plan.keys : '—' }}</span>
-<span class="mu">{{ plan.configured ? 'dashboard.plans.source.config'|trans : 'dashboard.plans.source.dashboard'|trans }}</span>
-<span class="pt-actions">{% if not plan.configured and editable %}<a class="btn sm" href="{{ path('tollbooth_dashboard_plan_edit', {group: group, plan: plan.name}) }}">{{ 'dashboard.plans.edit'|trans }}</a>{% if plan.keys == 0 %}<form method="post" action="{{ path('tollbooth_dashboard_plan_delete', {group: group, plan: plan.name}) }}" data-confirm="{{ 'dashboard.plans.confirm_delete'|trans({'%name%': plan.name}) }}"><input type="hidden" name="_token" value="{{ tb_token('plan_delete', plan.name) }}"><button class="btn sm dng" type="submit">{{ 'dashboard.plans.delete'|trans }}</button></form>{% endif %}{% endif %}</span>
+<span class="pt-actions">{% if editable %}<a class="btn sm" href="{{ path('tollbooth_dashboard_plan_edit', {group: group, plan: plan.name}) }}">{{ 'dashboard.plans.edit'|trans }}</a>{% if plan.keys == 0 and not plan.default and not plan.anonymous %}<form method="post" action="{{ path('tollbooth_dashboard_plan_delete', {group: group, plan: plan.name}) }}" data-confirm="{{ 'dashboard.plans.confirm_delete'|trans({'%name%': plan.name}) }}"><input type="hidden" name="_token" value="{{ tb_token('plan_delete', plan.name) }}"><button class="btn sm dng" type="submit">{{ 'dashboard.plans.delete'|trans }}</button></form>{% endif %}{% endif %}</span>
 </div>
 {% endfor %}
 {% endif %}

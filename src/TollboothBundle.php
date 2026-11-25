@@ -380,7 +380,7 @@ final class TollboothBundle extends AbstractBundle
                         ->end()
                         ->arrayNode('doctrine_plans')
                             ->canBeEnabled()
-                            ->info('Also read plans from a database table, where the dashboard creates, edits and deletes them. Plans listed in "plans" keep working and stay read-only.')
+                            ->info('Keep the plans in a database table, where the dashboard creates, edits and deletes them. "plans", "default_plan" and "anonymous_plan" then only fill the table when tollbooth:plan:setup creates it, and apply while it cannot be read.')
                             ->children()
                                 ->scalarNode('connection')
                                     ->defaultValue('default')
@@ -653,7 +653,7 @@ final class TollboothBundle extends AbstractBundle
 
         if ($config['rate_limit']['enabled'] && $config['rate_limit']['doctrine_plans']['enabled']) {
             $services->set(PlanStoreCheck::class)
-                ->args([service(DoctrinePlanStore::class)])
+                ->args([service(DoctrinePlanStore::class), [] !== $config['rate_limit']['plans']])
                 ->tag(self::INTERNAL_CHECK, ['priority' => 75]);
         }
 
@@ -913,6 +913,9 @@ final class TollboothBundle extends AbstractBundle
         $settings = $config;
         $settings['auth']['api_keys'] = [];
         $settings['health']['token'] = null === $config['health']['token'] ? null : '••••••';
+        if ($config['rate_limit']['doctrine_plans']['enabled']) {
+            unset($settings['rate_limit']['default_plan'], $settings['rate_limit']['anonymous_plan']);
+        }
         $services->set(Settings::class)
             ->args([$settings]);
         $services->set(ConfigurationController::class)
@@ -1044,7 +1047,7 @@ final class TollboothBundle extends AbstractBundle
                 ->args([service(str_contains($connection, '.') ? $connection : 'doctrine.dbal.'.$connection.'_connection'), $rateLimit['doctrine_plans']['table_prefix']]);
             if (class_exists(Application::class)) {
                 $services->set(SetupPlansCommand::class)
-                    ->args([service(DoctrinePlanStore::class)])
+                    ->args([service(DoctrinePlanStore::class), service(Plans::class)])
                     ->tag('console.command');
             }
         }

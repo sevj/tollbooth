@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tollbooth\Tests\Functional;
 
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Filesystem\Filesystem;
 use Tollbooth\Auth\ApiKey\ApiKeyFormat;
@@ -300,6 +301,9 @@ final class DashboardTest extends FunctionalTestCase
         $plans = self::getContainer()->get(DoctrinePlanStore::class);
         self::assertInstanceOf(DoctrinePlanStore::class, $plans);
         $plans->setup();
+        $cache = self::getContainer()->get('tollbooth.test_limits');
+        self::assertInstanceOf(CacheItemPoolInterface::class, $cache);
+        $cache->clear();
 
         return $client;
     }
@@ -406,6 +410,15 @@ final class DashboardTest extends FunctionalTestCase
         $client->request('POST', '/_tollbooth/configuration/default/plans/partner/delete', ['_token' => $guard->token('plan_delete', 'partner')]);
         self::assertResponseRedirects('/_tollbooth/configuration/default?deleted=partner#plans-title', 303);
         self::assertSame([], $this->plans()->all());
+
+        $client->request('GET', '/_tollbooth/configuration/default/plans/new', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertStringContainsString('<input type="checkbox" name="default" value="1" checked>', (string) $client->getResponse()->getContent());
+        $client->request('POST', '/_tollbooth/configuration/default/plans/new', ['_token' => $guard->token('plan_create'), 'name' => 'gold', 'limits' => '100/minute', 'default' => '1']);
+        self::assertSame(['gold', 'gold'], [$this->plans()->defaultPlan(), $this->plans()->anonymousPlan()]);
+        $client->request('GET', '/_tollbooth/configuration/default', server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        self::assertStringNotContainsString('/plans/gold/delete', (string) $client->getResponse()->getContent());
+        $client->request('POST', '/_tollbooth/configuration/default/plans/gold/delete', ['_token' => $guard->token('plan_delete', 'gold')]);
+        self::assertResponseStatusCodeSame(409);
     }
 
     private function plans(): Plans

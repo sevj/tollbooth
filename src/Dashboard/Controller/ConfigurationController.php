@@ -49,9 +49,8 @@ final readonly class ConfigurationController
                     'name' => $name,
                     'limits' => $limits,
                     'keys' => $keys[$name] ?? 0,
-                    'configured' => $this->plans->configured($name),
-                    'default' => $name === $this->plans->defaultPlan,
-                    'anonymous' => $name === ($this->plans->anonymousPlan ?? $this->plans->defaultPlan),
+                    'default' => $name === $this->plans->defaultPlan(),
+                    'anonymous' => $name === $this->plans->anonymousPlan(),
                 ];
             }
         }
@@ -71,12 +70,12 @@ final readonly class ConfigurationController
     public function create(Request $request, string $group): Response
     {
         $plans = $this->editablePlans($group);
-        $form = PlanForm::empty();
+        $form = PlanForm::empty([] === $plans->all());
         if ($request->isMethod('POST')) {
             $this->guard->check($request, 'plan_create');
             $form = PlanForm::submit($request, null, array_keys($plans->all()));
             if ($form->valid()) {
-                $plans->save($form->name, $form->limits);
+                $plans->save($form->name, $form->limits, $form->default, $form->anonymous);
 
                 return $this->saved($group, $form->name);
             }
@@ -89,12 +88,12 @@ final readonly class ConfigurationController
     {
         $plans = $this->editablePlans($group);
         $limits = $this->stored($plans, $plan);
-        $form = PlanForm::of($plan, $limits);
+        $form = PlanForm::of($plan, $limits, $plan === $plans->defaultPlan(), $plan === $plans->anonymousPlan());
         if ($request->isMethod('POST')) {
             $this->guard->check($request, 'plan_edit', $plan);
             $form = PlanForm::submit($request, $plan, []);
             if ($form->valid()) {
-                $plans->save($plan, $form->limits);
+                $plans->save($plan, $form->limits, $form->default, $form->anonymous);
 
                 return $this->saved($group, $plan);
             }
@@ -108,8 +107,8 @@ final readonly class ConfigurationController
         $plans = $this->editablePlans($group);
         $this->stored($plans, $plan);
         $this->guard->check($request, 'plan_delete', $plan);
-        if (($this->keysPerPlan()[$plan] ?? 0) > 0) {
-            throw new ConflictHttpException(\sprintf('API keys still use the plan "%s".', $plan));
+        if (($this->keysPerPlan()[$plan] ?? 0) > 0 || \in_array($plan, [$plans->defaultPlan(), $plans->anonymousPlan()], true)) {
+            throw new ConflictHttpException(\sprintf('The plan "%s" is still used by API keys or as the default or anonymous plan.', $plan));
         }
         $plans->remove($plan);
 
@@ -146,8 +145,8 @@ final readonly class ConfigurationController
     private function stored(Plans $plans, string $plan): array
     {
         $limits = $plans->all()[$plan] ?? null;
-        if (null === $limits || $plans->configured($plan)) {
-            throw new NotFoundHttpException(\sprintf('No plan "%s" can be changed from the dashboard.', $plan));
+        if (null === $limits) {
+            throw new NotFoundHttpException(\sprintf('No plan "%s".', $plan));
         }
 
         return $limits;
@@ -164,7 +163,7 @@ final readonly class ConfigurationController
 
         $counts = [];
         foreach ($this->keys->all() as $key) {
-            $plan = $key->plan ?? $this->plans?->defaultPlan;
+            $plan = $key->plan ?? $this->plans?->defaultPlan();
             if (null !== $plan) {
                 $counts[$plan] = ($counts[$plan] ?? 0) + 1;
             }

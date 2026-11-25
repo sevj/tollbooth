@@ -24,8 +24,8 @@ final readonly class PlanRegistry
     public function limitsFor(Consumer $consumer): array
     {
         $limits = $this->plans->limits();
-        $default = $this->plans->defaultPlan;
-        $plan = AuthMethod::Anonymous === $consumer->method ? ($this->plans->anonymousPlan ?? $default) : $consumer->plan;
+        $default = $this->plans->defaultPlan();
+        $plan = AuthMethod::Anonymous === $consumer->method ? $this->plans->anonymousPlan() : $consumer->plan;
 
         return $limits[$plan ?? ''] ?? $limits[$default ?? ''] ?? [];
     }
