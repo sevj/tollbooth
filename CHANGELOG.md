@@ -8,6 +8,13 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- A `docs/` folder documents every part of the bundle in detail: getting started, one reference page
+  per module (endpoints, HTTP contract, configuration, authentication, rate limiting, monitoring,
+  health, OpenAPI, contract changes, dashboard), guides (migrating Symfony controllers, deprecating an
+  API version, several servers, extending) and a page for coding agents. The README points to it and
+  explains how to install the bundle from its GitHub repository.
+
 ## [0.23.0] - 2026-11-25
 
 ### Added
