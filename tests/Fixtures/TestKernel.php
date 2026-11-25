@@ -109,6 +109,7 @@ final class TestKernel extends Kernel
                 'path_prefix' => '/api',
                 'auth' => [...$open, 'doctrine_keys' => ['enabled' => true, 'connection' => 'tollbooth.test_connection']],
                 'monitoring' => ['enabled' => true, 'connection' => 'tollbooth.test_connection', 'cache_pool' => 'tollbooth.test_limits'],
+                'rate_limit' => ['doctrine_plans' => ['enabled' => true, 'connection' => 'tollbooth.test_connection'], 'cache_pool' => 'tollbooth.test_limits'],
                 'health' => ['token' => 'probe-secret'],
             ],
             default => ['path_prefix' => '/api', 'auth' => $open, 'changes' => ['directory' => self::contractDirectory()]],

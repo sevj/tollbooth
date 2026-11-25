@@ -12,6 +12,7 @@ use Tollbooth\Auth\Doctrine\DoctrineApiKeyStore;
 use Tollbooth\Core\Health\CheckResult;
 use Tollbooth\Monitoring\CallRecord;
 use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
+use Tollbooth\RateLimit\Doctrine\DoctrinePlanStore;
 use Tollbooth\Tests\Fixtures\Health\ExternalServiceCheck;
 use Tollbooth\Tests\Fixtures\TestKernel;
 
@@ -31,6 +32,9 @@ final class HealthTest extends FunctionalTestCase
         $keys = self::getContainer()->get(DoctrineApiKeyStore::class);
         self::assertInstanceOf(DoctrineApiKeyStore::class, $keys);
         $keys->setup();
+        $plans = self::getContainer()->get(DoctrinePlanStore::class);
+        self::assertInstanceOf(DoctrinePlanStore::class, $plans);
+        $plans->setup();
     }
 
     public function testLivenessOnlySaysTheProcessAnswers(): void
@@ -56,7 +60,7 @@ final class HealthTest extends FunctionalTestCase
         $report = $this->json($this->client);
         self::assertIsArray($report['checks']);
         self::assertSame(
-            [['metadata', 'tollbooth', 'ok'], ['monitoring', 'tollbooth', 'ok'], ['api_key_storage', 'tollbooth', 'ok'], ['external_service', 'application', 'ok']],
+            [['metadata', 'tollbooth', 'ok'], ['rate_limit_storage', 'tollbooth', 'ok'], ['plan_storage', 'tollbooth', 'ok'], ['monitoring', 'tollbooth', 'ok'], ['api_key_storage', 'tollbooth', 'ok'], ['external_service', 'application', 'ok']],
             array_map(static fn (mixed $check): array => \is_array($check) ? [$check['name'] ?? null, $check['source'] ?? null, $check['status'] ?? null] : [], $report['checks']),
         );
         self::assertSame([], $report['findings']);
@@ -80,7 +84,7 @@ final class HealthTest extends FunctionalTestCase
         $report = $this->json($this->client);
         self::assertSame('critical', $report['status']);
         self::assertIsArray($report['checks']);
-        self::assertSame(['status' => 'critical', 'summary' => 'The check failed with RuntimeException.'], array_intersect_key((array) $report['checks'][3], ['status' => 0, 'summary' => 0]));
+        self::assertSame(['status' => 'critical', 'summary' => 'The check failed with RuntimeException.'], array_intersect_key((array) $report['checks'][5], ['status' => 0, 'summary' => 0]));
     }
 
     public function testWrongTokenIsIgnored(): void
@@ -113,8 +117,8 @@ final class HealthTest extends FunctionalTestCase
         $report = $this->json($this->client);
         self::assertSame('degraded', $report['status']);
         self::assertIsArray($report['checks']);
-        self::assertIsArray($report['checks'][1]);
-        self::assertSame('Aggregation is 58 minutes behind. Check auto_maintenance, or schedule tollbooth:monitoring:maintain.', $report['checks'][1]['summary']);
+        self::assertIsArray($report['checks'][3]);
+        self::assertSame('Aggregation is 58 minutes behind. Check auto_maintenance, or schedule tollbooth:monitoring:maintain.', $report['checks'][3]['summary']);
     }
 
     public function testDeprecatedEndpointsStillCalledAreFindings(): void

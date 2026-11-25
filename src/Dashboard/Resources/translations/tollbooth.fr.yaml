@@ -11,6 +11,7 @@ dashboard:
     changes: Changements
     health: Santé
     openapi: Spécification OpenAPI
+    configuration: Configuration
     collector:
       ok: collecteur opérationnel
       warning: collecteur en retard
@@ -330,6 +331,7 @@ dashboard:
     ready: 503 seulement si critique
     token: le détail n'est montré qu'à une sonde qui envoie le jeton
   consumers:
+    manage_plans: Gérer les plans
     title: Consommateurs et quotas
     crumb: consommateurs
     summary: '%active% actifs sur %count%'
@@ -449,3 +451,56 @@ dashboard:
     confirm_revoke: "Révoquer la clé de %name% ? Tous les appels avec elle seront refusés."
     configured: déclarée dans la configuration, en lecture seule
     revoked: 'La clé de %name% est révoquée.'
+  configuration:
+    title: Configuration
+    crumb: configuration
+    subtitle: Les plans de limitation se modifient ici. Le reste se règle dans config/packages/tollbooth.yaml ; cette page en montre les valeurs actuelles.
+    section:
+      general: Général
+      group: Ce groupe d'API
+      output: Format des réponses
+      auth: Authentification
+      rate_limit: Limitation de débit
+      monitoring: Monitoring
+      docs: Documentation
+      health: Santé
+      changes: Changements
+      dashboard: Tableau de bord
+  plans:
+    title: Plans de limitation
+    new: Nouveau plan
+    new_crumb: nouveau plan
+    edit: Modifier
+    edit_title: 'Plan %name%'
+    delete: Supprimer
+    confirm_delete: 'Supprimer le plan %name% ?'
+    saved: 'Le plan %name% est enregistré. Il s''applique dès le prochain appel.'
+    deleted: 'Le plan %name% est supprimé.'
+    explain: "Un plan fixe combien d'appels un consommateur peut faire, tous endpoints confondus. Chaque clé d'API a un plan ; sans plan, elle suit le plan par défaut."
+    read_only: Les plans viennent de la configuration et sont en lecture seule. Activez tollbooth.rate_limit.doctrine_plans pour en créer et en modifier ici.
+    disabled: La limitation de débit est désactivée (tollbooth.rate_limit).
+    none: Aucun plan pour l'instant.
+    default: par défaut
+    anonymous: anonymes
+    col:
+      plan: plan
+      limits: limites
+      keys: clés
+      source: origine
+    source:
+      config: configuration
+      dashboard: tableau de bord
+    form_sub: "Les limites s'appliquent à chaque consommateur du plan, sur des fenêtres alignées sur l'horloge."
+    name: Nom
+    name_help: Lettres minuscules, chiffres, tirets et tirets bas. Il ne pourra plus changer.
+    limits: Limites
+    limits_help: 'Une limite par ligne, sous la forme nombre/période : 60/minute, 100/10 seconds, 10000/day. Nommez-en une avec « nom: », par exemple burst: 10/10 seconds.'
+    create: Créer le plan
+    save: Enregistrer
+    error:
+      name_required: Donnez un nom au plan.
+      name_format: Utilisez seulement des lettres minuscules, des chiffres, - et _.
+      name_taken: Un plan porte déjà ce nom.
+      limits_required: Indiquez au moins une limite.
+      limits_format: '« %line% » n''est pas une limite. Écrivez-la comme 60/minute ou 100/10 seconds.'
+      limits_duplicate: "Deux limites ont le même nom. Nommez-les avec « nom: »."

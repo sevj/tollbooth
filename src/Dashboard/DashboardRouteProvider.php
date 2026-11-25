@@ -9,6 +9,7 @@ use Symfony\Component\Routing\RouteCollection;
 use Tollbooth\Core\Routing\RouteProviderInterface;
 use Tollbooth\Dashboard\Controller\AssetController;
 use Tollbooth\Dashboard\Controller\ChangesController;
+use Tollbooth\Dashboard\Controller\ConfigurationController;
 use Tollbooth\Dashboard\Controller\ConsumersController;
 use Tollbooth\Dashboard\Controller\EndpointController;
 use Tollbooth\Dashboard\Controller\HealthController;
@@ -42,6 +43,10 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
     public const string KEY_REVOKE = 'tollbooth_dashboard_key_revoke';
     public const string CHANGES = 'tollbooth_dashboard_changes';
     public const string HEALTH = 'tollbooth_dashboard_health';
+    public const string CONFIGURATION = 'tollbooth_dashboard_configuration';
+    public const string PLAN_NEW = 'tollbooth_dashboard_plan_new';
+    public const string PLAN_EDIT = 'tollbooth_dashboard_plan_edit';
+    public const string PLAN_DELETE = 'tollbooth_dashboard_plan_delete';
     public const string ASSET = 'tollbooth_dashboard_asset';
 
     public function __construct(
@@ -73,6 +78,10 @@ final readonly class DashboardRouteProvider implements RouteProviderInterface
         $routes->add(self::CONSUMER, new Route($base.'/consumers/{group}/{consumer}', ['_controller' => ConsumersController::class.'::page'], [...$group, 'consumer' => '[^/]+'], methods: ['GET']));
         $routes->add(self::CHANGES, new Route($base.'/changes/{group}', ['_controller' => ChangesController::class], $group, methods: ['GET']));
         $routes->add(self::HEALTH, new Route($base.'/status/{group}', ['_controller' => HealthController::class], $group, methods: ['GET']));
+        $routes->add(self::CONFIGURATION, new Route($base.'/configuration/{group}', ['_controller' => ConfigurationController::class.'::page'], $group, methods: ['GET']));
+        $routes->add(self::PLAN_NEW, new Route($base.'/configuration/{group}/plans/new', ['_controller' => ConfigurationController::class.'::create'], $group, methods: ['GET', 'POST']));
+        $routes->add(self::PLAN_DELETE, new Route($base.'/configuration/{group}/plans/{plan}/delete', ['_controller' => ConfigurationController::class.'::delete'], [...$group, 'plan' => '[a-z0-9][a-z0-9_-]*'], methods: ['POST']));
+        $routes->add(self::PLAN_EDIT, new Route($base.'/configuration/{group}/plans/{plan}', ['_controller' => ConfigurationController::class.'::edit'], [...$group, 'plan' => '[a-z0-9][a-z0-9_-]*'], methods: ['GET', 'POST']));
         $routes->add(self::ASSET, new Route($base.'/assets/{file}', ['_controller' => AssetController::class], ['file' => '[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)?\.(css|js|woff2|svg)'], methods: ['GET']));
 
         return $routes;

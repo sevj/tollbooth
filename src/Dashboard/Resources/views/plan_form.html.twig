@@ -1,0 +1,29 @@
+{% extends '@TollboothDashboard/layout.html.twig' %}
+{% trans_default_domain 'tollbooth' %}
+
+{% set group = shell.group %}
+{% set heading = creating ? 'dashboard.plans.new'|trans : 'dashboard.plans.edit_title'|trans({'%name%': form.name}) %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block crumbs %}<a href="{{ path('tollbooth_dashboard_map', {group: group}) }}">{{ group }}</a> <span class="slash">/</span> <a href="{{ path('tollbooth_dashboard_configuration', {group: group}) }}">{{ 'dashboard.configuration.crumb'|trans }}</a> <span class="slash">/</span> <span class="here">{{ creating ? 'dashboard.plans.new_crumb'|trans : form.name }}</span>{% endblock %}
+
+{% block body %}
+<div class="head">
+<div>
+<h1>{{ heading }}</h1>
+<div class="sub">{{ 'dashboard.plans.form_sub'|trans }}</div>
+</div>
+</div>
+
+<section class="panel form-panel">
+<form method="post" action="{{ creating ? path('tollbooth_dashboard_plan_new', {group: group}) : path('tollbooth_dashboard_plan_edit', {group: group, plan: form.name}) }}" class="form" novalidate>
+<input type="hidden" name="_token" value="{{ creating ? tb_token('plan_create') : tb_token('plan_edit', form.name) }}">
+{% if creating %}
+<label class="field"><span>{{ 'dashboard.plans.name'|trans }}</span><input type="text" name="name" value="{{ form.name }}" required maxlength="64" placeholder="partner"{% if form.errors.name is defined %} aria-invalid="true" aria-describedby="name-error"{% endif %}><small>{{ 'dashboard.plans.name_help'|trans }}</small>{% if form.errors.name is defined %}<span class="field-error" id="name-error">{{ ('dashboard.plans.error.' ~ form.errors.name)|trans }}</span>{% endif %}</label>
+{% endif %}
+<label class="field"><span>{{ 'dashboard.plans.limits'|trans }}</span><textarea name="limits" rows="5" spellcheck="false"{% if form.errors.limits is defined %} aria-invalid="true" aria-describedby="limits-error"{% endif %}>{{ form.rawLimits }}</textarea><small>{{ 'dashboard.plans.limits_help'|trans }}</small>{% if form.errors.limits is defined %}<span class="field-error" id="limits-error">{{ ('dashboard.plans.error.' ~ form.errors.limits)|trans({'%line%': form.invalidLine}) }}</span>{% endif %}</label>
+<div class="form-actions"><a class="btn" href="{{ path('tollbooth_dashboard_configuration', {group: group}) }}#plans-title">{{ 'dashboard.keys.cancel'|trans }}</a><button class="btn pri" type="submit">{{ creating ? 'dashboard.plans.create'|trans : 'dashboard.plans.save'|trans }}</button></div>
+</form>
+</section>
+{% endblock %}

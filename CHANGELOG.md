@@ -8,6 +8,24 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Added
+- Rate limit plans can be stored in a database table (`tollbooth.rate_limit.doctrine_plans`), next to the
+  plans declared in the configuration, which keep working and stay read-only. `tollbooth:plan:setup`
+  creates the table (or prints its SQL with `--dump-sql`). A stored plan applies from the next call: the
+  list is cached for a minute in the rate limit `cache_pool` and the cache is cleared on every change.
+- A configuration screen in the dashboard (`/_tollbooth/configuration/{group}`) lists the plans with
+  their limits, the number of keys on each and where they come from, and creates, edits and deletes the
+  stored ones with signed forms; a plan still used by a key cannot be deleted. It also shows the current
+  value of every `tollbooth.*` setting by section, with the health token hidden. The consumers screen
+  links to it.
+- A health check turns critical when the table of plans cannot be read; only the declared plans apply
+  meanwhile.
+
+### Upgrade notes
+- To edit plans from the dashboard, enable `tollbooth.rate_limit.doctrine_plans` and run
+  `bin/console tollbooth:plan:setup`. Rate limiting is now active when this option is on, even with no
+  plan declared under `plans`.
+
 ## [0.18.0] - 2026-11-25
 
 ### Changed

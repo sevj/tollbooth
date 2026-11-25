@@ -58,10 +58,12 @@ use Tollbooth\Core\Routing\RouteProviderInterface;
 use Tollbooth\Core\Security\AuthMethod;
 use Tollbooth\Dashboard\Assets;
 use Tollbooth\Dashboard\Changes\ContractChanges;
+use Tollbooth\Dashboard\Configuration\Settings;
 use Tollbooth\Dashboard\Consumers\ConsumerDirectory;
 use Tollbooth\Dashboard\Consumers\ConsumerInsights;
 use Tollbooth\Dashboard\Controller\AssetController;
 use Tollbooth\Dashboard\Controller\ChangesController;
+use Tollbooth\Dashboard\Controller\ConfigurationController;
 use Tollbooth\Dashboard\Controller\ConsumersController;
 use Tollbooth\Dashboard\Controller\EndpointController;
 use Tollbooth\Dashboard\Controller\HealthController as DashboardHealthController;
@@ -102,8 +104,12 @@ use Tollbooth\Monitoring\Health\DeprecatedUsageFindings;
 use Tollbooth\Monitoring\Health\MonitoringCheck;
 use Tollbooth\Monitoring\Health\TrafficFindings;
 use Tollbooth\Monitoring\RollupInterface;
+use Tollbooth\RateLimit\Command\SetupPlansCommand;
+use Tollbooth\RateLimit\Doctrine\DoctrinePlanStore;
 use Tollbooth\RateLimit\Health\CounterStorageCheck;
+use Tollbooth\RateLimit\Health\PlanStoreCheck;
 use Tollbooth\RateLimit\PlanRegistry;
+use Tollbooth\RateLimit\Plans;
 use Tollbooth\RateLimit\RateLimitListener;
 use Tollbooth\RateLimit\WindowCounter;
 
@@ -122,7 +128,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
  * @phpstan-type ChangesConfig array{enabled: bool, directory: string, impact_days: int, gone_after_sunset: bool}
  * @phpstan-type HealthConfig array{enabled: bool, probe_path: string, token: ?string, error_rate: float, unused_days: int, key_expiry_days: int, max_lag_minutes: int}
  * @phpstan-type DashboardConfig array{enabled: bool, path: string, locale: ?string}
- * @phpstan-type RateLimitConfig array{enabled: bool, plans: array<string, list<string>|array<string, string>>, default_plan: ?string, anonymous_plan: ?string, cache_pool: string, legacy_headers: bool}
+ * @phpstan-type RateLimitConfig array{enabled: bool, plans: array<string, list<string>|array<string, string>>, default_plan: ?string, anonymous_plan: ?string, cache_pool: string, legacy_headers: bool, doctrine_plans: array{enabled: bool, connection: string, table_prefix: string}}
  */
 final class TollboothBundle extends AbstractBundle
 {
@@ -372,6 +378,17 @@ final class TollboothBundle extends AbstractBundle
                             ->defaultFalse()
                             ->info('Also send X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset for the tightest limit.')
                         ->end()
+                        ->arrayNode('doctrine_plans')
+                            ->canBeEnabled()
+                            ->info('Also read plans from a database table, where the dashboard creates, edits and deletes them. Plans listed in "plans" keep working and stay read-only.')
+                            ->children()
+                                ->scalarNode('connection')
+                                    ->defaultValue('default')
+                                    ->info('Doctrine DBAL connection name or service id.')
+                                ->end()
+                                ->scalarNode('table_prefix')->defaultValue('tollbooth_')->end()
+                            ->end()
+                        ->end()
                     ->end()
                     ->validate()
                         ->ifTrue(static fn (array $config): bool => null !== self::unknownPlan($config))
@@ -379,6 +396,14 @@ final class TollboothBundle extends AbstractBundle
                     ->end()
                 ->end()
             ->end();
+    }
+
+    /**
+     * @param RateLimitConfig $rateLimit
+     */
+    private static function rateLimited(array $rateLimit): bool
+    {
+        return $rateLimit['enabled'] && ([] !== $rateLimit['plans'] || $rateLimit['doctrine_plans']['enabled']);
     }
 
     private static function isLimitList(mixed $value): bool
@@ -587,7 +612,7 @@ final class TollboothBundle extends AbstractBundle
                 $config['docs']['title'],
                 $config['docs']['version'],
                 $config['auth']['api_key_header'],
-                $config['rate_limit']['enabled'] && [] !== $config['rate_limit']['plans'],
+                self::rateLimited($config['rate_limit']),
                 array_map(static fn (array $group): string => rtrim('/'.trim($group['prefix'], '/'), '/'), $config['groups']),
                 $debug ? null : service('cache.system')->nullOnInvalid(),
             ]);
@@ -620,10 +645,16 @@ final class TollboothBundle extends AbstractBundle
             ->args([service(EndpointRegistry::class)])
             ->tag(self::INTERNAL_CHECK, ['priority' => 100]);
 
-        if ($config['rate_limit']['enabled'] && [] !== $config['rate_limit']['plans']) {
+        if (self::rateLimited($config['rate_limit'])) {
             $services->set(CounterStorageCheck::class)
                 ->args([service($config['rate_limit']['cache_pool']), $config['rate_limit']['cache_pool']])
                 ->tag(self::INTERNAL_CHECK, ['priority' => 80]);
+        }
+
+        if ($config['rate_limit']['enabled'] && $config['rate_limit']['doctrine_plans']['enabled']) {
+            $services->set(PlanStoreCheck::class)
+                ->args([service(DoctrinePlanStore::class)])
+                ->tag(self::INTERNAL_CHECK, ['priority' => 75]);
         }
 
         if ($config['auth']['doctrine_keys']['enabled']) {
@@ -780,19 +811,11 @@ final class TollboothBundle extends AbstractBundle
                 ->tag('controller.service_arguments');
         }
         if ($monitoring) {
-            $plans = [];
-            if ($config['rate_limit']['enabled']) {
-                foreach ($config['rate_limit']['plans'] as $name => $limits) {
-                    $plans[$name] = array_map(static fn (Limit $limit): array => $limit->toArray(), Limit::parseAll($limits, 'plan'));
-                }
-            }
             $services->set(ConsumerDirectory::class)
                 ->args([
                     service(CallReaderInterface::class),
                     service(ApiKeyProviderInterface::class),
-                    $plans,
-                    $config['rate_limit']['default_plan'],
-                    $config['rate_limit']['anonymous_plan'],
+                    $config['rate_limit']['enabled'] ? service(Plans::class) : null,
                     service('clock')->nullOnInvalid(),
                 ]);
             $services->set(ConsumerInsights::class)
@@ -863,7 +886,7 @@ final class TollboothBundle extends AbstractBundle
         $services->set(EndpointPageBuilder::class)
             ->args([
                 service(GroupCatalog::class),
-                $config['rate_limit']['enabled'] && [] !== $config['rate_limit']['plans'],
+                self::rateLimited($config['rate_limit']),
                 param('kernel.project_dir'),
                 $monitoring ? service(TrafficReader::class) : null,
                 $monitoring ? service(CallBreakdownInterface::class) : null,
@@ -884,6 +907,25 @@ final class TollboothBundle extends AbstractBundle
             ->tag('controller.service_arguments');
         $services->set(AssetController::class)
             ->args([service(Assets::class)])
+            ->public()
+            ->tag('controller.service_arguments');
+
+        $settings = $config;
+        $settings['auth']['api_keys'] = [];
+        $settings['health']['token'] = null === $config['health']['token'] ? null : '••••••';
+        $services->set(Settings::class)
+            ->args([$settings]);
+        $services->set(ConfigurationController::class)
+            ->args([
+                service(Settings::class),
+                service(GroupCatalog::class),
+                service(Shell::class),
+                service('twig'),
+                service('router'),
+                service(FormGuard::class),
+                $config['rate_limit']['enabled'] ? service(Plans::class) : null,
+                service(ApiKeyProviderInterface::class),
+            ])
             ->public()
             ->tag('controller.service_arguments');
 
@@ -925,7 +967,7 @@ final class TollboothBundle extends AbstractBundle
             'php' => \PHP_VERSION.(\function_exists('opcache_get_status') && false !== @opcache_get_status(false) ? ' · opcache on' : ''),
             'environment' => '%kernel.environment%',
             'conventions' => $config['output']['envelope'].' · '.$config['output']['case'].' · problem+json',
-            'rate_limit' => $config['rate_limit']['enabled'] && [] !== $config['rate_limit']['plans'] ? 'cache pool '.$config['rate_limit']['cache_pool'] : 'off',
+            'rate_limit' => self::rateLimited($config['rate_limit']) ? 'cache pool '.$config['rate_limit']['cache_pool'] : 'off',
             'monitoring' => $config['monitoring']['enabled'] ? 'doctrine · '.$config['monitoring']['connection'] : 'off',
         ]);
     }
@@ -992,8 +1034,34 @@ final class TollboothBundle extends AbstractBundle
         $services->set(WindowCounter::class)
             ->args([service($rateLimit['cache_pool']), service('lock.factory')->nullOnInvalid(), service('clock')->nullOnInvalid()]);
 
+        $stored = $rateLimit['doctrine_plans']['enabled'];
+        if ($stored) {
+            if (!class_exists(Connection::class)) {
+                throw new \LogicException('Tollbooth stores rate limit plans with Doctrine DBAL. Run "composer require doctrine/dbal", or disable tollbooth.rate_limit.doctrine_plans.');
+            }
+            $connection = $rateLimit['doctrine_plans']['connection'];
+            $services->set(DoctrinePlanStore::class)
+                ->args([service(str_contains($connection, '.') ? $connection : 'doctrine.dbal.'.$connection.'_connection'), $rateLimit['doctrine_plans']['table_prefix']]);
+            if (class_exists(Application::class)) {
+                $services->set(SetupPlansCommand::class)
+                    ->args([service(DoctrinePlanStore::class)])
+                    ->tag('console.command');
+            }
+        }
+
+        $services->set(Plans::class)
+            ->args([
+                $plans,
+                $rateLimit['default_plan'],
+                $rateLimit['anonymous_plan'],
+                $stored ? service(DoctrinePlanStore::class) : null,
+                $stored ? service($rateLimit['cache_pool']) : null,
+                service('logger')->nullOnInvalid(),
+            ])
+            ->tag('kernel.reset', ['method' => 'reset']);
+
         $services->set(PlanRegistry::class)
-            ->args([$plans, $rateLimit['default_plan'], $rateLimit['anonymous_plan']]);
+            ->args([service(Plans::class)]);
 
         $services->set(RateLimitListener::class)
             ->args([service(PlanRegistry::class), service(WindowCounter::class), $rateLimit['legacy_headers']])
