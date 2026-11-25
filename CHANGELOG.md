@@ -8,6 +8,13 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- The dashboard and health pages read the database far less: the map in live mode went from about 100
+  queries to about 20, the consumers screen from 65 to about 20, the health report from 45 to about 25.
+  The aggregation state is read once per request, the active consumers curve and the consumers' last calls
+  and minute peaks are read in one query each instead of one per bucket or per consumer, and the health
+  checks of the key and plan tables compare the schema at most every 5 minutes.
+
 ## [0.25.0] - 2026-11-25
 
 ### Added

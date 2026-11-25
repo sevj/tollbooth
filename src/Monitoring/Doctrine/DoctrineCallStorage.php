@@ -4,23 +4,27 @@ declare(strict_types=1);
 
 namespace Tollbooth\Monitoring\Doctrine;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
+use Symfony\Contracts\Service\ResetInterface;
+use Tollbooth\Monitoring\ActiveConsumersInterface;
 use Tollbooth\Monitoring\CallBreakdownInterface;
 use Tollbooth\Monitoring\CallQuery;
 use Tollbooth\Monitoring\CallReaderInterface;
 use Tollbooth\Monitoring\CallRecord;
 use Tollbooth\Monitoring\CallRecorderInterface;
+use Tollbooth\Monitoring\ConsumerActivityInterface;
 use Tollbooth\Monitoring\ErrorGroup;
 use Tollbooth\Monitoring\LatencyHistogram;
 use Tollbooth\Monitoring\RollupInterface;
 use Tollbooth\Monitoring\Stats;
 
-final readonly class DoctrineCallStorage implements CallRecorderInterface, CallReaderInterface, CallBreakdownInterface, RollupInterface
+final readonly class DoctrineCallStorage implements CallRecorderInterface, CallReaderInterface, CallBreakdownInterface, RollupInterface, ActiveConsumersInterface, ConsumerActivityInterface, ResetInterface
 {
     private const string ROLLED_UNTIL = 'rolled_until';
     private const string PURGED_AT = 'purged_before';
@@ -30,6 +34,11 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
     private string $minutes;
     private string $state;
 
+    /**
+     * @var \ArrayObject<string, ?int>
+     */
+    private \ArrayObject $memo;
+
     public function __construct(
         private Connection $connection,
         string $tablePrefix = 'tollbooth_',
@@ -37,6 +46,14 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
         $this->calls = $tablePrefix.'call';
         $this->minutes = $tablePrefix.'call_minute';
         $this->state = $tablePrefix.'state';
+        /** @var \ArrayObject<string, ?int> $memo */
+        $memo = new \ArrayObject();
+        $this->memo = $memo;
+    }
+
+    public function reset(): void
+    {
+        $this->memo->exchangeArray([]);
     }
 
     public function record(CallRecord $call): void
@@ -126,6 +143,85 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
             'purged_before' => $this->stateValue(self::PURGED_AT),
             'oldest_call' => false === $oldest || null === $oldest ? null : intdiv((int) self::scalar($oldest), 1000),
         ];
+    }
+
+    public function activeConsumers(int $from, int $to, int $buckets, ?CallQuery $filter = null): array
+    {
+        $buckets = max(1, $buckets);
+        $size = max(1, intdiv($to - $from, $buckets));
+        $rolledUntil = max($from, min($to, $this->rolledUntil() ?? $from));
+        $seen = [];
+        foreach ([[$this->minutes, $from, $rolledUntil], [$this->calls, $rolledUntil, $to]] as [$table, $start, $end]) {
+            if ($end <= $start) {
+                continue;
+            }
+            $builder = $this->connection->createQueryBuilder()
+                ->select('DISTINCT (minute - :origin) / :size AS bucket', 'consumer_id')
+                ->from($table)
+                ->where('minute >= :from AND minute < :until')
+                ->setParameter('origin', $from, ParameterType::INTEGER)
+                ->setParameter('size', $size, ParameterType::INTEGER)
+                ->setParameter('from', $start, ParameterType::INTEGER)
+                ->setParameter('until', $end, ParameterType::INTEGER);
+            $this->filter($builder, $filter);
+            foreach ($builder->executeQuery()->fetchAllAssociative() as $row) {
+                $bucket = min($buckets - 1, max(0, (int) self::scalar($row['bucket'] ?? 0)));
+                $seen[$bucket][(string) self::scalar($row['consumer_id'] ?? '')] = true;
+            }
+        }
+
+        $counts = [];
+        for ($bucket = 0; $bucket < $buckets; ++$bucket) {
+            $counts[] = \count($seen[$bucket] ?? []);
+        }
+
+        return $counts;
+    }
+
+    public function lastCalls(array $consumers): array
+    {
+        if ([] === $consumers) {
+            return [];
+        }
+
+        $latest = $this->connection->createQueryBuilder()
+            ->select('MAX(id)')
+            ->from($this->calls)
+            ->where('consumer_id IN (:consumers)')
+            ->groupBy('consumer_id');
+        $rows = $this->connection->createQueryBuilder()
+            ->select('*')
+            ->from($this->calls)
+            ->where(\sprintf('id IN (%s)', $latest->getSQL()))
+            ->setParameter('consumers', $consumers, ArrayParameterType::STRING)
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $calls = [];
+        foreach (array_map($this->hydrate(...), $rows) as $call) {
+            $calls[$call->consumerId] = $call;
+        }
+
+        return $calls;
+    }
+
+    public function minutePeaks(int $from, int $to): array
+    {
+        $from = intdiv($from, 60) * 60;
+        $rolledUntil = max($from, min($to, $this->rolledUntil() ?? $from));
+        $peaks = [];
+        foreach ([[$this->minutes, 'SUM(calls)', $from, $rolledUntil], [$this->calls, 'COUNT(*)', $rolledUntil, $to]] as [$table, $count, $start, $end]) {
+            if ($end <= $start) {
+                continue;
+            }
+            $sql = \sprintf('SELECT consumer_id, MAX(per_minute) AS peak FROM (SELECT consumer_id, minute, %s AS per_minute FROM %s WHERE minute >= ? AND minute < ? GROUP BY consumer_id, minute) by_minute GROUP BY consumer_id', $count, $table);
+            foreach ($this->connection->fetchAllAssociative($sql, [$start, $end], [ParameterType::INTEGER, ParameterType::INTEGER]) as $row) {
+                $consumer = (string) self::scalar($row['consumer_id'] ?? '');
+                $peaks[$consumer] = max($peaks[$consumer] ?? 0, (int) self::scalar($row['peak'] ?? 0));
+            }
+        }
+
+        return $peaks;
     }
 
     public function recent(CallQuery $query): array
@@ -494,7 +590,12 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
 
     private function rolledUntil(): ?int
     {
-        return $this->stateValue(self::ROLLED_UNTIL);
+        if (!$this->memo->offsetExists(self::ROLLED_UNTIL)) {
+            $this->memo[self::ROLLED_UNTIL] = $this->stateValue(self::ROLLED_UNTIL);
+        }
+        $value = $this->memo[self::ROLLED_UNTIL];
+
+        return \is_int($value) ? $value : null;
     }
 
     private function stateValue(string $name): ?int
@@ -514,6 +615,7 @@ final readonly class DoctrineCallStorage implements CallRecorderInterface, CallR
     private function saveRolledUntil(int $until): void
     {
         $this->saveState(self::ROLLED_UNTIL, $until);
+        $this->memo[self::ROLLED_UNTIL] = $until;
     }
 
     private function saveState(string $name, int $value): void
