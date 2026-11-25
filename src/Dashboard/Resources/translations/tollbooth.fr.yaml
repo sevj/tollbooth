@@ -103,9 +103,18 @@ dashboard:
       calls: Appels %range%
       errors: Erreurs
       throttled: Limitées
+    tabs:
+      label: Sections de l'endpoint
+      definition: Définition
+      stats: 'Statistiques · %range%'
     pipeline:
       title: Pipeline de la requête
       subtitle: chaque appel passe par ces étapes, avec la configuration de cet endpoint
+      refuses: refuse avec
+      answers: répond
+      of_calls: des appels
+      note: En bas de chaque étape, le statut qu'elle renvoie quand elle arrête l'appel.
+      note_traffic: "En bas de chaque étape, le statut qu'elle renvoie quand elle arrête l'appel, et la part des appels des dernières %range% qui se sont terminés là."
       public: public
       scope: scope %scopes%
       plan: plan du consommateur

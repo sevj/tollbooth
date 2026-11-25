@@ -14,6 +14,11 @@ of `README.md` for the definition of the public API.
 - Each endpoint row of the map has fixed, labelled columns: calls, error rate and p95 with live
   traffic, success status and authentication in structure mode. The error rate no longer takes the
   place of the call count, and deprecation and throttling show as tags next to the path.
+- The endpoint page splits its panels into two tabs: *Definition* (declaration, request, responses,
+  examples) and *Statistics* (latency, status codes, consumers, recent errors). The tab is kept in the
+  address (`#stats`), and the map opens the statistics tab when it shows live traffic.
+- Each step of the endpoint pipeline now says what its footer means: the status it refuses or answers
+  with, and the share of calls that ended at that step, explained under the steps.
 
 ## [0.16.0] - 2026-11-25
 

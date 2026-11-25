@@ -11,6 +11,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
 a{color:var(--accent);text-decoration:none}
 a:hover{color:var(--accent-soft)}
@@ -161,7 +162,14 @@ a.row:hover{color:var(--text-strong);background-color:#1C1E22}
 .st .k{font:500 11px var(--mono);color:var(--faint)}
 .st .t{font-weight:600;font-size:14px}
 .st .c{font:11px/1.5 var(--mono);color:var(--neutral);flex:1;word-break:break-word}
-.st .f{display:flex;justify-content:space-between;gap:8px;font:11px var(--mono);border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+.st .f{display:flex;flex-direction:column;gap:3px;font:11px var(--mono);border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+.st .f small{font-size:10px;color:var(--faint);margin-right:6px}
+.st .f .fs{display:flex;align-items:baseline}
+.st .f .fs small{margin:0 0 0 6px}
+.steps-note{margin:0;padding:0 20px 16px;font:11px/1.5 var(--mono);color:var(--muted)}
+.page-tabs{padding:0;margin:0 0 24px}
+.page-tabs>[role=tablist]{margin-left:-16px}
+.page-tabs [role=tab]{height:40px;padding:0 16px;font-size:13px}
 .st .f .bad{color:var(--bad)}.st .f .warn{color:var(--accent)}.st .f .ok{color:var(--ok)}
 .chev{display:flex;align-items:center;color:var(--edge);font:14px var(--mono)}
 .time{padding:0 20px 20px}

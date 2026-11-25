@@ -103,9 +103,18 @@ dashboard:
       calls: Calls %range%
       errors: Errors
       throttled: Throttled
+    tabs:
+      label: Endpoint sections
+      definition: Definition
+      stats: 'Statistics · %range%'
     pipeline:
       title: Request pipeline
       subtitle: every call goes through these steps, with this endpoint's configuration
+      refuses: refuses with
+      answers: answers
+      of_calls: of calls
+      note: At the bottom of each step, the status it returns when it stops the call.
+      note_traffic: 'At the bottom of each step, the status it returns when it stops the call, and the share of the calls of the last %range% that ended there.'
       public: public
       scope: scope %scopes%
       plan: consumer plan
