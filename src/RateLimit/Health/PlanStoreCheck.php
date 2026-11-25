@@ -15,6 +15,7 @@ final readonly class PlanStoreCheck implements HealthCheckInterface
 {
     public function __construct(
         private DoctrinePlanStore $store,
+        private bool $declared = false,
     ) {
     }
 
@@ -26,7 +27,7 @@ final readonly class PlanStoreCheck implements HealthCheckInterface
     public function check(): CheckResult
     {
         try {
-            $count = \count($this->store->all());
+            $set = $this->store->read();
         } catch (\Throwable) {
             return CheckResult::critical('The table of rate limit plans cannot be read: only the plans declared in the configuration apply. Run tollbooth:plan:setup, or check the connection.');
         }
@@ -41,6 +42,13 @@ final readonly class PlanStoreCheck implements HealthCheckInterface
             return CheckResult::warning('The table of rate limit plans is out of date. Run tollbooth:plan:setup.');
         }
 
-        return CheckResult::ok(\sprintf('%d stored plan%s.', $count, 1 === $count ? '' : 's'));
+        $count = \count($set['plans']);
+        if (0 === $count) {
+            return CheckResult::warning($this->declared
+                ? 'The table of rate limit plans is empty, so calls are not limited. Run tollbooth:plan:setup to copy the declared plans into it.'
+                : 'No rate limit plan exists yet, so calls are not limited. Create plans from the dashboard.');
+        }
+
+        return CheckResult::ok(\sprintf('%d plan%s, default %s.', $count, 1 === $count ? '' : 's', $set['default'] ?? 'none'));
     }
 }

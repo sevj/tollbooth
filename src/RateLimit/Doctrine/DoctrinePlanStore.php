@@ -13,6 +13,8 @@ use Tollbooth\Core\Metadata\Limit;
  * @internal
  *
  * @phpstan-import-type LimitArray from Limit
+ *
+ * @phpstan-type PlanSet array{plans: array<string, list<LimitArray>>, default: ?string, anonymous: ?string}
  */
 final readonly class DoctrinePlanStore
 {
@@ -26,56 +28,58 @@ final readonly class DoctrinePlanStore
     }
 
     /**
-     * @return array<string, list<LimitArray>>
+     * @return PlanSet
      */
-    public function all(): array
+    public function read(): array
     {
         $rows = $this->connection->createQueryBuilder()
-            ->select('name', 'limits')
+            ->select('name', 'limits', 'is_default', 'is_anonymous')
             ->from($this->table)
             ->orderBy('name')
             ->executeQuery()
             ->fetchAllAssociative();
 
-        $plans = [];
+        $set = ['plans' => [], 'default' => null, 'anonymous' => null];
         foreach ($rows as $row) {
+            $name = \is_scalar($row['name'] ?? null) ? (string) $row['name'] : '';
             $limits = json_decode(\is_string($row['limits'] ?? null) ? $row['limits'] : '[]', true, 4, \JSON_THROW_ON_ERROR);
-            $plans[\is_scalar($row['name'] ?? null) ? (string) $row['name'] : ''] = array_map(self::limit(...), array_values(\is_array($limits) ? $limits : []));
+            $set['plans'][$name] = array_map(self::limit(...), array_values(\is_array($limits) ? $limits : []));
+            if (self::flag($row['is_default'] ?? null)) {
+                $set['default'] = $name;
+            }
+            if (self::flag($row['is_anonymous'] ?? null)) {
+                $set['anonymous'] = $name;
+            }
         }
 
-        return $plans;
-    }
-
-    /**
-     * @return LimitArray
-     */
-    private static function limit(mixed $limit): array
-    {
-        $limit = \is_array($limit) ? $limit : [];
-
-        return [
-            'name' => \is_string($limit['name'] ?? null) ? $limit['name'] : '',
-            'limit' => \is_int($limit['limit'] ?? null) ? $limit['limit'] : 0,
-            'window' => \is_int($limit['window'] ?? null) ? $limit['window'] : 0,
-            'scope' => 'plan',
-        ];
+        return $set;
     }
 
     /**
      * @param list<Limit> $limits
      */
-    public function save(string $name, array $limits): void
+    public function save(string $name, array $limits, bool $default = false, bool $anonymous = false): void
     {
-        $row = [
-            'limits' => json_encode(array_map(static fn (Limit $limit): array => $limit->toArray(), $limits), \JSON_THROW_ON_ERROR),
-            'updated_at' => time(),
-        ];
+        $this->connection->transactional(function (Connection $connection) use ($name, $limits, $default, $anonymous): void {
+            if ($default) {
+                $connection->executeStatement(\sprintf('UPDATE %s SET is_default = 0 WHERE name <> ?', $this->table), [$name]);
+            }
+            if ($anonymous) {
+                $connection->executeStatement(\sprintf('UPDATE %s SET is_anonymous = 0 WHERE name <> ?', $this->table), [$name]);
+            }
 
-        if (false !== $this->connection->fetchOne(\sprintf('SELECT 1 FROM %s WHERE name = ?', $this->table), [$name])) {
-            $this->connection->update($this->table, $row, ['name' => $name]);
-        } else {
-            $this->connection->insert($this->table, ['name' => $name, ...$row]);
-        }
+            $row = [
+                'limits' => json_encode(array_map(static fn (Limit $limit): array => $limit->toArray(), $limits), \JSON_THROW_ON_ERROR),
+                'is_default' => $default ? 1 : 0,
+                'is_anonymous' => $anonymous ? 1 : 0,
+                'updated_at' => time(),
+            ];
+            if (false !== $connection->fetchOne(\sprintf('SELECT 1 FROM %s WHERE name = ?', $this->table), [$name])) {
+                $connection->update($this->table, $row, ['name' => $name]);
+            } else {
+                $connection->insert($this->table, ['name' => $name, ...$row]);
+            }
+        });
     }
 
     public function remove(string $name): void
@@ -89,6 +93,8 @@ final readonly class DoctrinePlanStore
         $table = $schema->createTable($this->table);
         $table->addColumn('name', Types::STRING, ['length' => 64]);
         $table->addColumn('limits', Types::TEXT);
+        $table->addColumn('is_default', Types::SMALLINT, ['default' => 0]);
+        $table->addColumn('is_anonymous', Types::SMALLINT, ['default' => 0]);
         $table->addColumn('updated_at', Types::BIGINT);
         $table->setPrimaryKey(['name']);
 
@@ -128,5 +134,25 @@ final readonly class DoctrinePlanStore
         }
 
         return $sql;
+    }
+
+    private static function flag(mixed $value): bool
+    {
+        return \in_array($value, [1, '1', true], true);
+    }
+
+    /**
+     * @return LimitArray
+     */
+    private static function limit(mixed $limit): array
+    {
+        $limit = \is_array($limit) ? $limit : [];
+
+        return [
+            'name' => \is_string($limit['name'] ?? null) ? $limit['name'] : '',
+            'limit' => \is_int($limit['limit'] ?? null) ? $limit['limit'] : 0,
+            'window' => \is_int($limit['window'] ?? null) ? $limit['window'] : 0,
+            'scope' => 'plan',
+        ];
     }
 }

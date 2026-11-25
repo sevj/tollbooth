@@ -27,20 +27,22 @@ final readonly class PlanForm
         public array $limits = [],
         public array $errors = [],
         public ?string $invalidLine = null,
+        public bool $default = false,
+        public bool $anonymous = false,
     ) {
     }
 
-    public static function empty(): self
+    public static function empty(bool $first = false): self
     {
-        return new self('', "60/minute\n10000/day");
+        return new self('', "60/minute\n10000/day", default: $first, anonymous: $first);
     }
 
     /**
      * @param list<LimitArray> $limits
      */
-    public static function of(string $name, array $limits): self
+    public static function of(string $name, array $limits, bool $default = false, bool $anonymous = false): self
     {
-        return new self($name, implode("\n", array_map(self::line(...), $limits)));
+        return new self($name, implode("\n", array_map(self::line(...), $limits)), default: $default, anonymous: $anonymous);
     }
 
     /**
@@ -89,7 +91,7 @@ final readonly class PlanForm
             }
         }
 
-        return new self($name, $raw, $limits, $errors, $invalid);
+        return new self($name, $raw, $limits, $errors, $invalid, $request->request->has('default'), $request->request->has('anonymous'));
     }
 
     public function valid(): bool

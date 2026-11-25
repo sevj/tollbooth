@@ -477,7 +477,7 @@ dashboard:
     saved: 'The plan %name% is saved. It applies from the next call.'
     deleted: 'The plan %name% is deleted.'
     explain: "A plan sets how many calls a consumer can make, across every endpoint. Each API key has a plan; without one, it follows the default plan."
-    read_only: Plans come from the configuration and are read-only. Enable tollbooth.rate_limit.doctrine_plans to create and edit them here.
+    read_only: Plans come from the configuration and are read-only. Enable tollbooth.rate_limit.doctrine_plans to manage them here.
     disabled: Rate limiting is turned off (tollbooth.rate_limit).
     none: No plan yet.
     default: default
@@ -486,16 +486,14 @@ dashboard:
       plan: plan
       limits: limits
       keys: keys
-      source: source
-    source:
-      config: configuration
-      dashboard: dashboard
     form_sub: The limits apply to each consumer of the plan, over clock-aligned windows.
     name: Name
     name_help: Lowercase letters, digits, dashes and underscores. It cannot change later.
     limits: Limits
     limits_help: 'One limit per line, as count/period: 60/minute, 100/10 seconds, 10000/day. Name one with "name:", for instance burst: 10/10 seconds.'
     create: Create the plan
+    is_default: Default plan, for keys without a plan
+    is_anonymous: Plan of anonymous calls, without a key
     save: Save
     error:
       name_required: Give the plan a name.

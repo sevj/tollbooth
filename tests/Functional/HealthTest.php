@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Tollbooth\Tests\Functional;
 
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Filesystem\Filesystem;
 use Tollbooth\Auth\Doctrine\DoctrineApiKeyStore;
 use Tollbooth\Core\Health\CheckResult;
+use Tollbooth\Core\Metadata\Limit;
 use Tollbooth\Monitoring\CallRecord;
 use Tollbooth\Monitoring\Doctrine\DoctrineCallStorage;
 use Tollbooth\RateLimit\Doctrine\DoctrinePlanStore;
@@ -35,6 +37,10 @@ final class HealthTest extends FunctionalTestCase
         $plans = self::getContainer()->get(DoctrinePlanStore::class);
         self::assertInstanceOf(DoctrinePlanStore::class, $plans);
         $plans->setup();
+        $plans->save('open', Limit::parseAll(['1000/minute'], 'plan'), default: true);
+        $cache = self::getContainer()->get('tollbooth.test_limits');
+        self::assertInstanceOf(CacheItemPoolInterface::class, $cache);
+        $cache->clear();
     }
 
     public function testLivenessOnlySaysTheProcessAnswers(): void

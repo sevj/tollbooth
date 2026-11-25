@@ -88,7 +88,7 @@ final class ConsumerDirectory
         }
 
         if ([] !== $anonymous) {
-            $plan = $this->anonymousPlan() ?? $this->defaultPlan();
+            $plan = $this->anonymousPlan();
             $rows[ConsumerRow::ANONYMOUS] = new ConsumerRow(
                 ConsumerRow::ANONYMOUS,
                 'anonymous',
@@ -135,12 +135,12 @@ final class ConsumerDirectory
 
     private function defaultPlan(): ?string
     {
-        return null === $this->plans ? null : $this->plans->defaultPlan;
+        return $this->plans?->defaultPlan();
     }
 
     private function anonymousPlan(): ?string
     {
-        return null === $this->plans ? null : $this->plans->anonymousPlan;
+        return $this->plans?->anonymousPlan();
     }
 
     public static function startOfDay(int $now): int

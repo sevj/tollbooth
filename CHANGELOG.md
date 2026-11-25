@@ -8,6 +8,21 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Changed
+- With `tollbooth.rate_limit.doctrine_plans` on, the table now holds every plan: all of them, the ones
+  that came from the configuration included, are edited and deleted from the dashboard, which also
+  chooses the default plan and the plan of anonymous calls. Nothing needs to be declared in YAML any
+  more. `plans`, `default_plan` and `anonymous_plan`, when present, fill the table the first time
+  `tollbooth:plan:setup` finds it empty, and apply while the table cannot be read.
+- `tollbooth:plan:setup --import` copies the declared plans the table lacks.
+- A plan cannot be deleted while it is the default or anonymous plan. The health check of the table
+  warns when it holds no plan, since calls are then not limited.
+
+### Upgrade notes
+- If you enabled `doctrine_plans` with 0.19.0, run `bin/console tollbooth:plan:setup --import`: it adds
+  the columns marking the default and anonymous plans and copies your declared plans into the table,
+  which from then on is the only one read.
+
 ## [0.19.0] - 2026-11-25
 
 ### Added
