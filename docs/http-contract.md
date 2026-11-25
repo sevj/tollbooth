@@ -125,7 +125,10 @@ A `detail` is meant to be read by a developer, not parsed: rely on `status` and 
 | 415 Unsupported Media Type | A body endpoint received a `Content-Type` not containing `json` | `The request body must be JSON, "text/plain" given.` | |
 | 422 Unprocessable Content | The body failed validation, or a field has the wrong type | none | `violations` |
 | 429 Too Many Requests | A rate limit is exhausted | `Rate limit "burst" reached: 100 requests per 10 seconds.` | `Retry-After`, `limiters` |
-| 500 Internal Server Error | Any exception that is not an HTTP exception | none, unless `kernel.debug` | |
+| 403 Forbidden | Symfony Security's `AccessDeniedException`, for instance from `#[IsGranted]` | its message | |
+| 401 Unauthorized | Symfony Security's `AuthenticationException` thrown by the handler, with `WWW-Authenticate: Session` | its message | |
+| 422 Unprocessable Content | A `ValidationFailedException` thrown by the handler | none, `violations` listed | |
+| 500 Internal Server Error | Any other exception | none, unless `kernel.debug` | |
 | any | The handler threw a Symfony HTTP exception (`ConflictHttpException`…) | its message | its headers |
 
 Examples, exactly as sent:
@@ -176,7 +179,7 @@ WWW-Authenticate: ApiKey header="X-Api-Key", Bearer
 {"type":"about:blank","title":"Unauthorized","status":401,"detail":"Authentication is required to access this endpoint."}
 ```
 
-When no accepted method has a challenge (an endpoint accepting only `user`), the challenge is `Bearer`.
+When no accepted method has a challenge (an endpoint accepting only `user`), the challenge is `Session`.
 
 | `detail` | Cause |
 | --- | --- |

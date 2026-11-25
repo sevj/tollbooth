@@ -9,6 +9,10 @@ of `README.md` for the definition of the public API.
 ## [Unreleased]
 
 ### Fixed
+- `#[IsGranted]` and `denyAccessUnlessGranted()` on an endpoint answer 403 instead of 500, a Symfony
+  `AuthenticationException` thrown by a handler answers 401, and a bare `ValidationFailedException` answers
+  422 with its violations.
+- An endpoint that accepts only `user` challenges with `WWW-Authenticate: Session` instead of `Bearer`.
 - A key provider of your own (`auth.api_key_provider`) that implements `ManageableApiKeyProviderInterface`
   is now used by the dashboard and `tollbooth:api-key:generate --store` to manage keys. Combining
   `api_key_provider` with `doctrine_keys` stops the build, since the table would never be read.

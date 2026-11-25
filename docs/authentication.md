@@ -521,7 +521,7 @@ Every error is `application/problem+json` (see [http-contract.md](http-contract.
 | 401 | API key used from an address outside `allowed_ips` | `The API key is not allowed from this address.` | same |
 | 403 | Scopes missing | `This endpoint requires the scope "orders:write".` or `This endpoint requires the scopes "orders:read", "orders:write".` | none |
 
-The `WWW-Authenticate` challenge of the first row lists one challenge per accepted method, comma-separated, in the order the methods are declared: `ApiKey header="<api_key_header>"` for `api_key` and `Bearer` for `jwt`. When neither is accepted (a `user`-only endpoint), the challenge is `Bearer`.
+The `WWW-Authenticate` challenge of the first row lists one challenge per accepted method, comma-separated, in the order the methods are declared: `ApiKey header="<api_key_header>"` for `api_key` and `Bearer` for `jwt`. When neither is accepted, the challenge is `Session` for an endpoint that accepts `user`, `Bearer` otherwise.
 
 ```
 HTTP/1.1 401 Unauthorized

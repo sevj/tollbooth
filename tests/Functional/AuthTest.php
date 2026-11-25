@@ -91,6 +91,19 @@ final class AuthTest extends FunctionalTestCase
         self::assertSame('acme-erp', $this->json($client)['name']);
     }
 
+    public function testRolesCheckedWithIsGrantedAnswerForbidden(): void
+    {
+        $client = $this->client();
+        $client->request('GET', '/api/secure/admin/report', server: ['PHP_AUTH_USER' => 'alice', 'PHP_AUTH_PW' => 'secret']);
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+
+        $client->request('GET', '/api/secure/admin/report');
+        self::assertResponseStatusCodeSame(401);
+        self::assertResponseHeaderSame('WWW-Authenticate', 'Session');
+    }
+
     public function testSymfonyUserIsAcceptedWhereTheEndpointAllowsIt(): void
     {
         $client = $this->client();

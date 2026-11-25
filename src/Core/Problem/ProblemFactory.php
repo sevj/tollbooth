@@ -6,6 +6,8 @@ namespace Tollbooth\Core\Problem;
 
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Tollbooth\Core\Output\NameCase;
 
@@ -21,8 +23,18 @@ final readonly class ProblemFactory
 
     public function fromThrowable(\Throwable $throwable, NameCase $case = NameCase::Preserve): Problem
     {
-        $status = $throwable instanceof HttpExceptionInterface ? $throwable->getStatusCode() : 500;
-        $headers = $throwable instanceof HttpExceptionInterface ? $this->headers($throwable->getHeaders()) : [];
+        $status = match (true) {
+            $throwable instanceof HttpExceptionInterface => $throwable->getStatusCode(),
+            $throwable instanceof ValidationFailedException => 422,
+            $throwable instanceof AccessDeniedException => 403,
+            $throwable instanceof AuthenticationException => 401,
+            default => 500,
+        };
+        $headers = match (true) {
+            $throwable instanceof HttpExceptionInterface => $this->headers($throwable->getHeaders()),
+            $throwable instanceof AuthenticationException => ['WWW-Authenticate' => 'Session'],
+            default => [],
+        };
         $violations = $this->violations($throwable, $case);
 
         return new Problem(
