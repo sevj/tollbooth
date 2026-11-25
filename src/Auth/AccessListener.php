@@ -37,7 +37,12 @@ final readonly class AccessListener
             $consumer = $this->authenticate($request, EndpointRequest::auth($request));
             $request->attributes->set(self::CONSUMER_ATTRIBUTE, $consumer);
 
-            $missing = $consumer->missingScopes(EndpointRequest::scopes($request));
+            $required = EndpointRequest::scopes($request);
+            if ([] !== $required && AuthMethod::Anonymous === $consumer->method) {
+                throw new UnauthorizedHttpException($this->challenges(EndpointRequest::auth($request)), \sprintf('Authentication is required: this endpoint requires the scope%s "%s".', \count($required) > 1 ? 's' : '', implode('", "', $required)));
+            }
+
+            $missing = $consumer->missingScopes($required);
             if ([] !== $missing) {
                 throw new AccessDeniedHttpException(\sprintf('This endpoint requires the scope%s "%s".', \count($missing) > 1 ? 's' : '', implode('", "', $missing)));
             }

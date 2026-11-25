@@ -465,7 +465,7 @@ final readonly class ExportBilling
 
 - Every scope of every `#[Scope]` is required; duplicates are removed.
 - Declared scopes replace the group's scopes entirely, including automatic ones.
-- Scopes are checked for `api_key` and `jwt` consumers only. `user` consumers are left to the application's own authorization, and anonymous consumers carry no scope.
+- Scopes are checked for `api_key` and `jwt` consumers. `user` consumers are left to the application's own authorization. An anonymous call to an endpoint that requires scopes answers 401.
 - An endpoint whose only accepted method is `anonymous` requires no scope, whatever is declared.
 - A consumer lacking a scope answers 403 `This endpoint requires the scope "billing:export".` (see [http-contract.md](http-contract.md#401-and-403)).
 

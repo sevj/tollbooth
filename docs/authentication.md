@@ -136,7 +136,7 @@ The client IP comes from `Request::getClientIp()`: behind a load balancer or rev
 | Method | Returns |
 | --- | --- |
 | `Consumer::anonymous(?string $ip): Consumer` | The consumer `ip:<ip>` (`ip:unknown` for `null`) with the `anonymous` method. |
-| `missingScopes(list<string> $required): list<string>` | The required scopes the consumer lacks. Always `[]` for `user` and `anonymous` consumers. |
+| `missingScopes(list<string> $required): list<string>` | The required scopes the consumer lacks. Always `[]` for `user` and `anonymous` consumers; the access check itself refuses anonymous calls to an endpoint with scopes (401). |
 
 An endpoint receives it by type:
 
@@ -185,10 +185,9 @@ For a group declared with `path: /backoffice`, `#[Endpoint('GET', '/backoffice/t
 How scopes are enforced:
 
 - `api_key` and `jwt` consumers must carry **every** required scope, otherwise the call answers 403.
-- `user` and `anonymous` consumers are never refused for scopes: authorize users with Symfony's `#[IsGranted]` or voters.
+- `user` consumers are never refused for scopes: authorize users with Symfony's `#[IsGranted]` or voters.
+- An anonymous call to an endpoint that requires scopes answers 401 with the challenges of the other accepted methods (`Authentication is required: this endpoint requires the scope "…".`): an endpoint accepting `[api_key, anonymous]` with a scope is open to nobody without a key holding it. Before 0.24.0, such calls went through.
 - An endpoint whose only method is `anonymous` (including `#[PublicEndpoint]`) has no scopes.
-
-Mixing methods matters: an endpoint that accepts `[api_key, anonymous]` and requires a scope refuses an API key without that scope but lets an anonymous call through. Do not add `anonymous` or `user` to endpoints that rely on scopes for protection.
 
 ## API keys
 

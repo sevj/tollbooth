@@ -59,6 +59,19 @@ final class AuthTest extends FunctionalTestCase
         self::assertSame('This endpoint requires the scope "things:write".', $this->json($client)['detail']);
     }
 
+    public function testAnonymousCallsCannotSkipTheScopesOfAnEndpointThatAlsoAcceptsThem(): void
+    {
+        $client = $this->client();
+        $client->request('GET', '/api/secure/catalog');
+
+        self::assertResponseStatusCodeSame(401);
+        self::assertResponseHeaderSame('WWW-Authenticate', 'ApiKey header="X-Api-Key"');
+        self::assertSame('Authentication is required: this endpoint requires the scope "things:read".', $this->json($client)['detail']);
+
+        $client->request('GET', '/api/secure/catalog', server: ['HTTP_X_API_KEY' => TestKeys::READER]);
+        self::assertResponseStatusCodeSame(200);
+    }
+
     public function testConsumerIsInjectedIntoTheEndpoint(): void
     {
         $client = $this->client();
