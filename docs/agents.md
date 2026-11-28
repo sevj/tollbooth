@@ -15,7 +15,7 @@ Tollbooth is not on Packagist yet. Declare its GitHub repository, then require i
 ```
 
 ```
-composer require tollbooth/tollbooth-bundle:^0.23
+composer require sevj/tollbooth:^0.26
 ```
 
 Register `Tollbooth\TollboothBundle` in `config/bundles.php` if Flex did not, and import the routes with the `tollbooth` loader type. Full steps: [getting-started.md](getting-started.md).
