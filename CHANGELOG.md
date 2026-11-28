@@ -8,6 +8,16 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Fixed
+- The package now requires every Symfony component it uses directly: Config, Console, DependencyInjection,
+  Filesystem, HttpFoundation, HttpKernel and Routing, at `^7.4 || ^8.0`. They used to come only through
+  FrameworkBundle, which lets Composer pick Console 6.4, and on Console 6.4 the container failed to
+  compile because Tollbooth's console commands need Console 7.3 or later. Applications with recent
+  Symfony versions see no change.
+- The test suite passes with the lowest allowed dependencies (Symfony 7.4): the test kernel gives PHPUnit
+  its exception handler back when it shuts down, PHPUnit ignores deprecations raised only inside vendor
+  code, and PHPStan accepts `symfony/type-info` 8.2, where `Type` became generic.
+
 ## [0.26.0] - 2026-11-28
 
 ### Changed

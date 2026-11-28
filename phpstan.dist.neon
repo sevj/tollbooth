@@ -3,3 +3,8 @@ parameters:
     paths:
         - src
         - tests
+    ignoreErrors:
+        -
+            identifier: missingType.generics
+            message: '#generic class Symfony\\Component\\TypeInfo\\Type#'
+            reportUnmatched: false
