@@ -1,11 +1,11 @@
 {
-    "name": "tollbooth/tollbooth-bundle",
+    "name": "sevj/tollbooth",
     "description": "Declare Symfony API endpoints with attributes and get routing, validation, documentation, rate limiting and monitoring.",
     "type": "symfony-bundle",
     "license": "MIT",
     "keywords": ["symfony", "bundle", "api", "rest", "openapi", "rate-limit", "monitoring"],
     "require": {
-        "php": ">=8.4",
+        "php": ">=8.3",
         "phpdocumentor/type-resolver": "^1.9 || ^2.0",
         "phpstan/phpdoc-parser": "^2.0",
         "symfony/framework-bundle": "^7.4 || ^8.0",
@@ -17,6 +17,9 @@
         "symfony/type-info": "^7.4 || ^8.0",
         "symfony/validator": "^7.4 || ^8.0",
         "symfony/yaml": "^7.4 || ^8.0"
+    },
+    "replace": {
+        "tollbooth/tollbooth-bundle": "self.version"
     },
     "suggest": {
         "symfony/security-bundle": "To accept the jwt and user authentication methods",
@@ -54,10 +57,10 @@
     "require-dev": {
         "deptrac/deptrac": "^4.7",
         "doctrine/dbal": "^4.0",
-        "doctrine/doctrine-bundle": "^3.4",
+        "doctrine/doctrine-bundle": "^2.13 || ^3.0",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.3",
-        "phpunit/phpunit": "^13.4",
+        "phpunit/phpunit": "^12.4 || ^13.4",
         "symfony/browser-kit": "^7.4 || ^8.0",
         "symfony/security-bundle": "^7.4 || ^8.0",
         "symfony/translation": "^7.4 || ^8.0",

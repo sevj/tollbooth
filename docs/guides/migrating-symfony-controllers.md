@@ -79,7 +79,7 @@ Read [getting-started.md](../getting-started.md) and [endpoints.md](../endpoints
 ## Step 1: install and choose the groups
 
 ```
-composer require tollbooth/tollbooth-bundle
+composer require sevj/tollbooth
 ```
 
 Import the endpoint routes next to your existing ones:

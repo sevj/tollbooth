@@ -4,7 +4,7 @@ Tollbooth is a Symfony bundle for building HTTP APIs from plain PHP classes. Dec
 
 Planned on top of that core: OpenAPI documentation, rate limiting with quotas, call monitoring, health checks, contract diffs between releases and an operator dashboard.
 
-Requires PHP 8.4 and Symfony 7.4 or 8.x.
+Requires PHP 8.3 and Symfony 7.4 or 8.x (Symfony 8 needs PHP 8.4).
 
 The detailed documentation lives in [`docs/`](docs/README.md): a getting started guide, a reference page per module, guides, and [a page for coding agents](docs/agents.md).
 
@@ -19,7 +19,7 @@ Tollbooth is not on Packagist yet: declare its repository in the application's `
 ```
 
 ```
-composer require tollbooth/tollbooth-bundle
+composer require sevj/tollbooth
 ```
 
 Enable the bundle in `config/bundles.php` if Flex did not:

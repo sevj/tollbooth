@@ -1007,7 +1007,7 @@ final class TollboothBundle extends AbstractBundle
 
     private static function version(): string
     {
-        return InstalledVersions::isInstalled('tollbooth/tollbooth-bundle') ? (string) InstalledVersions::getPrettyVersion('tollbooth/tollbooth-bundle') : 'dev';
+        return InstalledVersions::isInstalled('sevj/tollbooth') ? (string) InstalledVersions::getPrettyVersion('sevj/tollbooth') : 'dev';
     }
 
     /**

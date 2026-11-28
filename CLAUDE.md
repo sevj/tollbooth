@@ -84,7 +84,7 @@ Breaking-change policy:
 
 ## Code style
 
-- PHP 8.4, `declare(strict_types=1)`, constructor promotion, enums, `readonly`.
+- PHP 8.3 is the floor (shared with the Switchyard suite): no PHP 8.4-only syntax or functions (property hooks, asymmetric visibility, `new` without parentheses, `array_find`/`array_any`/`array_all`, `#[Deprecated]`). `declare(strict_types=1)`, constructor promotion, enums, `readonly`.
 - Everything in English: code, config keys, translation keys, commits.
 - No comments. PHPDoc only when it carries information PHP types cannot express: generics, array shapes, `@internal`.
 - php-cs-fixer with the `@Symfony` rule set, PHPStan at level max.

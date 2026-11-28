@@ -4,7 +4,7 @@ This guide installs Tollbooth in an existing Symfony application, declares a fir
 
 ## Requirements
 
-- PHP 8.4.
+- PHP 8.3 or later (8.4 or later for Symfony 8).
 - Symfony 7.4 or 8.x with FrameworkBundle.
 - Optional, per feature:
 
@@ -31,7 +31,7 @@ Tollbooth is not on Packagist yet. Declare its repository in the application's `
 Then require it:
 
 ```
-composer require tollbooth/tollbooth-bundle:^0.23
+composer require sevj/tollbooth:^0.26
 ```
 
 ## 2. Register the bundle

@@ -8,6 +8,15 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+### Changed
+- The Composer package is now `sevj/tollbooth`, matching its repository. It replaces
+  `tollbooth/tollbooth-bundle`, so applications that require the old name keep resolving; change the
+  `require` line to `sevj/tollbooth` when convenient.
+- PHP 8.3 is supported: the minimum goes from 8.4 to 8.3, the floor shared by the Switchyard suite.
+  Symfony 8 still needs PHP 8.4; on PHP 8.3 Composer installs Symfony 7.4. The whole test suite passes
+  on PHP 8.3 with Symfony 7.4, PHPUnit 12 and DoctrineBundle 2.
+- The development requirements accept PHPUnit 12 and DoctrineBundle 2 so the suite can run on PHP 8.3.
+
 ## [0.25.1] - 2026-11-25
 
 ### Fixed
