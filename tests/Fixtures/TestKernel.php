@@ -23,6 +23,42 @@ final class TestKernel extends Kernel
 
     public const string NOW = '2026-11-25 14:02:05';
 
+    private mixed $exceptionHandlerBeforeBoot = null;
+
+    private bool $restoresExceptionHandler = false;
+
+    public function boot(): void
+    {
+        if (!$this->booted) {
+            $this->exceptionHandlerBeforeBoot = self::currentExceptionHandler();
+            $this->restoresExceptionHandler = true;
+        }
+
+        parent::boot();
+    }
+
+    public function shutdown(): void
+    {
+        parent::shutdown();
+
+        if (!$this->restoresExceptionHandler) {
+            return;
+        }
+
+        $this->restoresExceptionHandler = false;
+        for ($i = 0; $i < 5 && self::currentExceptionHandler() !== $this->exceptionHandlerBeforeBoot; ++$i) {
+            restore_exception_handler();
+        }
+    }
+
+    private static function currentExceptionHandler(): mixed
+    {
+        $handler = set_exception_handler(null);
+        restore_exception_handler();
+
+        return $handler;
+    }
+
     public function registerBundles(): iterable
     {
         yield new FrameworkBundle();
