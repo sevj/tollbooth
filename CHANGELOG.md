@@ -8,6 +8,8 @@ of `README.md` for the definition of the public API.
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-11-28
+
 ### Changed
 - The Composer package is now `sevj/tollbooth`, matching its repository. It replaces
   `tollbooth/tollbooth-bundle`, so applications that require the old name keep resolving; change the
